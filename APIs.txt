@@ -1,0 +1,39 @@
+# Manzil Bharat - Required APIs for Full Functionality
+
+## Transport APIs
+1. Amadeus - Flight booking
+2. Skyscanner - Flight comparison
+3. Indian Railways API - Train booking
+4. RedBus API - Bus booking
+5. Ola/Uber API - Cab booking
+6. Vogo/Bounce API - Bike rental
+
+## Accommodation APIs
+7. OYO API - Hotel booking
+8. Booking.com API - Hotel booking
+9. Zomato API - Restaurant discovery
+
+## AI Tools APIs
+10. Google Maps API - Route planning
+11. Mapbox API - Route planning
+12. OpenWeatherMap API - Weather
+13. Google Translate API - Translation
+14. DeepL API - Translation
+
+## Backend Services APIs
+15. Firebase Auth - Authentication
+16. Auth0 - Authentication
+17. Razorpay API - Payments
+18. Stripe API - Payments
+19. SendGrid API - Email service
+20. Mailchimp API - Newsletter
+21. Twilio API - SMS notifications
+
+## Local Services APIs
+22. Google Places API - Dhabas, Kirana, Medical stores
+
+## Other APIs
+23. ExchangeRate-API - Currency exchange
+24. IATA API - Visa information
+
+Total: 24 APIs needed
