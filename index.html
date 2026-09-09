@@ -11,6 +11,7 @@
     <meta property="og:title" content="Manzil Bharat - Let's Travel Together">
     <meta property="og:description" content="Your trusted travel partner for cabs, bikes, flights, trains, buses, hotels, and more across India.">
     <meta property="og:type" content="website">
+    <meta property="og:image" content="homebackground.png">
     <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
@@ -1390,6 +1391,8 @@
             }
         }
 
+
+
         /* Print Styles */
         @media print {
             nav, .auth-section, .ai-tool, .search-bar {
@@ -1445,10 +1448,11 @@
             <h1>Let's travel in New India</h1>
             <p>Explore the world with Bhartiya dil.</p>
 
-            <form class="search-bar" role="search" action="search.html" method="get">
-                <input type="text" name="q" placeholder="Where do you want to go?" aria-label="Search destination">
-                <button type="submit" aria-label="Search"><i class="fas fa-search"></i> Let's go</button>
-            </form>
+            <div class="search-bar" role="search">
+                <input type="text" id="destinationInput" placeholder="Where do you want to go?" aria-label="Search destination">
+                <button type="button" onclick="searchDestination()"><i class="fas fa-search"></i> Let's go</button>
+            </div>
+
         </div>
 
         <div class="ai-tool">
@@ -1656,6 +1660,20 @@
                 }
             }, 250);
         });
+
+        document.getElementById('destinationInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') searchDestination();
+        });
+
+        function searchDestination() {
+            var destination = document.getElementById('destinationInput').value.trim();
+            if (destination === "") {
+                alert("Please enter a destination!");
+                return;
+            }
+            var mapsURL = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(destination);
+            window.open(mapsURL, "_blank");
+        }
     </script>
 </body>
 </html>
