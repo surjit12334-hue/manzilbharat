@@ -11,7 +11,6 @@
     <meta property="og:title" content="Manzil Bharat - Let's Travel Together">
     <meta property="og:description" content="Your trusted travel partner for cabs, bikes, flights, trains, buses, hotels, and more across India.">
     <meta property="og:type" content="website">
-    <meta property="og:image" content="homebackground.png">
     <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
@@ -38,13 +37,14 @@
             position: relative;
             min-height: 100vh;
             background: linear-gradient(135deg, rgba(26, 35, 126, 0.7), rgba(255, 107, 53, 0.5)),
-                        url('homebackground.png') center/cover no-repeat fixed;
+                        url('homebackground.png') center/cover no-repeat;
             display: flex;
             align-items: center;
             justify-content: center;
             text-align: center;
             color: white;
             padding: 5rem 5% 3rem;
+            will-change: padding;
         }
 
         /* Navigation */
@@ -53,6 +53,8 @@
             left: 30px;
             top: 50%;
             transform: translateY(-50%);
+            height: auto;
+            width: auto;
             background: rgba(0, 0, 0, 0.3);
             padding: 1.2rem;
             border-radius: 15px;
@@ -144,8 +146,6 @@
             padding: 0.6rem 1.2rem;
             border-radius: 25px;
             transition: background 0.3s, transform 0.3s;
-            flex-shrink: 0;
-            white-space: nowrap;
         }
 
         .auth-section .login-btn {
@@ -294,7 +294,6 @@
             color: white;
             padding: 0;
             position: relative;
-            margin-top: 0;
         }
 
         footer::before {
@@ -663,6 +662,13 @@
             color: #4CAF50;
         }
 
+        /* Base transitions for smooth resizing */
+        nav, .auth-section, .hero, .ai-tool, .search-bar, .footer-top,
+        .logo, .nav-links, .nav-links a, .hero-content h1, .hero-content p,
+        .ai-tool-item, .ai-tool-item span {
+            transition: all 0.3s ease;
+        }
+
         /* Extra Small (320px and below) - Base mobile */
         @media (max-width: 320px) {
             html {
@@ -670,8 +676,7 @@
             }
 
             .hero {
-                padding: 5rem 2% 2rem;
-                min-height: 100vh;
+                padding: 3rem 2% 1.5rem;
             }
 
             .hero-content h1 {
@@ -732,8 +737,6 @@
                 border-radius: 8px;
                 z-index: 1001;
                 gap: 0.3rem;
-                flex-wrap: wrap;
-                justify-content: flex-end;
             }
 
             .auth-section a {
@@ -855,8 +858,7 @@
             }
 
             .hero {
-                padding: 5rem 2% 2rem;
-                min-height: 100vh;
+                padding: 2rem 2%;
             }
 
             .hero-content h1 {
@@ -921,8 +923,6 @@
                 border-radius: 8px;
                 z-index: 1001;
                 gap: 0.3rem;
-                flex-wrap: wrap;
-                justify-content: flex-end;
             }
 
             .auth-section a {
@@ -1030,8 +1030,7 @@
             }
 
             .hero {
-                padding: 5rem 3% 2rem;
-                min-height: 100vh;
+                padding: 4rem 3% 2rem;
             }
 
             nav {
@@ -1154,7 +1153,6 @@
         @media (min-width: 769px) and (max-width: 1199px) {
             .hero {
                 padding: 0 4%;
-                min-height: 100vh;
             }
 
             nav {
@@ -1285,7 +1283,6 @@
         @media (min-width: 1200px) and (max-width: 1919px) {
             .hero {
                 padding: 0 6%;
-                min-height: 100vh;
             }
 
             nav {
@@ -1330,7 +1327,6 @@
 
             .hero {
                 padding: 0 10%;
-                min-height: 100vh;
             }
 
             nav {
@@ -1361,8 +1357,8 @@
         /* Landscape Mobile */
         @media (max-height: 500px) and (orientation: landscape) {
             .hero {
-                min-height: 100vh;
-                padding: 4rem 5% 2rem;
+                min-height: auto;
+                padding: 1.5rem 5%;
             }
 
             nav {
@@ -1391,8 +1387,6 @@
             }
         }
 
-
-
         /* Print Styles */
         @media print {
             nav, .auth-section, .ai-tool, .search-bar {
@@ -1400,7 +1394,6 @@
             }
 
             .hero {
-                min-height: auto;
                 height: auto;
                 background: none;
                 color: black;
@@ -1417,8 +1410,8 @@
     <!-- Hero Section with Navigation -->
     <header class="hero">
         <div class="auth-section">
-            <a href="#" class="login-btn"><i class="fas fa-sign-in-alt"></i> Login</a>
-            <a href="#" class="signup-btn"><i class="fas fa-user-plus"></i> Create Account</a>
+            <a href="login.html" class="login-btn"><i class="fas fa-sign-in-alt"></i> Login</a>
+            <a href="createaccount.html" class="signup-btn"><i class="fas fa-user-plus"></i> Create Account</a>
         </div>
         <nav aria-label="Main navigation">
             <a href="#" class="logo">Manzil Bharat</a>
@@ -1449,10 +1442,9 @@
             <p>Explore the world with Bhartiya dil.</p>
 
             <div class="search-bar" role="search">
-                <input type="text" id="destinationInput" placeholder="Where do you want to go?" aria-label="Search destination">
-                <button type="button" onclick="searchDestination()"><i class="fas fa-search"></i> Let's go</button>
+                <input type="text" placeholder="Where do you want to go?" aria-label="Search destination">
+                <button type="submit" aria-label="Search"><i class="fas fa-search"></i> Let's go</button>
             </div>
-
         </div>
 
         <div class="ai-tool">
@@ -1478,7 +1470,7 @@
     <footer id="footer">
             <div class="footer-top">
                 <div class="footer-brand">
-                    <a href="index.html" class="footer-logo">Manzil Bharat</a>
+                    <a href="#" class="footer-logo">Manzil Bharat</a>
                     <p class="footer-tagline">Bharat ka bharosa. Your trusted travel partner for cabs, bikes, flights, trains, buses, hotels, and more across India.</p>
                     <div class="footer-social" aria-label="Social media links">
                         <a href="https://www.facebook.com/surjit12334" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
@@ -1590,7 +1582,7 @@
 
             <div class="footer-bottom">
                 <div class="footer-copyright">
-                    &copy; 2026 <a href="index.html">Manzil Bharat</a>. All rights reserved. Made with <i class="fas fa-heart" style="color: #FF6B35;"></i> in India
+                    &copy; 2026 <a href="#">Manzil Bharat</a>. All rights reserved. Made with <i class="fas fa-heart" style="color: #FF6B35;"></i> in India
                 </div>
                 <div class="footer-payments">
                     <span>We accept:</span>
@@ -1660,20 +1652,6 @@
                 }
             }, 250);
         });
-
-        document.getElementById('destinationInput').addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') searchDestination();
-        });
-
-        function searchDestination() {
-            var destination = document.getElementById('destinationInput').value.trim();
-            if (destination === "") {
-                alert("Please enter a destination!");
-                return;
-            }
-            var mapsURL = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(destination);
-            window.open(mapsURL, "_blank");
-        }
     </script>
 </body>
 </html>

@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Manzil Bharat</title>
+    <link rel="icon" type="image/png" href="icon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { font-size: 16px; scroll-behavior: smooth; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; color: #333; min-height: 100vh; display: flex; }
+
+        /* Sidebar */
+        .sidebar { width: 240px; background: linear-gradient(180deg, #0a1628 0%, #0d1f3c 100%); color: white; padding: 1.5rem 0; position: fixed; height: 100vh; overflow-y: auto; z-index: 100; transition: transform 0.3s; }
+        .sidebar-header { padding: 0 1.5rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.08); }
+        .sidebar-header .logo { font-family: 'Pacifico', cursive; font-size: 1.5rem; color: #FF6B35; text-decoration: none; display: block; margin-bottom: 0.3rem; }
+        .sidebar-header .tag { font-size: 0.75rem; color: #8892b0; background: rgba(255,107,53,0.15); padding: 0.2rem 0.6rem; border-radius: 20px; display: inline-block; }
+
+        .sidebar-nav { padding: 1rem 0; }
+        .sidebar-nav a { display: flex; align-items: center; gap: 0.8rem; padding: 0.8rem 1.5rem; color: #8892b0; text-decoration: none; font-size: 0.9rem; transition: all 0.3s; border-left: 3px solid transparent; }
+        .sidebar-nav a:hover, .sidebar-nav a.active { color: white; background: rgba(255,107,53,0.1); border-left-color: #FF6B35; }
+        .sidebar-nav a i { width: 20px; text-align: center; }
+
+        .sidebar-footer { position: absolute; bottom: 0; left: 0; right: 0; padding: 1rem 1.5rem; border-top: 1px solid rgba(255,255,255,0.08); }
+        .sidebar-footer a { color: #8892b0; text-decoration: none; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; transition: color 0.3s; }
+        .sidebar-footer a:hover { color: #FF6B35; }
+
+        /* Main */
+        .main { margin-left: 240px; flex: 1; padding: 1.5rem 2rem; min-height: 100vh; }
+
+        .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        .topbar h1 { font-size: 1.5rem; color: #0a1628; }
+        .topbar .back { color: #FF6B35; text-decoration: none; font-weight: 500; display: flex; align-items: center; gap: 0.4rem; }
+        .topbar .back:hover { text-decoration: underline; }
+
+        /* Stats */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.2rem; margin-bottom: 2rem; }
+        .stat-card { background: white; border-radius: 14px; padding: 1.3rem; box-shadow: 0 2px 12px rgba(0,0,0,0.05); display: flex; align-items: center; gap: 1rem; transition: transform 0.3s; }
+        .stat-card:hover { transform: translateY(-3px); }
+        .stat-card .icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; color: white; }
+        .stat-card .icon.users { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .stat-card .icon.bookings { background: linear-gradient(135deg, #FF6B35, #E65100); }
+        .stat-card .icon.payments { background: linear-gradient(135deg, #11998e, #38ef7d); }
+        .stat-card .icon.revenue { background: linear-gradient(135deg, #f093fb, #f5576c); }
+        .stat-card .info h3 { font-size: 1.5rem; color: #0a1628; }
+        .stat-card .info p { font-size: 0.8rem; color: #888; }
+
+        /* Tabs */
+        .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+        .tab-btn { padding: 0.6rem 1.2rem; border: 2px solid #e0e5ec; background: white; border-radius: 10px; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: #666; transition: all 0.3s; }
+        .tab-btn:hover { border-color: #FF6B35; color: #FF6B35; }
+        .tab-btn.active { background: #FF6B35; color: white; border-color: #FF6B35; }
+
+        /* Table */
+        .table-container { background: white; border-radius: 14px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); overflow: hidden; }
+        .table-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid #f0f0f0; }
+        .table-header h2 { font-size: 1.1rem; color: #0a1628; }
+        .search-box { display: flex; align-items: center; gap: 0.5rem; background: #f5f7fa; border-radius: 10px; padding: 0.5rem 0.8rem; }
+        .search-box input { border: none; background: none; outline: none; font-size: 0.85rem; width: 180px; }
+        .search-box i { color: #aaa; }
+
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 0.8rem 1.5rem; font-size: 0.75rem; text-transform: uppercase; color: #888; background: #fafbfc; border-bottom: 1px solid #f0f0f0; font-weight: 600; letter-spacing: 0.5px; }
+        td { padding: 0.9rem 1.5rem; border-bottom: 1px solid #f5f5f5; font-size: 0.9rem; color: #444; }
+        tr:hover td { background: #fafbfc; }
+
+        .badge { padding: 0.25rem 0.7rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; display: inline-block; }
+        .badge.pending { background: #fff3e0; color: #e65100; }
+        .badge.completed { background: #e8f5e9; color: #2e7d32; }
+        .badge.confirmed { background: #e3f2fd; color: #1565c0; }
+        .badge.cancelled { background: #ffebee; color: #c62828; }
+        .badge.refunded { background: #f3e5f5; color: #7b1fa2; }
+
+        .action-btns { display: flex; gap: 0.4rem; }
+        .action-btn { width: 30px; height: 30px; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; transition: all 0.3s; }
+        .action-btn.view { background: #e3f2fd; color: #1565c0; }
+        .action-btn.view:hover { background: #1565c0; color: white; }
+        .action-btn.edit { background: #fff3e0; color: #e65100; }
+        .action-btn.edit:hover { background: #e65100; color: white; }
+        .action-btn.delete { background: #ffebee; color: #c62828; }
+        .action-btn.delete:hover { background: #c62828; color: white; }
+
+        .empty-state { text-align: center; padding: 3rem; color: #aaa; }
+        .empty-state i { font-size: 3rem; margin-bottom: 1rem; display: block; }
+
+        /* Modal */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: white; border-radius: 16px; padding: 2rem; width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto; }
+        .modal h2 { font-size: 1.2rem; color: #0a1628; margin-bottom: 1rem; }
+        .modal .detail-row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #f5f5f5; }
+        .modal .detail-row .label { color: #888; font-size: 0.85rem; }
+        .modal .detail-row .value { font-weight: 600; color: #333; font-size: 0.9rem; }
+        .modal-close { background: #FF6B35; color: white; border: none; padding: 0.6rem 1.5rem; border-radius: 10px; cursor: pointer; font-weight: 600; margin-top: 1rem; width: 100%; }
+        .modal-close:hover { background: #E65100; }
+
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main { margin-left: 0; padding: 1rem; }
+            .mobile-toggle { display: block; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            th, td { padding: 0.6rem 0.8rem; font-size: 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a href="index.html" class="logo">Manzil Bharat</a>
+            <span class="tag">Admin Panel</span>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="#" class="active" data-tab="dashboard"><i class="fas fa-th-large"></i> Dashboard</a>
+            <a href="#" data-tab="users"><i class="fas fa-users"></i> Users</a>
+            <a href="#" data-tab="bookings"><i class="fas fa-ticket-alt"></i> Bookings</a>
+            <a href="#" data-tab="payments"><i class="fas fa-credit-card"></i> Payments</a>
+        </nav>
+        <div class="sidebar-footer">
+            <a href="#" onclick="logout()" style="margin-bottom:0.5rem;"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            <a href="index.html"><i class="fas fa-arrow-left"></i> Back to Site</a>
+        </div>
+    </aside>
+
+    <main class="main">
+        <div class="topbar">
+            <h1 id="pageTitle">Dashboard</h1>
+            <a href="index.html" class="back"><i class="fas fa-arrow-left"></i> Back to Site</a>
+        </div>
+
+        <!-- Dashboard Tab -->
+        <div id="tab-dashboard" class="tab-content">
+            <div class="stats-grid">
+                <div class="stat-card"><div class="icon users"><i class="fas fa-users"></i></div><div class="info"><h3 id="statUsers">0</h3><p>Total Users</p></div></div>
+                <div class="stat-card"><div class="icon bookings"><i class="fas fa-ticket-alt"></i></div><div class="info"><h3 id="statBookings">0</h3><p>Total Bookings</p></div></div>
+                <div class="stat-card"><div class="icon payments"><i class="fas fa-credit-card"></i></div><div class="info"><h3 id="statPayments">0</h3><p>Total Payments</p></div></div>
+                <div class="stat-card"><div class="icon revenue"><i class="fas fa-rupee-sign"></i></div><div class="info"><h3 id="statRevenue">0</h3><p>Revenue (INR)</p></div></div>
+            </div>
+
+            <div class="table-container">
+                <div class="table-header"><h2>Recent Activity</h2></div>
+                <table>
+                    <thead><tr><th>Type</th><th>Details</th><th>Status</th><th>Date</th></tr></thead>
+                    <tbody id="recentBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Users Tab -->
+        <div id="tab-users" class="tab-content" style="display:none;">
+            <div class="table-container">
+                <div class="table-header">
+                    <h2>All Users</h2>
+                    <div class="search-box"><i class="fas fa-search"></i><input type="text" id="searchUsers" placeholder="Search users..."></div>
+                </div>
+                <table>
+                    <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Joined</th><th>Actions</th></tr></thead>
+                    <tbody id="usersBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Bookings Tab -->
+        <div id="tab-bookings" class="tab-content" style="display:none;">
+            <div class="table-container">
+                <div class="table-header">
+                    <h2>All Bookings</h2>
+                    <div class="search-box"><i class="fas fa-search"></i><input type="text" id="searchBookings" placeholder="Search bookings..."></div>
+                </div>
+                <table>
+                    <thead><tr><th>ID</th><th>User</th><th>Type</th><th>Route</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody id="bookingsBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Payments Tab -->
+        <div id="tab-payments" class="tab-content" style="display:none;">
+            <div class="table-container">
+                <div class="table-header">
+                    <h2>All Payments</h2>
+                    <div class="search-box"><i class="fas fa-search"></i><input type="text" id="searchPayments" placeholder="Search payments..."></div>
+                </div>
+                <table>
+                    <thead><tr><th>ID</th><th>User</th><th>Amount</th><th>Payment ID</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+                    <tbody id="paymentsBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Detail Modal -->
+    <div class="modal-overlay" id="modal">
+        <div class="modal">
+            <h2 id="modalTitle">Details</h2>
+            <div id="modalBody"></div>
+            <button class="modal-close" onclick="closeModal()">Close</button>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div class="modal-overlay active" id="loginModal">
+        <div class="modal">
+            <h2>Admin Login</h2>
+            <form id="loginForm" onsubmit="return false;">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" placeholder="admin@example.com" required style="width:100%;padding:0.8rem;border:2px solid #e0e5ec;border-radius:12px;font-size:1rem;outline:none;">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="loginPassword" placeholder="Password" required style="width:100%;padding:0.8rem;border:2px solid #e0e5ec;border-radius:12px;font-size:1rem;outline:none;">
+                </div>
+                <p id="loginError" style="color:red;font-size:0.85rem;margin-bottom:0.5rem;display:none;"></p>
+                <button type="submit" class="modal-close" id="loginBtn">Log In</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API = '';
+        let currentTab = 'dashboard';
+        let adminToken = localStorage.getItem('adminToken');
+
+        // Login
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            var email = document.getElementById('loginEmail').value;
+            var password = document.getElementById('loginPassword').value;
+            var errEl = document.getElementById('loginError');
+            try {
+                var res = await fetch(API + '/api/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email, password: password })
+                });
+                var data = await res.json();
+                if (!res.ok) { errEl.textContent = data.error; errEl.style.display = 'block'; return; }
+                adminToken = data.token;
+                localStorage.setItem('adminToken', adminToken);
+                document.getElementById('loginModal').classList.remove('active');
+                loadDashboard();
+            } catch (err) { errEl.textContent = 'Login failed. Try again.'; errEl.style.display = 'block'; }
+        });
+
+        function authHeaders() { return { 'Content-Type': 'application/json', 'x-admin-token': adminToken }; }
+
+        async function authFetch(url, opts) {
+            opts = opts || {};
+            opts.headers = Object.assign(opts.headers || {}, authHeaders());
+            var res = await fetch(API + url, opts);
+            if (res.status === 401) { localStorage.removeItem('adminToken'); adminToken = null; document.getElementById('loginModal').classList.add('active'); return null; }
+            return res;
+        }
+
+        // Check if already logged in
+        if (adminToken) { document.getElementById('loginModal').classList.remove('active'); }
+
+        // Tab navigation
+        document.querySelectorAll('.sidebar-nav a').forEach(function(link) {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                var tab = this.dataset.tab;
+                switchTab(tab);
+            });
+        });
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-content').forEach(function(el) { el.style.display = 'none'; });
+            document.getElementById('tab-' + tab).style.display = 'block';
+            document.querySelectorAll('.sidebar-nav a').forEach(function(a) { a.classList.remove('active'); });
+            document.querySelector('[data-tab="' + tab + '"]').classList.add('active');
+            document.getElementById('pageTitle').textContent = tab.charAt(0).toUpperCase() + tab.slice(1);
+            loadTabData(tab);
+        }
+
+        function loadTabData(tab) {
+            if (tab === 'dashboard') loadDashboard();
+            else if (tab === 'users') loadUsers();
+            else if (tab === 'bookings') loadBookings();
+            else if (tab === 'payments') loadPayments();
+        }
+
+        // Dashboard
+        async function loadDashboard() {
+            try {
+                var res = await authFetch('/api/stats');
+                if (!res) return;
+                var stats = await res.json();
+                document.getElementById('statUsers').textContent = stats.totalUsers;
+                document.getElementById('statBookings').textContent = stats.totalBookings;
+                document.getElementById('statPayments').textContent = stats.totalPayments;
+                document.getElementById('statRevenue').textContent = '\u20B9' + stats.totalRevenue.toLocaleString('en-IN');
+
+                var res2 = await authFetch('/api/recent');
+                var recent = await res2.json();
+                var html = '';
+                recent.bookings.forEach(function(b) {
+                    html += '<tr><td><span class="badge confirmed">Booking</span></td><td>' + esc(b.source) + ' → ' + esc(b.destination) + '</td><td><span class="badge ' + b.status + '">' + b.status + '</span></td><td>' + fmtDate(b.created_at) + '</td></tr>';
+                });
+                recent.payments.forEach(function(p) {
+                    html += '<tr><td><span class="badge completed">Payment</span></td><td>₹' + p.amount + ' (' + esc(p.currency) + ')</td><td><span class="badge ' + p.status + '">' + p.status + '</span></td><td>' + fmtDate(p.created_at) + '</td></tr>';
+                });
+                recent.users.forEach(function(u) {
+                    html += '<tr><td><span class="badge pending">User</span></td><td>' + esc(u.name || 'N/A') + ' (' + esc(u.email) + ')</td><td>-</td><td>' + fmtDate(u.created_at) + '</td></tr>';
+                });
+                document.getElementById('recentBody').innerHTML = html || '<tr><td colspan="4" class="empty-state">No recent activity</td></tr>';
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // Users
+        async function loadUsers() {
+            try {
+                var res = await authFetch('/api/users');
+                if (!res) return;
+                var users = await res.json();
+                renderUsers(users);
+            } catch (err) { console.error(err); }
+        }
+
+        function renderUsers(users) {
+            var html = '';
+            if (users.length === 0) { document.getElementById('usersBody').innerHTML = '<tr><td colspan="6" class="empty-state"><i class="fas fa-users"></i>No users yet</td></tr>'; return; }
+            users.forEach(function(u) {
+                html += '<tr><td>' + u.id + '</td><td>' + esc(u.name || '-') + '</td><td>' + esc(u.email) + '</td><td>' + esc(u.phone || '-') + '</td><td>' + fmtDate(u.created_at) + '</td><td><div class="action-btns"><button class="action-btn view" onclick="viewUser(' + u.id + ')"><i class="fas fa-eye"></i></button><button class="action-btn delete" onclick="deleteUser(' + u.id + ')"><i class="fas fa-trash"></i></button></div></td></tr>';
+            });
+            document.getElementById('usersBody').innerHTML = html;
+        }
+
+        async function viewUser(id) {
+            var res = await authFetch('/api/users/' + id);
+            if (!res) return;
+            var u = await res.json();
+            showModal('User Details', [
+                { label: 'ID', value: u.id },
+                { label: 'Name', value: u.name || '-' },
+                { label: 'Email', value: u.email },
+                { label: 'Phone', value: u.phone || '-' },
+                { label: 'Firebase UID', value: u.firebase_uid },
+                { label: 'Joined', value: fmtDate(u.created_at) },
+            ]);
+        }
+
+        async function deleteUser(id) {
+            if (!confirm('Delete this user?')) return;
+            await authFetch('/api/users/' + id, { method: 'DELETE' });
+            loadUsers();
+        }
+
+        // Bookings
+        async function loadBookings() {
+            try {
+                var res = await authFetch('/api/bookings');
+                if (!res) return;
+                var bookings = await res.json();
+                renderBookings(bookings);
+            } catch (err) { console.error(err); }
+        }
+
+        function renderBookings(bookings) {
+            var html = '';
+            if (bookings.length === 0) { document.getElementById('bookingsBody').innerHTML = '<tr><td colspan="7" class="empty-state"><i class="fas fa-ticket-alt"></i>No bookings yet</td></tr>'; return; }
+            bookings.forEach(function(b) {
+                html += '<tr><td>' + b.id + '</td><td>' + esc(b.user_name || '-') + '</td><td>' + esc(b.booking_type) + '</td><td>' + esc(b.source || '-') + ' → ' + esc(b.destination || '-') + '</td><td>₹' + (b.amount || 0) + '</td><td><span class="badge ' + b.status + '">' + b.status + '</span></td><td><div class="action-btns"><button class="action-btn view" onclick="viewBooking(' + b.id + ')"><i class="fas fa-eye"></i></button><button class="action-btn edit" onclick="updateBookingStatus(' + b.id + ')"><i class="fas fa-check"></i></button><button class="action-btn delete" onclick="deleteBooking(' + b.id + ')"><i class="fas fa-trash"></i></button></div></td></tr>';
+            });
+            document.getElementById('bookingsBody').innerHTML = html;
+        }
+
+        async function viewBooking(id) {
+            var res = await authFetch('/api/bookings/' + id);
+            if (!res) return;
+            var b = await res.json();
+            showModal('Booking Details', [
+                { label: 'ID', value: b.id },
+                { label: 'User', value: (b.user_name || '-') + ' (' + (b.user_email || '') + ')' },
+                { label: 'Type', value: b.booking_type },
+                { label: 'Provider', value: b.provider || '-' },
+                { label: 'Source', value: b.source || '-' },
+                { label: 'Destination', value: b.destination || '-' },
+                { label: 'Travel Date', value: b.travel_date ? fmtDate(b.travel_date) : '-' },
+                { label: 'Amount', value: '₹' + (b.amount || 0) },
+                { label: 'Status', value: b.status },
+                { label: 'Created', value: fmtDate(b.created_at) },
+            ]);
+        }
+
+        async function updateBookingStatus(id) {
+            var status = prompt('Enter new status (pending/confirmed/completed/cancelled):');
+            if (!status) return;
+            await authFetch('/api/bookings/' + id, { method: 'PUT', body: JSON.stringify({ status: status }) });
+            loadBookings();
+        }
+
+        async function deleteBooking(id) {
+            if (!confirm('Delete this booking?')) return;
+            await authFetch('/api/bookings/' + id, { method: 'DELETE' });
+            loadBookings();
+        }
+
+        // Payments
+        async function loadPayments() {
+            try {
+                var res = await authFetch('/api/payments');
+                if (!res) return;
+                var payments = await res.json();
+                renderPayments(payments);
+            } catch (err) { console.error(err); }
+        }
+
+        function renderPayments(payments) {
+            var html = '';
+            if (payments.length === 0) { document.getElementById('paymentsBody').innerHTML = '<tr><td colspan="7" class="empty-state"><i class="fas fa-credit-card"></i>No payments yet</td></tr>'; return; }
+            payments.forEach(function(p) {
+                html += '<tr><td>' + p.id + '</td><td>' + esc(p.user_name || '-') + '</td><td>₹' + p.amount + ' ' + esc(p.currency) + '</td><td>' + esc(p.razorpay_payment_id || '-') + '</td><td><span class="badge ' + p.status + '">' + p.status + '</span></td><td>' + fmtDate(p.created_at) + '</td><td><div class="action-btns"><button class="action-btn view" onclick="viewPayment(' + p.id + ')"><i class="fas fa-eye"></i></button></div></td></tr>';
+            });
+            document.getElementById('paymentsBody').innerHTML = html;
+        }
+
+        async function viewPayment(id) {
+            var res = await authFetch('/api/payments/' + id);
+            if (!res) return;
+            var p = await res.json();
+            showModal('Payment Details', [
+                { label: 'ID', value: p.id },
+                { label: 'User', value: (p.user_name || '-') + ' (' + (p.user_email || '') + ')' },
+                { label: 'Amount', value: '₹' + p.amount + ' ' + p.currency },
+                { label: 'Razorpay Payment ID', value: p.razorpay_payment_id || '-' },
+                { label: 'Razorpay Order ID', value: p.razorpay_order_id || '-' },
+                { label: 'Booking Type', value: p.booking_type || '-' },
+                { label: 'Status', value: p.status },
+                { label: 'Date', value: fmtDate(p.created_at) },
+            ]);
+        }
+
+        // Search
+        document.getElementById('searchUsers').addEventListener('input', async function() {
+            var q = this.value.toLowerCase();
+            var res = await authFetch('/api/users');
+            if (!res) return;
+            var users = await res.json();
+            renderUsers(users.filter(function(u) { return (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q) || (u.phone || '').includes(q); }));
+        });
+
+        document.getElementById('searchBookings').addEventListener('input', async function() {
+            var q = this.value.toLowerCase();
+            var res = await authFetch('/api/bookings');
+            if (!res) return;
+            var bookings = await res.json();
+            renderBookings(bookings.filter(function(b) { return (b.user_name || '').toLowerCase().includes(q) || (b.source || '').toLowerCase().includes(q) || (b.destination || '').toLowerCase().includes(q) || (b.booking_type || '').toLowerCase().includes(q); }));
+        });
+
+        document.getElementById('searchPayments').addEventListener('input', async function() {
+            var q = this.value.toLowerCase();
+            var res = await authFetch('/api/payments');
+            if (!res) return;
+            var payments = await res.json();
+            renderPayments(payments.filter(function(p) { return (p.user_name || '').toLowerCase().includes(q) || (p.razorpay_payment_id || '').toLowerCase().includes(q); }));
+        });
+
+        // Helpers
+        function showModal(title, details) {
+            document.getElementById('modalTitle').textContent = title;
+            var html = '';
+            details.forEach(function(d) { html += '<div class="detail-row"><span class="label">' + d.label + '</span><span class="value">' + esc(String(d.value)) + '</span></div>'; });
+            document.getElementById('modalBody').innerHTML = html;
+            document.getElementById('modal').classList.add('active');
+        }
+
+        function closeModal() { document.getElementById('modal').classList.remove('active'); }
+
+        document.getElementById('modal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+
+        function fmtDate(d) { if (!d) return '-'; return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+        function esc(s) { var div = document.createElement('div'); div.appendChild(document.createTextNode(s)); return div.innerHTML; }
+
+        // Logout
+        async function logout() {
+            await authFetch('/api/admin/logout', { method: 'POST' });
+            localStorage.removeItem('adminToken');
+            adminToken = null;
+            document.getElementById('loginModal').classList.add('active');
+        }
+
+        // Init
+        if (adminToken) loadDashboard();
+    </script>
+</body>
+</html>
