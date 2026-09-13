@@ -27,8 +27,6 @@
         .about-section { max-width: 900px; margin: 0 auto; padding: 4rem 5%; }
         .about-section h2 { font-size: 1.4rem; color: #0a1628; margin: 2rem 0 1rem; }
         .about-section p { color: #555; margin-bottom: 1rem; line-height: 1.8; }
-        .about-section a { color: #FF6B35; text-decoration: none; }
-        .about-section a:hover { text-decoration: underline; }
 
         .team-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; margin-top: 2rem; }
         .team-card { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.06); text-align: center; }
@@ -55,8 +53,8 @@
             .menu-toggle { display: block; }
         }
         @media (max-width: 480px) {
-            .page-hero { padding: 7rem 5% 3rem; }
             .about-section { padding: 2rem 5%; }
+            .page-hero { padding: 7rem 5% 3rem; }
             .team-card img { height: 250px; }
         }
     </style>
@@ -97,7 +95,7 @@
                     <a href="mailto:surjit123408@gmail.com" aria-label="Email" style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; color: white; background: #FF6B35; text-decoration: none; margin-top: 0.5rem; margin-left: 0.5rem; transition: transform 0.3s;"><i class="fas fa-envelope"></i></a>
                 </div>
             </div>
-            <!-- Add more team members here -->
+
         </div>
 
         <h2>Our Values</h2>
@@ -132,12 +130,12 @@
     </footer>
 
     <script>
-        const menuToggle = document.getElementById('menuToggle');
-        const navLinks = document.getElementById('navLinks');
+        var menuToggle = document.getElementById('menuToggle');
+        var navLinks = document.getElementById('navLinks');
         menuToggle.addEventListener('click', function(e) {
             e.stopPropagation();
             navLinks.classList.toggle('active');
-            const icon = this.querySelector('i');
+            var icon = this.querySelector('i');
             icon.classList.toggle('fa-bars');
             icon.classList.toggle('fa-times');
         });

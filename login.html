@@ -52,7 +52,6 @@
         .social-btn:hover { border-color: #FF6B35; background: #fff5f0; }
         .social-btn i { font-size: 1.2rem; }
         .social-btn.google i { color: #db4437; }
-        .social-btn.github i { color: #333; }
 
         .auth-footer { text-align: center; margin-top: 1.5rem; font-size: 0.9rem; color: #666; }
         .auth-footer a { color: #FF6B35; text-decoration: none; font-weight: 600; }
@@ -92,7 +91,6 @@
 
             <div class="social-btns">
                 <a href="#" class="social-btn google"><i class="fab fa-google"></i> Google</a>
-                <a href="#" class="social-btn github"><i class="fab fa-github"></i> GitHub</a>
             </div>
 
             <div class="divider">or log in with email</div>
@@ -125,28 +123,5 @@
         <div class="footer-bottom">&copy; 2026 Manzil Bharat. All rights reserved.</div>
     </footer>
 
-    <script>
-        const menuToggle = document.getElementById('menuToggle');
-        const navLinks = document.getElementById('navLinks');
-        menuToggle.addEventListener('click', function(e) {
-            e.stopPropagation();
-            navLinks.classList.toggle('active');
-            const icon = this.querySelector('i');
-            icon.classList.toggle('fa-bars');
-            icon.classList.toggle('fa-times');
-        });
-        document.addEventListener('click', function(e) {
-            if (!navLinks.contains(e.target) && !menuToggle.contains(e.target)) {
-                navLinks.classList.remove('active');
-                menuToggle.querySelector('i').classList.add('fa-bars');
-                menuToggle.querySelector('i').classList.remove('fa-times');
-            }
-        });
-
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            alert('Login successful! Welcome to Manzil Bharat.');
-        });
-    </script>
 </body>
 </html>

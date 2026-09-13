@@ -47,12 +47,6 @@
         .stat-card .info h3 { font-size: 1.5rem; color: #0a1628; }
         .stat-card .info p { font-size: 0.8rem; color: #888; }
 
-        /* Tabs */
-        .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
-        .tab-btn { padding: 0.6rem 1.2rem; border: 2px solid #e0e5ec; background: white; border-radius: 10px; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: #666; transition: all 0.3s; }
-        .tab-btn:hover { border-color: #FF6B35; color: #FF6B35; }
-        .tab-btn.active { background: #FF6B35; color: white; border-color: #FF6B35; }
-
         /* Table */
         .table-container { background: white; border-radius: 14px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); overflow: hidden; }
         .table-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid #f0f0f0; }
@@ -100,7 +94,6 @@
             .sidebar { transform: translateX(-100%); }
             .sidebar.open { transform: translateX(0); }
             .main { margin-left: 0; padding: 1rem; }
-            .mobile-toggle { display: block; }
             .stats-grid { grid-template-columns: 1fr 1fr; }
             th, td { padding: 0.6rem 0.8rem; font-size: 0.8rem; }
         }
@@ -214,14 +207,12 @@
                     <input type="password" id="loginPassword" placeholder="Password" required style="width:100%;padding:0.8rem;border:2px solid #e0e5ec;border-radius:12px;font-size:1rem;outline:none;">
                 </div>
                 <p id="loginError" style="color:red;font-size:0.85rem;margin-bottom:0.5rem;display:none;"></p>
-                <button type="submit" class="modal-close" id="loginBtn">Log In</button>
+                <button type="submit" class="modal-close">Log In</button>
             </form>
         </div>
     </div>
 
     <script>
-        const API = '';
-        let currentTab = 'dashboard';
         let adminToken = localStorage.getItem('adminToken');
 
         // Login
@@ -231,7 +222,7 @@
             var password = document.getElementById('loginPassword').value;
             var errEl = document.getElementById('loginError');
             try {
-                var res = await fetch(API + '/api/admin/login', {
+                var res = await fetch('/api/admin/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email: email, password: password })
@@ -250,7 +241,7 @@
         async function authFetch(url, opts) {
             opts = opts || {};
             opts.headers = Object.assign(opts.headers || {}, authHeaders());
-            var res = await fetch(API + url, opts);
+            var res = await fetch(url, opts);
             if (res.status === 401) { localStorage.removeItem('adminToken'); adminToken = null; document.getElementById('loginModal').classList.add('active'); return null; }
             return res;
         }
@@ -268,7 +259,6 @@
         });
 
         function switchTab(tab) {
-            currentTab = tab;
             document.querySelectorAll('.tab-content').forEach(function(el) { el.style.display = 'none'; });
             document.getElementById('tab-' + tab).style.display = 'block';
             document.querySelectorAll('.sidebar-nav a').forEach(function(a) { a.classList.remove('active'); });
