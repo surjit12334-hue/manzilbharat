@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us - Manzil Bharat</title>
+    <link rel="icon" type="image/png" href="icon.png">
+    <meta name="description" content="Learn about Manzil Bharat — the team building India's trusted travel platform.">
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { font-size: 16px; scroll-behavior: smooth; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; overflow-x: hidden; background: #f5f7fa; }
+
+        nav { position: fixed; top: 0; left: 0; right: 0; background: rgba(10, 22, 40, 0.95); backdrop-filter: blur(10px); padding: 1rem 5%; display: flex; align-items: center; justify-content: space-between; z-index: 1000; }
+        .logo { font-family: 'Pacifico', cursive; font-size: 1.5rem; color: #FF6B35; text-decoration: none; }
+        .nav-links { display: flex; list-style: none; gap: 2rem; }
+        .nav-links a { text-decoration: none; color: white; font-weight: 500; transition: color 0.3s; }
+        .nav-links a:hover { color: #FF6B35; }
+        .menu-toggle { display: none; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+
+        .page-hero { background: linear-gradient(135deg, rgba(26, 35, 126, 0.85), rgba(255, 107, 53, 0.7)); padding: 8rem 5% 4rem; text-align: center; color: white; }
+        .page-hero h1 { font-size: clamp(2rem, 5vw, 3rem); margin-bottom: 1rem; }
+        .page-hero p { font-size: clamp(1rem, 2vw, 1.2rem); opacity: 0.9; max-width: 600px; margin: 0 auto; }
+
+        .about-section { max-width: 900px; margin: 0 auto; padding: 4rem 5%; }
+        .about-section h2 { font-size: 1.4rem; color: #0a1628; margin: 2rem 0 1rem; }
+        .about-section p { color: #555; margin-bottom: 1rem; line-height: 1.8; }
+
+        .team-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; margin-top: 2rem; }
+        .team-card { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.06); text-align: center; }
+        .team-card img { width: 180px; height: 180px; object-fit: cover; object-position: top; border-radius: 50%; margin: 1.5rem auto 0; }
+        .team-card .team-info { padding: 1.5rem; }
+        .team-card h3 { font-size: 1.2rem; color: #0a1628; margin-bottom: 0.3rem; }
+        .team-card .team-role { color: #FF6B35; font-weight: 600; font-size: 0.95rem; margin-bottom: 0.8rem; }
+        .team-card p { color: #555; font-size: 0.95rem; line-height: 1.6; }
+
+        .values-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
+        .value-card { background: white; border-radius: 16px; padding: 1.5rem; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+        .value-card i { font-size: 2rem; color: #FF6B35; margin-bottom: 1rem; }
+        .value-card h3 { font-size: 1.1rem; color: #0a1628; margin-bottom: 0.5rem; }
+        .value-card p { color: #666; font-size: 0.95rem; }
+
+        footer { background: linear-gradient(180deg, #0a1628 0%, #0d1f3c 100%); color: white; padding: 3rem 5% 1.5rem; text-align: center; }
+        footer .footer-logo { font-family: 'Pacifico', cursive; font-size: 1.8rem; color: #FF6B35; text-decoration: none; display: inline-block; margin-bottom: 1rem; }
+        footer p { color: #8892b0; margin-bottom: 1.5rem; }
+        footer .footer-bottom { border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 1.5rem; color: #5a6a8a; font-size: 0.9rem; }
+
+        @media (max-width: 768px) {
+            .nav-links { display: none; position: absolute; top: 100%; left: 0; right: 0; background: rgba(10, 22, 40, 0.98); flex-direction: column; padding: 1rem 5%; gap: 1rem; }
+            .nav-links.active { display: flex; }
+            .menu-toggle { display: block; }
+        }
+        @media (max-width: 480px) {
+            .about-section { padding: 2rem 5%; }
+            .page-hero { padding: 7rem 5% 3rem; }
+            .team-card img { height: 250px; }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html" class="logo">Manzil Bharat</a>
+        <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="contact.html">Contact</a></li>
+        </ul>
+    </nav>
+
+    <section class="page-hero">
+        <h1>About Us</h1>
+        <p>The people building India's trusted travel platform.</p>
+    </section>
+
+    <section class="about-section">
+        <h2>Our Story</h2>
+        <p>Manzil Bharat was born from a simple idea: travel across India should be seamless, affordable, and accessible to everyone. We started as a small team of technology enthusiasts determined to solve real-world travel problems through innovation.</p>
+        <p>Today, Manzil Bharat is building an AI-powered platform that connects travelers with cabs, bikes, flights, trains, buses, hotels, restaurants, and local services — all in one place.</p>
+
+        <h2>Meet the Team</h2>
+        <div class="team-grid">
+            <div class="team-card">
+                <img src="surjit.jpeg" alt="Surjit Singh — Founder & Team Leader">
+                <div class="team-info">
+                    <h3>Surjit Singh</h3>
+                    <div class="team-role">Founder & Team Leader</div>
+                    <p>I'm Surjit, a technology enthusiast and aspiring cybersecurity professional with a passion for ethical hacking, web development, and AI-powered solutions. I enjoy learning new technologies, building innovative projects, and solving real-world problems through technology.</p>
+                    <a href="https://instagram.com/surjit12334" target="_blank" rel="noopener" aria-label="Instagram" style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; color: white; background: #FF6B35; text-decoration: none; margin-top: 0.5rem; transition: transform 0.3s;"><i class="fab fa-instagram"></i></a>
+                    <a href="https://x.com/surjit12334" target="_blank" rel="noopener" aria-label="X" style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; color: white; background: #FF6B35; text-decoration: none; margin-top: 0.5rem; margin-left: 0.5rem; transition: transform 0.3s;"><i class="fab fa-x-twitter"></i></a>
+                    <a href="https://www.linkedin.com/in/surjeet-singh-4b0b5a31a/" target="_blank" rel="noopener" aria-label="LinkedIn" style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; color: white; background: #FF6B35; text-decoration: none; margin-top: 0.5rem; margin-left: 0.5rem; transition: transform 0.3s;"><i class="fab fa-linkedin-in"></i></a>
+                    <a href="https://github.com/surjit12334-hue" target="_blank" rel="noopener" aria-label="GitHub" style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; color: white; background: #FF6B35; text-decoration: none; margin-top: 0.5rem; margin-left: 0.5rem; transition: transform 0.3s;"><i class="fab fa-github"></i></a>
+                    <a href="https://discord.com/users/surjit12334" target="_blank" rel="noopener" aria-label="Discord" style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; color: white; background: #FF6B35; text-decoration: none; margin-top: 0.5rem; margin-left: 0.5rem; transition: transform 0.3s;"><i class="fab fa-discord"></i></a>
+                    <a href="mailto:surjit123408@gmail.com" aria-label="Email" style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; color: white; background: #FF6B35; text-decoration: none; margin-top: 0.5rem; margin-left: 0.5rem; transition: transform 0.3s;"><i class="fas fa-envelope"></i></a>
+                </div>
+            </div>
+
+        </div>
+
+        <h2>Our Values</h2>
+        <div class="values-grid">
+            <div class="value-card">
+                <i class="fas fa-rocket"></i>
+                <h3>Innovation</h3>
+                <p>AI-powered solutions that make travel smarter.</p>
+            </div>
+            <div class="value-card">
+                <i class="fas fa-shield-alt"></i>
+                <h3>Trust</h3>
+                <p>Transparent pricing and secure experiences.</p>
+            </div>
+            <div class="value-card">
+                <i class="fas fa-users"></i>
+                <h3>People First</h3>
+                <p>Travel should be about the journey, not the stress.</p>
+            </div>
+            <div class="value-card">
+                <i class="fas fa-heart"></i>
+                <h3>Bhartiya Dil</h3>
+                <p>Built in India, for India, with love.</p>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <a href="index.html" class="footer-logo">Manzil Bharat</a>
+        <p>Explore the world with Bhartiya dil.</p>
+        <div class="footer-bottom">&copy; 2026 Manzil Bharat. All rights reserved.</div>
+    </footer>
+
+    <script>
+        var menuToggle = document.getElementById('menuToggle');
+        var navLinks = document.getElementById('navLinks');
+        menuToggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            navLinks.classList.toggle('active');
+            var icon = this.querySelector('i');
+            icon.classList.toggle('fa-bars');
+            icon.classList.toggle('fa-times');
+        });
+        document.addEventListener('click', function(e) {
+            if (!navLinks.contains(e.target) && !menuToggle.contains(e.target)) {
+                navLinks.classList.remove('active');
+                menuToggle.querySelector('i').classList.add('fa-bars');
+                menuToggle.querySelector('i').classList.remove('fa-times');
+            }
+        });
+    </script>
+</body>
+</html>

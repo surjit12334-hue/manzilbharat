@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog - Manzil Bharat</title>
+    <link rel="icon" type="image/png" href="icon.png">
+    <meta name="description" content="Travel stories, guides, and updates from Manzil Bharat.">
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { font-size: 16px; scroll-behavior: smooth; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; overflow-x: hidden; background: #f5f7fa; }
+
+        nav { position: fixed; top: 0; left: 0; right: 0; background: rgba(10, 22, 40, 0.95); backdrop-filter: blur(10px); padding: 1rem 5%; display: flex; align-items: center; justify-content: space-between; z-index: 1000; }
+        .logo { font-family: 'Pacifico', cursive; font-size: 1.5rem; color: #FF6B35; text-decoration: none; }
+        .nav-links { display: flex; list-style: none; gap: 2rem; }
+        .nav-links a { text-decoration: none; color: white; font-weight: 500; transition: color 0.3s; }
+        .nav-links a:hover { color: #FF6B35; }
+        .menu-toggle { display: none; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+
+        .page-hero { background: linear-gradient(135deg, rgba(26, 35, 126, 0.85), rgba(255, 107, 53, 0.7)); padding: 8rem 5% 4rem; text-align: center; color: white; }
+        .page-hero h1 { font-size: clamp(2rem, 5vw, 3rem); margin-bottom: 1rem; }
+        .page-hero p { font-size: clamp(1rem, 2vw, 1.2rem); opacity: 0.9; max-width: 600px; margin: 0 auto; }
+
+        .blog-section { max-width: 1100px; margin: 0 auto; padding: 4rem 5%; }
+        .blog-section h2 { font-size: 1.4rem; color: #0a1628; margin-bottom: 2rem; }
+
+        .blog-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 2rem; }
+
+        .blog-card { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.06); transition: transform 0.3s, box-shadow 0.3s; }
+        .blog-card:hover { transform: translateY(-5px); box-shadow: 0 8px 30px rgba(0,0,0,0.12); }
+        .blog-card a { text-decoration: none; color: inherit; display: block; }
+        .blog-thumb { position: relative; width: 100%; padding-top: 56.25%; overflow: hidden; background: #0a1628; }
+        .blog-thumb img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+        .blog-thumb .play-icon { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px; background: rgba(255, 107, 53, 0.9); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; opacity: 0; transition: opacity 0.3s; }
+        .blog-card:hover .play-icon { opacity: 1; }
+        .blog-info { padding: 1.5rem; }
+        .blog-info h3 { font-size: 1.1rem; color: #0a1628; margin-bottom: 0.5rem; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .blog-meta { display: flex; gap: 1rem; color: #888; font-size: 0.85rem; margin-bottom: 0.8rem; }
+        .blog-meta span { display: flex; align-items: center; gap: 0.3rem; }
+        .blog-meta i { color: #FF6B35; }
+        .blog-info p { color: #555; font-size: 0.95rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+        .loading { text-align: center; padding: 4rem; color: #888; }
+        .loading i { font-size: 2rem; color: #FF6B35; animation: spin 1s linear infinite; display: block; margin-bottom: 1rem; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        .error-msg { background: #fff3f3; border: 1px solid #ffcdd2; border-radius: 12px; padding: 2rem; color: #c62828; text-align: center; max-width: 600px; margin: 2rem auto; }
+
+        footer { background: linear-gradient(180deg, #0a1628 0%, #0d1f3c 100%); color: white; padding: 3rem 5% 1.5rem; text-align: center; }
+        footer .footer-logo { font-family: 'Pacifico', cursive; font-size: 1.8rem; color: #FF6B35; text-decoration: none; display: inline-block; margin-bottom: 1rem; }
+        footer p { color: #8892b0; margin-bottom: 1.5rem; }
+        footer .footer-bottom { border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 1.5rem; color: #5a6a8a; font-size: 0.9rem; }
+
+        @media (max-width: 768px) {
+            .nav-links { display: none; position: absolute; top: 100%; left: 0; right: 0; background: rgba(10, 22, 40, 0.98); flex-direction: column; padding: 1rem 5%; gap: 1rem; }
+            .nav-links.active { display: flex; }
+            .menu-toggle { display: block; }
+            .blog-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 480px) {
+            .page-hero { padding: 7rem 5% 3rem; }
+            .blog-section { padding: 2rem 5%; }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html" class="logo">Manzil Bharat</a>
+        <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="contact.html">Contact</a></li>
+        </ul>
+    </nav>
+
+    <section class="page-hero">
+        <h1>Blog</h1>
+        <p>Travel stories, guides, and updates from Manzil Bharat.</p>
+    </section>
+
+    <section class="blog-section">
+        <h2>Latest from YouTube</h2>
+        <div id="blogGrid" class="blog-grid">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <p>Loading videos...</p>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <a href="index.html" class="footer-logo">Manzil Bharat</a>
+        <p>Explore the world with Bhartiya dil.</p>
+        <div class="footer-bottom">&copy; 2026 Manzil Bharat. All rights reserved.</div>
+    </footer>
+
+    <script>
+        const CHANNEL_ID = 'UCV-iDbj5zWPDSn5eRh2FZfw';
+        const RSS_URL = 'https://www.youtube.com/feeds/videos.xml?channel_id=' + CHANNEL_ID;
+        const RSS2JSON = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(RSS_URL);
+
+        const blogGrid = document.getElementById('blogGrid');
+
+        fetch(RSS2JSON)
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (data.status !== 'ok' || !data.items || data.items.length === 0) {
+                    blogGrid.innerHTML = '<div class="error-msg"><i class="fas fa-exclamation-triangle"></i> No videos found. Check back later.</div>';
+                    return;
+                }
+
+                var html = '';
+                data.items.forEach(function(item) {
+                    var videoId = extractVideoId(item.link);
+                    var thumb = videoId
+                        ? 'https://i1.ytimg.com/vi/' + videoId + '/hqdefault.jpg'
+                        : (item.thumbnail || item.enclosure && item.enclosure.link || '');
+                    var date = new Date(item.pubDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+                    var desc = stripHtml(item.description || item.content || '').substring(0, 150);
+
+                    html += '<div class="blog-card">' +
+                        '<a href="' + item.link + '" target="_blank" rel="noopener">' +
+                        '<div class="blog-thumb">' +
+                        (thumb ? '<img src="' + thumb + '" alt="' + escHtml(item.title) + '" loading="lazy">' : '') +
+                        (videoId ? '<div class="play-icon"><i class="fas fa-play"></i></div>' : '') +
+                        '</div>' +
+                        '<div class="blog-info">' +
+                        '<h3>' + escHtml(item.title) + '</h3>' +
+                        '<div class="blog-meta">' +
+                        '<span><i class="fas fa-calendar"></i> ' + date + '</span>' +
+                        '</div>' +
+                        (desc ? '<p>' + escHtml(desc) + (desc.length >= 150 ? '...' : '') + '</p>' : '') +
+                        '</div>' +
+                        '</a>' +
+                        '</div>';
+                });
+
+                blogGrid.innerHTML = html;
+            })
+            .catch(function(err) {
+                blogGrid.innerHTML = '<div class="error-msg"><i class="fas fa-exclamation-triangle"></i> Failed to load videos. Please try again later.</div>';
+                console.error(err);
+            });
+
+        function extractVideoId(url) {
+            var match = url.match(/(?:v=|youtu\.be\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/);
+            return match ? match[1] : null;
+        }
+
+        function stripHtml(html) {
+            var tmp = document.createElement('div');
+            tmp.innerHTML = html;
+            return tmp.textContent || tmp.innerText || '';
+        }
+
+        function escHtml(str) {
+            var div = document.createElement('div');
+            div.appendChild(document.createTextNode(str));
+            return div.innerHTML;
+        }
+
+        var menuToggle = document.getElementById('menuToggle');
+        var navLinks = document.getElementById('navLinks');
+        menuToggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            navLinks.classList.toggle('active');
+            var icon = this.querySelector('i');
+            icon.classList.toggle('fa-bars');
+            icon.classList.toggle('fa-times');
+        });
+        document.addEventListener('click', function(e) {
+            if (!navLinks.contains(e.target) && !menuToggle.contains(e.target)) {
+                navLinks.classList.remove('active');
+                menuToggle.querySelector('i').classList.add('fa-bars');
+                menuToggle.querySelector('i').classList.remove('fa-times');
+            }
+        });
+    </script>
+</body>
+</html>
