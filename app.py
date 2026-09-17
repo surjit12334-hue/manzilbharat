@@ -6,8 +6,23 @@ import re
 import os
 from dotenv import load_dotenv
 from datetime import date
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
 
 load_dotenv()
+
+GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
+
+def verify_google_token(credential):
+    try:
+        idinfo = id_token.verify_oauth2_token(credential, google_requests.Request(), GOOGLE_CLIENT_ID)
+        return {
+            'email': idinfo.get('email'),
+            'name': idinfo.get('name', ''),
+            'picture': idinfo.get('picture', '')
+        }
+    except Exception:
+        return None
 
 app = Flask(__name__)
 CORS(app)
@@ -110,21 +125,101 @@ def signup():
         cur = conn.cursor()
         cur.execute(
             """INSERT INTO users (name, email, contact, gender, dob, marital_status, residential_address, pincode, password)
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING email, contact, name""",
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id, name, email, contact""",
             (name, email, contact, gender, dob, marital_status, residential_address, pincode, hashed)
         )
         user = cur.fetchone()
         conn.commit()
         cur.close()
         conn.close()
-        return jsonify({'message': 'Account created successfully', 'user': {'name': user[2], 'email': user[0], 'contact': user[1]}}), 201
+        return jsonify({'message': 'Account created successfully', 'user': {'id': user[0], 'name': user[1], 'email': user[2], 'contact': user[3]}}), 201
     except psycopg2.IntegrityError as e:
         detail = str(e)
         if 'email' in detail:
             return jsonify({'error': 'Email already exists', 'errors': {'email': 'This email is already registered'}}), 409
-        elif 'contact' in detail or 'pkey' in detail:
-            return jsonify({'error': 'Contact already exists', 'errors': {'contact': 'This contact number is already registered'}}), 409
-        return jsonify({'error': 'Email or contact already exists'}), 409
+        return jsonify({'error': 'Email already exists'}), 409
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    email = (data.get('email') or '').strip()
+    password = data.get('password') or ''
+
+    if not email or not password:
+        return jsonify({'error': 'Email and password are required'}), 400
+
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT id, name, email, contact, password FROM users WHERE email = %s", (email,))
+        user = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        if not user:
+            return jsonify({'error': 'No account found with this email'}), 401
+
+        if not user[4] or not bcrypt.checkpw(password.encode('utf-8'), user[4].encode('utf-8')):
+            return jsonify({'error': 'Incorrect password'}), 401
+
+        return jsonify({
+            'message': 'Login successful',
+            'user': {'id': user[0], 'name': user[1], 'email': user[2], 'contact': user[3]},
+            'token': email
+        }), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/google-login', methods=['POST'])
+def google_login():
+    data = request.get_json()
+    credential = (data.get('credential') or '').strip()
+
+    if not credential:
+        return jsonify({'error': 'Google credential is required'}), 400
+
+    google_user = verify_google_token(credential)
+    if not google_user or not google_user.get('email'):
+        return jsonify({'error': 'Invalid Google credential'}), 401
+
+    name = google_user['name']
+    email = google_user['email']
+
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+
+        cur.execute("SELECT id, name, email, contact FROM users WHERE email = %s", (email,))
+        user = cur.fetchone()
+
+        if user:
+            cur.close()
+            conn.close()
+            return jsonify({
+                'message': 'Login successful',
+                'user': {'id': user[0], 'name': user[1], 'email': user[2], 'contact': user[3]},
+                'token': email
+            }), 200
+        else:
+            cur.execute(
+                """INSERT INTO users (name, email) VALUES (%s, %s) RETURNING id, name, email, contact""",
+                (name, email)
+            )
+            new_user = cur.fetchone()
+            conn.commit()
+            cur.close()
+            conn.close()
+            return jsonify({
+                'message': 'Account created and logged in',
+                'user': {'id': new_user[0], 'name': new_user[1], 'email': new_user[2], 'contact': new_user[3]},
+                'token': email
+            }), 201
+
+    except psycopg2.IntegrityError:
+        return jsonify({'error': 'Email already exists'}), 409
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

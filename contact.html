@@ -47,7 +47,9 @@
             font-size: 1.5rem;
             color: #FF6B35;
             text-decoration: none;
+            transition: opacity 0.3s;
         }
+        .logo:hover { opacity: 0.8; }
 
         .nav-links {
             display: flex;
@@ -60,11 +62,14 @@
             color: white;
             font-weight: 500;
             transition: color 0.3s;
+            position: relative;
         }
+        .nav-links a::after { content: ''; position: absolute; bottom: -4px; left: 0; width: 0; height: 2px; background: #FF6B35; transition: width 0.3s; }
 
         .nav-links a:hover {
             color: #FF6B35;
         }
+        .nav-links a:hover::after { width: 100%; }
 
         .menu-toggle {
             display: none;
@@ -82,9 +87,12 @@
             color: white;
         }
 
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
         .page-hero h1 {
             font-size: clamp(2rem, 5vw, 3rem);
             margin-bottom: 1rem;
+            animation: fadeInUp 0.8s ease-out;
         }
 
         .contact-section {
@@ -101,6 +109,8 @@
             max-width: 700px;
             width: 100%;
             margin: 0 auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            animation: fadeInUp 0.8s ease-out 0.2s backwards;
         }
 
         .contact-info h2 {
@@ -120,7 +130,11 @@
             align-items: flex-start;
             gap: 1rem;
             margin-bottom: 1.5rem;
+            padding: 0.8rem;
+            border-radius: 12px;
+            transition: background 0.3s;
         }
+        .info-item:hover { background: rgba(255,255,255,0.05); }
 
         .info-item i {
             color: #FF6B35;
@@ -165,13 +179,14 @@
             border-radius: 10px;
             color: #FF6B35;
             text-decoration: none;
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .social-links a:hover {
             background: #FF6B35;
             color: white;
             transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(255,107,53,0.3);
         }
 
         .map-section {
@@ -193,7 +208,9 @@
             border-radius: 20px;
             overflow: hidden;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            transition: box-shadow 0.3s;
         }
+        .map-container:hover { box-shadow: 0 15px 50px rgba(0, 0, 0, 0.15); }
 
         .map-container iframe {
             width: 100%;
@@ -215,7 +232,9 @@
             text-decoration: none;
             display: inline-block;
             margin-bottom: 1rem;
+            transition: opacity 0.3s;
         }
+        footer .footer-logo:hover { opacity: 0.8; }
 
         footer p {
             color: #8892b0;

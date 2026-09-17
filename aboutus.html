@@ -14,36 +14,46 @@
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; overflow-x: hidden; background: #f5f7fa; }
 
         nav { position: fixed; top: 0; left: 0; right: 0; background: rgba(10, 22, 40, 0.95); backdrop-filter: blur(10px); padding: 1rem 5%; display: flex; align-items: center; justify-content: space-between; z-index: 1000; }
-        .logo { font-family: 'Pacifico', cursive; font-size: 1.5rem; color: #FF6B35; text-decoration: none; }
+        .logo { font-family: 'Pacifico', cursive; font-size: 1.5rem; color: #FF6B35; text-decoration: none; transition: opacity 0.3s; }
+        .logo:hover { opacity: 0.8; }
         .nav-links { display: flex; list-style: none; gap: 2rem; }
-        .nav-links a { text-decoration: none; color: white; font-weight: 500; transition: color 0.3s; }
+        .nav-links a { text-decoration: none; color: white; font-weight: 500; transition: color 0.3s; position: relative; }
+        .nav-links a::after { content: ''; position: absolute; bottom: -4px; left: 0; width: 0; height: 2px; background: #FF6B35; transition: width 0.3s; }
         .nav-links a:hover { color: #FF6B35; }
+        .nav-links a:hover::after { width: 100%; }
         .menu-toggle { display: none; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
 
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
         .page-hero { background: linear-gradient(135deg, rgba(26, 35, 126, 0.85), rgba(255, 107, 53, 0.7)); padding: 8rem 5% 4rem; text-align: center; color: white; }
-        .page-hero h1 { font-size: clamp(2rem, 5vw, 3rem); margin-bottom: 1rem; }
-        .page-hero p { font-size: clamp(1rem, 2vw, 1.2rem); opacity: 0.9; max-width: 600px; margin: 0 auto; }
+        .page-hero h1 { font-size: clamp(2rem, 5vw, 3rem); margin-bottom: 1rem; animation: fadeInUp 0.8s ease-out; }
+        .page-hero p { font-size: clamp(1rem, 2vw, 1.2rem); opacity: 0.9; max-width: 600px; margin: 0 auto; animation: fadeInUp 1s ease-out; }
 
         .about-section { max-width: 900px; margin: 0 auto; padding: 4rem 5%; }
         .about-section h2 { font-size: 1.4rem; color: #0a1628; margin: 2rem 0 1rem; }
         .about-section p { color: #555; margin-bottom: 1rem; line-height: 1.8; }
 
         .team-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; margin-top: 2rem; }
-        .team-card { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.06); text-align: center; }
-        .team-card img { width: 180px; height: 180px; object-fit: cover; object-position: top; border-radius: 50%; margin: 1.5rem auto 0; }
+        .team-card { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.06); text-align: center; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .team-card:hover { transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .team-card img { width: 180px; height: 180px; object-fit: cover; object-position: top; border-radius: 50%; margin: 1.5rem auto 0; transition: transform 0.3s; }
+        .team-card:hover img { transform: scale(1.05); }
         .team-card .team-info { padding: 1.5rem; }
         .team-card h3 { font-size: 1.2rem; color: #0a1628; margin-bottom: 0.3rem; }
         .team-card .team-role { color: #FF6B35; font-weight: 600; font-size: 0.95rem; margin-bottom: 0.8rem; }
         .team-card p { color: #555; font-size: 0.95rem; line-height: 1.6; }
 
         .values-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
-        .value-card { background: white; border-radius: 16px; padding: 1.5rem; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
-        .value-card i { font-size: 2rem; color: #FF6B35; margin-bottom: 1rem; }
+        .value-card { background: white; border-radius: 16px; padding: 1.5rem; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.06); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .value-card:hover { transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .value-card i { font-size: 2rem; color: #FF6B35; margin-bottom: 1rem; display: inline-block; transition: transform 0.3s; }
+        .value-card:hover i { transform: scale(1.15); }
         .value-card h3 { font-size: 1.1rem; color: #0a1628; margin-bottom: 0.5rem; }
         .value-card p { color: #666; font-size: 0.95rem; }
 
         footer { background: linear-gradient(180deg, #0a1628 0%, #0d1f3c 100%); color: white; padding: 3rem 5% 1.5rem; text-align: center; }
-        footer .footer-logo { font-family: 'Pacifico', cursive; font-size: 1.8rem; color: #FF6B35; text-decoration: none; display: inline-block; margin-bottom: 1rem; }
+        footer .footer-logo { font-family: 'Pacifico', cursive; font-size: 1.8rem; color: #FF6B35; text-decoration: none; display: inline-block; margin-bottom: 1rem; transition: opacity 0.3s; }
+        footer .footer-logo:hover { opacity: 0.8; }
         footer p { color: #8892b0; margin-bottom: 1.5rem; }
         footer .footer-bottom { border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 1.5rem; color: #5a6a8a; font-size: 0.9rem; }
 
@@ -93,6 +103,17 @@
                     <a href="https://github.com/surjit12334-hue" target="_blank" rel="noopener" aria-label="GitHub" style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; color: white; background: #FF6B35; text-decoration: none; margin-top: 0.5rem; margin-left: 0.5rem; transition: transform 0.3s;"><i class="fab fa-github"></i></a>
                     <a href="https://discord.com/users/surjit12334" target="_blank" rel="noopener" aria-label="Discord" style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; color: white; background: #FF6B35; text-decoration: none; margin-top: 0.5rem; margin-left: 0.5rem; transition: transform 0.3s;"><i class="fab fa-discord"></i></a>
                     <a href="mailto:surjit123408@gmail.com" aria-label="Email" style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; color: white; background: #FF6B35; text-decoration: none; margin-top: 0.5rem; margin-left: 0.5rem; transition: transform 0.3s;"><i class="fas fa-envelope"></i></a>
+                </div>
+            </div>
+
+            <div class="team-card">
+                <img src="anishka.jpeg" alt="Anishka Sharma — CEO">
+                <div class="team-info">
+                    <h3>Anishka Sharma</h3>
+                    <div class="team-role">CEO</div>
+                    <p>Anishka is a visionary leader with a passion for building innovative travel solutions. She drives the company's strategic direction and is committed to making travel seamless and accessible for everyone across India.</p>
+                    <a href="https://www.instagram.com/anu_22_sharma/" target="_blank" rel="noopener" aria-label="Instagram" style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; color: white; background: #FF6B35; text-decoration: none; margin-top: 0.5rem; transition: transform 0.3s;"><i class="fab fa-instagram"></i></a>
+                    <a href="mailto:anishka22sharma@gmail.com" aria-label="Email" style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; color: white; background: #FF6B35; text-decoration: none; margin-top: 0.5rem; margin-left: 0.5rem; transition: transform 0.3s;"><i class="fas fa-envelope"></i></a>
                 </div>
             </div>
 

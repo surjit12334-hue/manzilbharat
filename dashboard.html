@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Manzil Bharat</title>
+    <link rel="icon" type="image/png" href="icon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; min-height: 100vh; }
+
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Top Navigation */
+        .topnav { background: linear-gradient(135deg, #0a1628, #1a237e); padding: 1rem 5%; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 20px rgba(0,0,0,0.2); }
+        .topnav .logo { font-family: 'Pacifico', cursive; font-size: 1.5rem; color: #FF6B35; text-decoration: none; transition: opacity 0.3s; }
+        .topnav .logo:hover { opacity: 0.8; }
+        .topnav-right { display: flex; align-items: center; gap: 1.5rem; }
+        .topnav-right .notif-btn { background: rgba(255,255,255,0.1); border: none; color: white; font-size: 1.2rem; cursor: pointer; padding: 0.5rem; border-radius: 50%; position: relative; transition: all 0.3s; }
+        .topnav-right .notif-btn:hover { background: rgba(255,255,255,0.2); }
+        .topnav-right .notif-btn .badge { position: absolute; top: -2px; right: -2px; background: #e74c3c; color: white; font-size: 0.65rem; padding: 2px 5px; border-radius: 10px; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        .user-menu { display: flex; align-items: center; gap: 0.6rem; cursor: pointer; padding: 0.4rem 0.8rem; border-radius: 25px; transition: all 0.3s; }
+        .user-menu:hover { background: rgba(255,255,255,0.1); }
+        .user-avatar { width: 36px; height: 36px; background: linear-gradient(135deg, #FF6B35, #E65100); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.9rem; box-shadow: 0 2px 8px rgba(255,107,53,0.3); }
+        .user-name { color: white; font-weight: 500; font-size: 0.9rem; }
+
+        /* Side Navigation */
+        .side-nav { position: fixed; left: 0; top: 0; bottom: 0; width: 220px; background: linear-gradient(180deg, #0a1628, #1a237e); padding: 1.5rem 0; z-index: 200; transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); overflow-y: auto; }
+        .side-nav.active { transform: translateX(0); }
+        .side-nav .logo { font-family: 'Pacifico', cursive; font-size: 1.3rem; color: #FF6B35; text-decoration: none; display: block; padding: 0 1.2rem; margin-bottom: 1.5rem; }
+        .side-nav-links { list-style: none; }
+        .side-nav-links li a { display: flex; align-items: center; gap: 0.7rem; padding: 0.7rem 1.2rem; color: rgba(255,255,255,0.7); text-decoration: none; font-size: 0.9rem; transition: all 0.3s; border-left: 3px solid transparent; }
+        .side-nav-links li a:hover, .side-nav-links li a.active { background: rgba(255,255,255,0.1); color: #FF6B35; border-left-color: #FF6B35; }
+        .side-nav-links li a i { width: 20px; text-align: center; }
+
+        /* AI Tools Panel */
+        .ai-tools-panel { position: fixed; right: 0; top: 70px; width: 200px; background: white; border-radius: 12px 0 0 12px; box-shadow: -2px 0 15px rgba(0,0,0,0.1); padding: 1rem; z-index: 150; transition: transform 0.3s; }
+        .ai-tools-panel h3 { font-size: 0.9rem; color: #333; margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.4rem; }
+        .ai-tools-panel h3 i { color: #FF6B35; }
+        .ai-tools-list { display: flex; flex-direction: column; gap: 0.5rem; }
+        .ai-tool-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.7rem; background: #f5f7fa; border-radius: 8px; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .ai-tool-item:hover { background: #fff5f0; transform: translateX(-3px); box-shadow: 2px 2px 8px rgba(255,107,53,0.1); }
+        .ai-tool-item i { color: #FF6B35; font-size: 0.9rem; width: 18px; text-align: center; }
+        .ai-tool-item span { font-size: 0.8rem; font-weight: 500; color: #333; }
+
+        .menu-toggle { display: none; background: none; border: none; color: white; font-size: 1.3rem; cursor: pointer; padding: 0.4rem; }
+
+        /* Main Content */
+        .dashboard { max-width: 1200px; margin: 0 auto; padding: 2rem 5% 2rem 5%; }
+
+        /* Welcome Banner */
+        .welcome-banner { background: linear-gradient(135deg, #FF6B35, #E65100); border-radius: 20px; padding: 2rem 2.5rem; color: white; margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; box-shadow: 0 8px 30px rgba(255,107,53,0.3); animation: fadeInUp 0.6s ease-out; }
+        .welcome-banner h1 { font-size: 1.6rem; margin-bottom: 0.3rem; }
+        .welcome-banner p { opacity: 0.9; font-size: 0.95rem; }
+        .welcome-banner .quick-book { background: white; color: #FF6B35; border: none; padding: 0.8rem 1.5rem; border-radius: 25px; font-weight: 600; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .welcome-banner .quick-book:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
+
+        /* Stats Row */
+        .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.2rem; margin-bottom: 2rem; }
+        .stat-card { background: white; border-radius: 16px; padding: 1.5rem; box-shadow: 0 2px 10px rgba(0,0,0,0.05); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); animation: fadeInUp 0.6s ease-out backwards; }
+        .stat-card:nth-child(1) { animation-delay: 0.1s; }
+        .stat-card:nth-child(2) { animation-delay: 0.2s; }
+        .stat-card:nth-child(3) { animation-delay: 0.3s; }
+        .stat-card:nth-child(4) { animation-delay: 0.4s; }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+        .stat-card .stat-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; margin-bottom: 1rem; }
+        .stat-card .stat-icon.blue { background: #e8f0fe; color: #1a73e8; }
+        .stat-card .stat-icon.green { background: #e6f4ea; color: #1e8e3e; }
+        .stat-card .stat-icon.orange { background: #fef3e0; color: #f57c00; }
+        .stat-card .stat-icon.purple { background: #f3e8fd; color: #8e24aa; }
+        .stat-card h3 { font-size: 1.5rem; color: #333; }
+        .stat-card p { color: #888; font-size: 0.85rem; margin-top: 0.2rem; }
+
+        /* Services Grid */
+        .section-title { font-size: 1.2rem; color: #333; margin-bottom: 1rem; font-weight: 600; }
+        .services-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
+        .service-card { background: white; border-radius: 16px; padding: 1.5rem; text-align: center; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 2px 10px rgba(0,0,0,0.05); text-decoration: none; color: inherit; }
+        .service-card:hover { transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .service-card .service-icon { width: 60px; height: 60px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin: 0 auto 0.8rem; transition: transform 0.3s; }
+        .service-card:hover .service-icon { transform: scale(1.1); }
+        .service-card h4 { font-size: 0.95rem; color: #333; margin-bottom: 0.2rem; }
+        .service-card p { font-size: 0.75rem; color: #888; }
+
+        .icon-cab { background: #e8f0fe; color: #1a73e8; }
+        .icon-bike { background: #e6f4ea; color: #1e8e3e; }
+        .icon-flight { background: #fce8e6; color: #d93025; }
+        .icon-train { background: #fef3e0; color: #f57c00; }
+        .icon-bus { background: #f3e8fd; color: #8e24aa; }
+        .icon-hotel { background: #e0f7fa; color: #00838f; }
+        .icon-food { background: #fff3e0; color: #ef6c00; }
+        .icon-medical { background: #fce4ec; color: #c62828; }
+
+        /* Recent Bookings */
+        .recent-section { background: white; border-radius: 16px; padding: 1.5rem; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 2rem; }
+        .recent-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .recent-header h2 { font-size: 1.1rem; color: #333; }
+        .recent-header a { color: #FF6B35; text-decoration: none; font-size: 0.85rem; font-weight: 600; transition: opacity 0.3s; }
+        .recent-header a:hover { opacity: 0.8; }
+        .booking-list { list-style: none; }
+        .booking-item { display: flex; align-items: center; justify-content: space-between; padding: 1rem 0; border-bottom: 1px solid #f0f0f0; transition: background 0.3s; }
+        .booking-item:last-child { border-bottom: none; }
+        .booking-item:hover { background: #fafafa; margin: 0 -1rem; padding: 1rem; border-radius: 8px; }
+        .booking-info { display: flex; align-items: center; gap: 1rem; }
+        .booking-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+        .booking-details h4 { font-size: 0.9rem; color: #333; }
+        .booking-details p { font-size: 0.8rem; color: #888; }
+        .booking-status { padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+        .status-confirmed { background: #e6f4ea; color: #1e8e3e; }
+        .status-pending { background: #fef3e0; color: #f57c00; }
+        .status-completed { background: #e8f0fe; color: #1a73e8; }
+        .no-bookings { text-align: center; padding: 2rem; color: #888; }
+        .no-bookings i { font-size: 2.5rem; color: #ddd; margin-bottom: 0.8rem; display: block; }
+
+        /* Quick Actions */
+        .quick-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem; }
+        .action-card { background: white; border-radius: 16px; padding: 1.2rem; display: flex; align-items: center; gap: 1rem; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .action-card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+        .action-card .action-icon { width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; background: #fff5f0; color: #FF6B35; transition: transform 0.3s; }
+        .action-card:hover .action-icon { transform: scale(1.1); }
+        .action-card h4 { font-size: 0.9rem; color: #333; }
+        .action-card p { font-size: 0.75rem; color: #888; }
+
+        /* Footer */
+        .dash-footer { text-align: center; padding: 1.5rem; color: #888; font-size: 0.8rem; border-top: 1px solid #e0e0e0; margin-top: 1rem; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .stats-row { grid-template-columns: repeat(2, 1fr); }
+            .services-grid { grid-template-columns: repeat(2, 1fr); }
+            .quick-actions { grid-template-columns: 1fr; }
+            .welcome-banner { padding: 1.5rem; }
+            .welcome-banner h1 { font-size: 1.3rem; }
+            .user-name { display: none; }
+            .menu-toggle { display: block; }
+            .ai-tools-panel { display: none; }
+            .dashboard { padding: 1rem 4%; }
+            .side-nav.active ~ .dashboard { padding-left: 230px; }
+        }
+        @media (max-width: 480px) {
+            .stats-row { grid-template-columns: 1fr; }
+        }
+        @media (min-width: 769px) {
+            .side-nav { transform: translateX(0); }
+            .dashboard { margin-left: 220px; padding: 2rem 5% 2rem 3%; }
+            .menu-toggle { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Side Navigation -->
+    <nav class="side-nav" id="sideNav">
+        <a href="index.html" class="logo">Manzil Bharat</a>
+        <ul class="side-nav-links">
+            <li><a href="dashboard.html" class="active"><i class="fas fa-home"></i> Dashboard</a></li>
+            <li><a href="#"><i class="fas fa-car"></i> Cabs</a></li>
+            <li><a href="#"><i class="fas fa-motorcycle"></i> Bikes</a></li>
+            <li><a href="#"><i class="fas fa-plane"></i> Flights</a></li>
+            <li><a href="#"><i class="fas fa-train"></i> Trains</a></li>
+            <li><a href="#"><i class="fas fa-ship"></i> Cruise</a></li>
+            <li><a href="#"><i class="fas fa-bus"></i> Buses</a></li>
+            <li><a href="#"><i class="fas fa-bicycle"></i> Local Transport</a></li>
+            <li><a href="#"><i class="fas fa-hotel"></i> Hotels</a></li>
+            <li><a href="#"><i class="fas fa-utensils"></i> Restaurants</a></li>
+            <li><a href="#"><i class="fas fa-store"></i> Dhabas</a></li>
+            <li><a href="#"><i class="fas fa-shopping-basket"></i> Kirana Stores</a></li>
+            <li><a href="#"><i class="fas fa-pills"></i> Medical Stores</a></li>
+            <li><a href="#"><i class="fas fa-headset"></i> Support</a></li>
+            <li><a href="#"><i class="fas fa-ticket"></i> Book Now</a></li>
+        </ul>
+    </nav>
+
+    <!-- AI Tools Panel -->
+    <div class="ai-tools-panel" id="aiToolsPanel">
+        <h3><i class="fas fa-robot"></i> AI Tools</h3>
+        <div class="ai-tools-list">
+            <div class="ai-tool-item">
+                <i class="fas fa-route"></i>
+                <span>Route Planner</span>
+            </div>
+            <div class="ai-tool-item">
+                <i class="fas fa-cloud-sun"></i>
+                <span>Weather</span>
+            </div>
+            <div class="ai-tool-item">
+                <i class="fas fa-language"></i>
+                <span>Translator</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Navigation -->
+    <nav class="topnav">
+        <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+        <a href="index.html" class="logo">Manzil Bharat</a>
+        <div class="topnav-right">
+            <button class="notif-btn" title="Notifications">
+                <i class="fas fa-bell"></i>
+                <span class="badge">2</span>
+            </button>
+            <div class="user-menu" id="userMenu">
+                <div class="user-avatar" id="userAvatar">S</div>
+                <span class="user-name" id="userName">User</span>
+                <i class="fas fa-chevron-down" style="color:white;font-size:0.7rem;"></i>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Dashboard Content -->
+    <div class="dashboard">
+        <!-- Welcome Banner -->
+        <div class="welcome-banner">
+            <div>
+                <h1>Welcome, <span id="welcomeName">User</span>!</h1>
+                <p>Where do you want to go today?</p>
+            </div>
+            <button class="quick-book" onclick="window.location.href='index.html'"><i class="fas fa-search"></i> Book Now</button>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-icon blue"><i class="fas fa-ticket-alt"></i></div>
+                <h3 id="totalBookings">0</h3>
+                <p>Total Bookings</p>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
+                <h3 id="completedTrips">0</h3>
+                <p>Completed Trips</p>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon orange"><i class="fas fa-clock"></i></div>
+                <h3 id="pendingBookings">0</h3>
+                <p>Pending</p>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon purple"><i class="fas fa-wallet"></i></div>
+                <h3 id="totalSpent">₹0</h3>
+                <p>Total Spent</p>
+            </div>
+        </div>
+
+        <!-- Travel Services -->
+        <h2 class="section-title">Travel Services</h2>
+        <div class="services-grid">
+            <a href="#" class="service-card">
+                <div class="service-icon icon-cab"><i class="fas fa-car"></i></div>
+                <h4>Cabs</h4>
+                <p>Book a ride</p>
+            </a>
+            <a href="#" class="service-card">
+                <div class="service-icon icon-bike"><i class="fas fa-motorcycle"></i></div>
+                <h4>Bikes</h4>
+                <p>Rent a bike</p>
+            </a>
+            <a href="#" class="service-card">
+                <div class="service-icon icon-flight"><i class="fas fa-plane"></i></div>
+                <h4>Flights</h4>
+                <p>Domestic & Intl</p>
+            </a>
+            <a href="#" class="service-card">
+                <div class="service-icon icon-train"><i class="fas fa-train"></i></div>
+                <h4>Trains</h4>
+                <p>IRCTC booking</p>
+            </a>
+            <a href="#" class="service-card">
+                <div class="service-icon icon-bus"><i class="fas fa-bus"></i></div>
+                <h4>Buses</h4>
+                <p>State & private</p>
+            </a>
+            <a href="#" class="service-card">
+                <div class="service-icon icon-hotel"><i class="fas fa-hotel"></i></div>
+                <h4>Hotels</h4>
+                <p>Stay anywhere</p>
+            </a>
+            <a href="#" class="service-card">
+                <div class="service-icon icon-food"><i class="fas fa-utensils"></i></div>
+                <h4>Restaurants</h4>
+                <p>Find food nearby</p>
+            </a>
+            <a href="#" class="service-card">
+                <div class="service-icon icon-medical"><i class="fas fa-pills"></i></div>
+                <h4>Medical</h4>
+                <p>Pharmacy nearby</p>
+            </a>
+        </div>
+
+        <!-- Recent Bookings -->
+        <div class="recent-section">
+            <div class="recent-header">
+                <h2>Recent Bookings</h2>
+                <a href="#">View All</a>
+            </div>
+            <ul class="booking-list" id="bookingList">
+                <li class="no-bookings">
+                    <i class="fas fa-suitcase-rolling"></i>
+                    <p>No bookings yet. Start your first trip!</p>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Quick Actions -->
+        <h2 class="section-title">Quick Actions</h2>
+        <div class="quick-actions">
+            <div class="action-card" onclick="window.location.href='index.html'">
+                <div class="action-icon"><i class="fas fa-search-location"></i></div>
+                <div>
+                    <h4>Explore Places</h4>
+                    <p>Discover new destinations</p>
+                </div>
+            </div>
+            <div class="action-card">
+                <div class="action-icon"><i class="fas fa-headset"></i></div>
+                <div>
+                    <h4>Get Support</h4>
+                    <p>Help center & FAQs</p>
+                </div>
+            </div>
+            <div class="action-card" id="logoutBtn">
+                <div class="action-icon" style="background:#fce4ec;color:#c62828;"><i class="fas fa-sign-out-alt"></i></div>
+                <div>
+                    <h4>Logout</h4>
+                    <p>Sign out of your account</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="dash-footer">
+            &copy; 2026 Manzil Bharat. All rights reserved.
+        </div>
+    </div>
+
+    <script>
+        // ======== SIDE NAV TOGGLE ========
+        document.getElementById('menuToggle').addEventListener('click', () => {
+            document.getElementById('sideNav').classList.toggle('active');
+        });
+
+        document.addEventListener('click', (e) => {
+            const sideNav = document.getElementById('sideNav');
+            const menuToggle = document.getElementById('menuToggle');
+            if (!sideNav.contains(e.target) && !menuToggle.contains(e.target)) {
+                sideNav.classList.remove('active');
+            }
+        });
+
+        // ======== LOAD USER DATA ========
+        const user = JSON.parse(localStorage.getItem('manzilUser'));
+
+        if (!user) {
+            window.location.href = 'login.html';
+        } else {
+            document.getElementById('welcomeName').textContent = user.name || 'User';
+            document.getElementById('userName').textContent = user.name || 'User';
+            document.getElementById('userAvatar').textContent = (user.name || 'U').charAt(0).toUpperCase();
+        }
+
+        // ======== LOAD BOOKINGS ========
+        const bookings = JSON.parse(localStorage.getItem('manzilBookings')) || [];
+
+        function renderBookings() {
+            const list = document.getElementById('bookingList');
+            if (bookings.length === 0) {
+                list.innerHTML = '<li class="no-bookings"><i class="fas fa-suitcase-rolling"></i><p>No bookings yet. Start your first trip!</p></li>';
+                return;
+            }
+
+            const icons = { cab: 'fa-car', bike: 'fa-motorcycle', flight: 'fa-plane', train: 'fa-train', bus: 'fa-bus', hotel: 'fa-hotel' };
+            const colors = { cab: 'icon-cab', bike: 'icon-bike', flight: 'icon-flight', train: 'icon-train', bus: 'icon-bus', hotel: 'icon-hotel' };
+
+            list.innerHTML = bookings.slice(-5).reverse().map(b => `
+                <li class="booking-item">
+                    <div class="booking-info">
+                        <div class="booking-icon ${colors[b.type] || 'icon-cab'}"><i class="fas ${icons[b.type] || 'fa-ticket-alt'}"></i></div>
+                        <div class="booking-details">
+                            <h4>${b.from || ''} → ${b.to || ''}</h4>
+                            <p>${b.date || ''} • ${b.type || 'Booking'}</p>
+                        </div>
+                    </div>
+                    <span class="booking-status status-${(b.status || 'pending').toLowerCase()}">${b.status || 'Pending'}</span>
+                </li>
+            `).join('');
+        }
+
+        renderBookings();
+
+        // ======== UPDATE STATS ========
+        document.getElementById('totalBookings').textContent = bookings.length;
+        document.getElementById('completedTrips').textContent = bookings.filter(b => b.status === 'Completed').length;
+        document.getElementById('pendingBookings').textContent = bookings.filter(b => b.status === 'Pending').length;
+
+        // ======== LOGOUT ========
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('manzilUser');
+            localStorage.removeItem('manzilToken');
+            window.location.href = 'login.html';
+        });
+
+        // ======== USER MENU TOGGLE ========
+        document.getElementById('userMenu').addEventListener('click', () => {
+            const menu = document.getElementById('logoutBtn');
+            menu.style.display = menu.style.display === 'none' ? 'flex' : 'none';
+        });
+    </script>
+</body>
+</html>

@@ -8,71 +8,66 @@
     <meta name="description" content="Log in to your Manzil Bharat account.">
     <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html { font-size: 16px; scroll-behavior: smooth; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; overflow-x: hidden; background: #f5f7fa; min-height: 100vh; display: flex; flex-direction: column; }
 
         nav { position: fixed; top: 0; left: 0; right: 0; background: rgba(10, 22, 40, 0.95); backdrop-filter: blur(10px); padding: 1rem 5%; display: flex; align-items: center; justify-content: space-between; z-index: 1000; }
-        .logo { font-family: 'Pacifico', cursive; font-size: 1.5rem; color: #FF6B35; text-decoration: none; }
+        .logo { font-family: 'Pacifico', cursive; font-size: 1.5rem; color: #FF6B35; text-decoration: none; transition: opacity 0.3s; }
+        .logo:hover { opacity: 0.8; }
         .nav-links { display: flex; list-style: none; gap: 2rem; }
-        .nav-links a { text-decoration: none; color: white; font-weight: 500; transition: color 0.3s; }
+        .nav-links a { text-decoration: none; color: white; font-weight: 500; transition: color 0.3s; position: relative; }
+        .nav-links a::after { content: ''; position: absolute; bottom: -4px; left: 0; width: 0; height: 2px; background: #FF6B35; transition: width 0.3s; }
         .nav-links a:hover { color: #FF6B35; }
+        .nav-links a:hover::after { width: 100%; }
         .menu-toggle { display: none; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
 
-        .auth-wrapper { flex: 1; display: flex; align-items: center; justify-content: center; padding: 6rem 5% 3rem; background: linear-gradient(135deg, rgba(26, 35, 126, 0.85), rgba(255, 107, 53, 0.7)), url('homebackground.png') center/cover no-repeat; min-height: 100vh; }
+        @keyframes cardSlideIn { from { opacity: 0; transform: translateY(20px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
-        .auth-card { background: white; border-radius: 20px; padding: 2.5rem; width: 100%; max-width: 420px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2); }
+        .auth-wrapper { flex: 1; display: flex; align-items: center; justify-content: center; padding: 6rem 5% 3rem; background: linear-gradient(135deg, rgba(26,35,126,0.85), rgba(255,107,53,0.7)), url('homebackground.png') center/cover no-repeat; min-height: 100vh; }
+        .auth-card { background: white; border-radius: 20px; padding: 2.5rem; width: 100%; max-width: 420px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); animation: cardSlideIn 0.6s ease-out; }
         .auth-card h1 { font-size: 1.8rem; color: #0a1628; text-align: center; margin-bottom: 0.5rem; }
         .auth-card .subtitle { text-align: center; color: #888; margin-bottom: 2rem; font-size: 0.95rem; }
 
         .form-group { margin-bottom: 1.2rem; }
         .form-group label { display: block; font-weight: 600; color: #333; margin-bottom: 0.4rem; font-size: 0.9rem; }
-        .form-group input { width: 100%; padding: 0.8rem 1rem; border: 2px solid #e0e5ec; border-radius: 12px; font-size: 1rem; outline: none; transition: border-color 0.3s; }
-        .form-group input:focus { border-color: #FF6B35; }
+        .form-group input { width: 100%; padding: 0.8rem 1rem; border: 2px solid #e0e5ec; border-radius: 12px; font-size: 1rem; outline: none; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .form-group input:focus { border-color: #FF6B35; box-shadow: 0 0 0 3px rgba(255,107,53,0.1); }
         .form-group input::placeholder { color: #aaa; }
 
         .form-options { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; font-size: 0.85rem; }
         .form-options label { display: flex; align-items: center; gap: 0.4rem; color: #666; cursor: pointer; }
         .form-options label input[type="checkbox"] { accent-color: #FF6B35; width: 16px; height: 16px; }
-        .form-options a { color: #FF6B35; text-decoration: none; font-weight: 500; }
-        .form-options a:hover { text-decoration: underline; }
+        .form-options a { color: #FF6B35; text-decoration: none; font-weight: 500; transition: opacity 0.3s; }
+        .form-options a:hover { opacity: 0.8; text-decoration: underline; }
 
-        .btn-primary { width: 100%; padding: 0.9rem; background: linear-gradient(135deg, #FF6B35, #E65100); color: white; border: none; border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: transform 0.3s, box-shadow 0.3s; }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(255, 107, 53, 0.4); }
+        .btn-primary { width: 100%; padding: 0.9rem; background: linear-gradient(135deg, #FF6B35, #E65100); color: white; border: none; border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(255,107,53,0.4); }
         .btn-primary:active { transform: translateY(0); }
 
-        .divider { text-align: center; margin: 1.5rem 0; position: relative; color: #aaa; font-size: 0.85rem; }
-        .divider::before, .divider::after { content: ''; position: absolute; top: 50%; width: 40%; height: 1px; background: #e0e5ec; }
+        .divider { text-align: center; margin: 1.2rem 0; position: relative; color: #aaa; font-size: 0.85rem; }
+        .divider::before, .divider::after { content: ''; position: absolute; top: 50%; width: 40%; height: 1px; background: linear-gradient(90deg, transparent, #e0e5ec, transparent); }
         .divider::before { left: 0; }
         .divider::after { right: 0; }
 
-        .social-btns { display: flex; gap: 0.8rem; margin-bottom: 1.5rem; }
-        .social-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.7rem; border: 2px solid #e0e5ec; border-radius: 12px; background: white; font-size: 0.9rem; font-weight: 500; color: #333; cursor: pointer; transition: all 0.3s; text-decoration: none; }
-        .social-btn:hover { border-color: #FF6B35; background: #fff5f0; }
-        .social-btn i { font-size: 1.2rem; }
-        .social-btn.google i { color: #db4437; }
-        .social-btn.mobile i { color: #25D366; }
-
         .auth-footer { text-align: center; margin-top: 1.5rem; font-size: 0.9rem; color: #666; }
-        .auth-footer a { color: #FF6B35; text-decoration: none; font-weight: 600; }
+        .auth-footer a { color: #FF6B35; text-decoration: none; font-weight: 600; transition: all 0.3s; }
         .auth-footer a:hover { text-decoration: underline; }
 
         footer { background: linear-gradient(180deg, #0a1628 0%, #0d1f3c 100%); color: white; padding: 2rem 5% 1rem; text-align: center; margin-top: auto; }
-        footer .footer-logo { font-family: 'Pacifico', cursive; font-size: 1.5rem; color: #FF6B35; text-decoration: none; display: inline-block; margin-bottom: 0.5rem; }
+        footer .footer-logo { font-family: 'Pacifico', cursive; font-size: 1.5rem; color: #FF6B35; text-decoration: none; display: inline-block; margin-bottom: 0.5rem; transition: opacity 0.3s; }
+        footer .footer-logo:hover { opacity: 0.8; }
         footer p { color: #8892b0; font-size: 0.85rem; margin-bottom: 0.5rem; }
-        footer .footer-bottom { border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 1rem; color: #5a6a8a; font-size: 0.8rem; }
+        footer .footer-bottom { border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1rem; color: #5a6a8a; font-size: 0.8rem; }
 
         @media (max-width: 768px) {
-            .nav-links { display: none; position: absolute; top: 100%; left: 0; right: 0; background: rgba(10, 22, 40, 0.98); flex-direction: column; padding: 1rem 5%; gap: 1rem; }
-            .nav-links.active { display: flex; }
+            .nav-links { position: fixed; top: 60px; right: -100%; width: 70%; height: calc(100vh - 60px); background: rgba(10, 22, 40, 0.98); flex-direction: column; padding: 2rem; transition: right 0.3s; }
+            .nav-links.active { right: 0; }
             .menu-toggle { display: block; }
         }
-        @media (max-width: 480px) {
-            .auth-wrapper { padding: 5rem 4% 2rem; }
-            .auth-card { padding: 1.5rem; }
-            .social-btns { flex-direction: column; }
-        }
+        @media (max-width: 480px) { .auth-wrapper { padding: 5rem 4% 2rem; } .auth-card { padding: 1.5rem; } }
     </style>
 </head>
 <body>
@@ -90,9 +85,19 @@
             <h1>Welcome Back</h1>
             <p class="subtitle">Log in to your Manzil Bharat account</p>
 
-            <div class="social-btns">
-                <a href="#" class="social-btn google"><i class="fab fa-google"></i> Google</a>
-                <a href="#" class="social-btn mobile"><i class="fas fa-mobile-alt"></i> Mobile</a>
+            <div id="g_id_onload"
+                 data-client_id="406958869754-9lr0216bormg22mgnq2ccnk7r5t09fek.apps.googleusercontent.com"
+                 data-callback="handleGoogleLogin"
+                 data-auto_prompt="false">
+            </div>
+            <div class="g_id_signin"
+                 data-type="standard"
+                 data-size="large"
+                 data-theme="outline"
+                 data-text="sign_in_with"
+                 data-shape="rectangular"
+                 data-logo_alignment="left"
+                 style="width:100%;margin-bottom:0.5rem;">
             </div>
 
             <div class="divider">or log in with email</div>
@@ -125,5 +130,67 @@
         <div class="footer-bottom">&copy; 2026 Manzil Bharat. All rights reserved.</div>
     </footer>
 
+    <script>
+        // ======== MOBILE MENU TOGGLE ========
+        document.getElementById('menuToggle').addEventListener('click', function() {
+            document.getElementById('navLinks').classList.toggle('active');
+        });
+
+        // ======== GOOGLE LOGIN (via Google Identity Services) ========
+        function handleGoogleLogin(response) {
+            const credential = response.credential;
+            if (!credential) { alert('Google login failed. Please try again.'); return; }
+
+            fetch('http://localhost:5000/api/google-login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ credential: credential })
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.user) {
+                    localStorage.setItem('manzilUser', JSON.stringify(result.user));
+                    localStorage.setItem('manzilToken', result.token);
+                    window.location.href = 'dashboard.html';
+                } else {
+                    alert(result.error || 'Login failed');
+                }
+            })
+            .catch(() => alert('Server error. Make sure app.py is running.'));
+        }
+
+        // ======== EMAIL LOGIN ========
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            if (!email || !password) { alert('Please fill in all fields'); return; }
+
+            const btn = e.target.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+
+            try {
+                const res = await fetch('http://localhost:5000/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const result = await res.json();
+                if (res.ok) {
+                    localStorage.setItem('manzilUser', JSON.stringify(result.user));
+                    localStorage.setItem('manzilToken', result.token);
+                    window.location.href = 'dashboard.html';
+                } else {
+                    alert(result.error || 'Login failed');
+                }
+            } catch (err) {
+                alert('Server error. Make sure app.py is running.');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Log In';
+            }
+        });
+    </script>
 </body>
 </html>
