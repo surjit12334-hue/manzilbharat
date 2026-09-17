@@ -24,7 +24,7 @@ def verify_google_token(credential):
     except Exception:
         return None
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)
 
 def get_db():
