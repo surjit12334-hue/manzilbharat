@@ -4,6 +4,7 @@ const { Pool } = require('pg');
 const cors = require('cors');
 const path = require('path');
 const crypto = require('crypto');
+const bcrypt = require('bcrypt');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -29,6 +30,28 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
+// ======== USER SIGNUP ========
+app.post('/api/signup', async (req, res) => {
+  try {
+    const { name, email, contact, gender, dob, marital_status, residential_address, pincode, password } = req.body;
+    if (!name || !email || !contact || !gender || !dob || !marital_status || !residential_address || !pincode || !password) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const result = await pool.query(
+      `INSERT INTO users (name, email, contact, gender, dob, marital_status, residential_address, pincode, password)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING email, contact, name`,
+      [name, email, contact, gender, dob, marital_status, residential_address, pincode, hashedPassword]
+    );
+    res.status(201).json({ message: 'Account created successfully', user: result.rows[0] });
+  } catch (err) {
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'Email or contact already exists' });
+    }
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ======== ADMIN AUTH ========
 function requireAdmin(req, res, next) {
   const token = req.headers['x-admin-token'];
@@ -43,9 +66,11 @@ app.post('/api/admin/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
-    const result = await pool.query('SELECT * FROM admins WHERE email = $1 AND password = $2', [email, password]);
+    const result = await pool.query('SELECT * FROM admins WHERE email = $1', [email]);
     if (result.rows.length === 0) return res.status(401).json({ error: 'Invalid email or password' });
     const admin = result.rows[0];
+    const validPassword = await bcrypt.compare(password, admin.password);
+    if (!validPassword) return res.status(401).json({ error: 'Invalid email or password' });
     const token = crypto.randomBytes(32).toString('hex');
     ADMIN_SESSIONS.set(token, { id: admin.id, email: admin.email, name: admin.name });
     res.json({ token, admin: { id: admin.id, email: admin.email, name: admin.name } });

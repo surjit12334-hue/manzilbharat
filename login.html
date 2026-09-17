@@ -52,6 +52,7 @@
         .social-btn:hover { border-color: #FF6B35; background: #fff5f0; }
         .social-btn i { font-size: 1.2rem; }
         .social-btn.google i { color: #db4437; }
+        .social-btn.mobile i { color: #25D366; }
 
         .auth-footer { text-align: center; margin-top: 1.5rem; font-size: 0.9rem; color: #666; }
         .auth-footer a { color: #FF6B35; text-decoration: none; font-weight: 600; }
@@ -91,11 +92,12 @@
 
             <div class="social-btns">
                 <a href="#" class="social-btn google"><i class="fab fa-google"></i> Google</a>
+                <a href="#" class="social-btn mobile"><i class="fas fa-mobile-alt"></i> Mobile</a>
             </div>
 
             <div class="divider">or log in with email</div>
 
-            <form id="loginForm" onsubmit="return false;">
+            <form id="loginForm">
                 <div class="form-group">
                     <label for="email">Email</label>
                     <input type="email" id="email" placeholder="you@example.com" required>

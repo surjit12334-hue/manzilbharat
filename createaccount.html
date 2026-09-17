@@ -26,11 +26,15 @@
         .auth-card h1 { font-size: 1.8rem; color: #0a1628; text-align: center; margin-bottom: 0.5rem; }
         .auth-card .subtitle { text-align: center; color: #888; margin-bottom: 2rem; font-size: 0.95rem; }
 
-        .form-group { margin-bottom: 1.2rem; }
+        .form-group { margin-bottom: 1.2rem; position: relative; }
         .form-group label { display: block; font-weight: 600; color: #333; margin-bottom: 0.4rem; font-size: 0.9rem; }
-        .form-group input { width: 100%; padding: 0.8rem 1rem; border: 2px solid #e0e5ec; border-radius: 12px; font-size: 1rem; outline: none; transition: border-color 0.3s; }
-        .form-group input:focus { border-color: #FF6B35; }
+        .form-group input, .form-group select { width: 100%; padding: 0.8rem 1rem; border: 2px solid #e0e5ec; border-radius: 12px; font-size: 1rem; outline: none; transition: border-color 0.3s; }
+        .form-group input:focus, .form-group select:focus { border-color: #FF6B35; }
         .form-group input::placeholder { color: #aaa; }
+        .form-group input.error, .form-group select.error { border-color: #e74c3c; }
+        .form-group input.success, .form-group select.success { border-color: #27ae60; }
+        .error-msg { color: #e74c3c; font-size: 0.78rem; margin-top: 0.3rem; display: none; }
+        .error-msg.show { display: block; }
 
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 
@@ -48,6 +52,7 @@
         .social-btn:hover { border-color: #FF6B35; background: #fff5f0; }
         .social-btn i { font-size: 1.2rem; }
         .social-btn.google i { color: #db4437; }
+        .social-btn.mobile i { color: #25D366; }
 
         .terms { text-align: center; font-size: 0.8rem; color: #888; margin-top: 1rem; line-height: 1.5; }
         .terms a { color: #FF6B35; text-decoration: none; }
@@ -90,40 +95,72 @@
             <h1>Create Account</h1>
             <p class="subtitle">Join Manzil Bharat and explore India</p>
 
-            <div class="social-btns">
-                <a href="#" class="social-btn google"><i class="fab fa-google"></i> Google</a>
-            </div>
-
-            <div class="divider">or sign up with email</div>
-
-            <form id="signupForm" onsubmit="return false;">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="firstName">First Name</label>
-                        <input type="text" id="firstName" placeholder="First name" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="lastName">Last Name</label>
-                        <input type="text" id="lastName" placeholder="Last name" required>
-                    </div>
+            <form id="signupForm" novalidate>
+                <div class="form-group">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" placeholder="Your full name" maxlength="25" required>
+                    <div class="error-msg" id="nameError"></div>
                 </div>
                 <div class="form-group">
                     <label for="email">Email</label>
-                    <input type="email" id="email" placeholder="you@example.com" required>
+                    <input type="email" id="email" placeholder="you@example.com" maxlength="50" required>
+                    <div class="error-msg" id="emailError"></div>
                 </div>
                 <div class="form-group">
-                    <label for="phone">Phone Number</label>
-                    <input type="tel" id="phone" placeholder="+91 98765 43210" required>
+                    <label for="contact">Contact Number</label>
+                    <input type="tel" id="contact" placeholder="10-digit mobile number" pattern="[0-9]{10}" maxlength="10" required>
+                    <div class="error-msg" id="contactError"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="gender">Gender</label>
+                        <select id="gender" required>
+                            <option value="">Select</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                        <div class="error-msg" id="genderError"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="dob">Date of Birth</label>
+                        <input type="date" id="dob" required>
+                        <div class="error-msg" id="dobError"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="marital_status">Marital Status</label>
+                    <select id="marital_status" required>
+                        <option value="">Select</option>
+                        <option value="Single">Single</option>
+                        <option value="Married">Married</option>
+                        <option value="Divorced">Divorced</option>
+                        <option value="Widowed">Widowed</option>
+                    </select>
+                    <div class="error-msg" id="marital_statusError"></div>
+                </div>
+                <div class="form-group">
+                    <label for="residential_address">Residential Address</label>
+                    <input type="text" id="residential_address" placeholder="Full address" maxlength="255" required>
+                    <div class="error-msg" id="residential_addressError"></div>
+                </div>
+                <div class="form-group">
+                    <label for="pincode">Pincode</label>
+                    <input type="text" id="pincode" placeholder="6-digit pincode" pattern="[0-9]{6}" maxlength="6" required>
+                    <div class="error-msg" id="pincodeError"></div>
                 </div>
                 <div class="form-group">
                     <label for="password">Password</label>
-                    <input type="password" id="password" placeholder="Create a strong password" required minlength="8">
+                    <input type="password" id="password" placeholder="Min 8 chars, uppercase, number & symbol" minlength="8" required>
+                    <div class="error-msg" id="passwordError"></div>
                 </div>
                 <div class="form-group">
                     <label for="confirmPassword">Confirm Password</label>
-                    <input type="password" id="confirmPassword" placeholder="Re-enter your password" required minlength="8">
+                    <input type="password" id="confirmPassword" placeholder="Re-enter your password" minlength="8" required>
+                    <div class="error-msg" id="confirmPasswordError"></div>
                 </div>
-                <button type="submit" class="btn-primary"><i class="fas fa-user-plus"></i> Create Account</button>
+                <button type="submit" class="btn-primary" id="submitBtn"><i class="fas fa-user-plus"></i> Create Account</button>
+                <p id="formMessage" style="text-align:center;margin-top:0.8rem;font-size:0.9rem;display:none;"></p>
             </form>
 
             <p class="terms">By signing up, you agree to our <a href="terms-and-conditions.html">Terms & Conditions</a> and <a href="privacypolicy.html">Privacy Policy</a>.</p>
@@ -140,5 +177,178 @@
         <div class="footer-bottom">&copy; 2026 Manzil Bharat. All rights reserved.</div>
     </footer>
 
+    <script>
+        const fields = ['name', 'email', 'contact', 'gender', 'dob', 'marital_status', 'residential_address', 'pincode', 'password', 'confirmPassword'];
+
+        function showError(id, msg) {
+            const el = document.getElementById(id);
+            const err = document.getElementById(id + 'Error');
+            if (el) el.classList.add('error');
+            if (el) el.classList.remove('success');
+            if (err) { err.textContent = msg; err.classList.add('show'); }
+        }
+
+        function clearError(id) {
+            const el = document.getElementById(id);
+            const err = document.getElementById(id + 'Error');
+            if (el) el.classList.remove('error');
+            if (err) { err.textContent = ''; err.classList.remove('show'); }
+        }
+
+        function markSuccess(id) {
+            const el = document.getElementById(id);
+            if (el) { el.classList.remove('error'); el.classList.add('success'); }
+        }
+
+        function validateName() {
+            const v = document.getElementById('name').value.trim();
+            if (!v) { showError('name', 'Full name is required'); return false; }
+            if (v.length < 2) { showError('name', 'Name must be at least 2 characters'); return false; }
+            if (!/^[A-Za-z\s]+$/.test(v)) { showError('name', 'Name must contain only letters and spaces'); return false; }
+            clearError('name'); markSuccess('name'); return true;
+        }
+
+        function validateEmail() {
+            const v = document.getElementById('email').value.trim();
+            if (!v) { showError('email', 'Email is required'); return false; }
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) { showError('email', 'Enter a valid email address'); return false; }
+            clearError('email'); markSuccess('email'); return true;
+        }
+
+        function validateContact() {
+            const v = document.getElementById('contact').value.trim();
+            if (!v) { showError('contact', 'Contact number is required'); return false; }
+            if (!/^[6-9]\d{9}$/.test(v)) { showError('contact', 'Enter a valid 10-digit Indian mobile number'); return false; }
+            clearError('contact'); markSuccess('contact'); return true;
+        }
+
+        function validateGender() {
+            const v = document.getElementById('gender').value;
+            if (!v) { showError('gender', 'Please select your gender'); return false; }
+            clearError('gender'); markSuccess('gender'); return true;
+        }
+
+        function validateDob() {
+            const v = document.getElementById('dob').value;
+            if (!v) { showError('dob', 'Date of birth is required'); return false; }
+            const dob = new Date(v);
+            const today = new Date();
+            let age = today.getFullYear() - dob.getFullYear();
+            const m = today.getMonth() - dob.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+            if (dob > today) { showError('dob', 'Date of birth cannot be in the future'); return false; }
+            if (age < 18) { showError('dob', 'You must be at least 18 years old'); return false; }
+            if (age > 120) { showError('dob', 'Enter a valid date of birth'); return false; }
+            clearError('dob'); markSuccess('dob'); return true;
+        }
+
+        function validateMaritalStatus() {
+            const v = document.getElementById('marital_status').value;
+            if (!v) { showError('marital_status', 'Please select marital status'); return false; }
+            clearError('marital_status'); markSuccess('marital_status'); return true;
+        }
+
+        function validateAddress() {
+            const v = document.getElementById('residential_address').value.trim();
+            if (!v) { showError('residential_address', 'Residential address is required'); return false; }
+            if (v.length < 10) { showError('residential_address', 'Address must be at least 10 characters'); return false; }
+            clearError('residential_address'); markSuccess('residential_address'); return true;
+        }
+
+        function validatePincode() {
+            const v = document.getElementById('pincode').value.trim();
+            if (!v) { showError('pincode', 'Pincode is required'); return false; }
+            if (!/^[1-9][0-9]{5}$/.test(v)) { showError('pincode', 'Enter a valid 6-digit pincode'); return false; }
+            clearError('pincode'); markSuccess('pincode'); return true;
+        }
+
+        function validatePassword() {
+            const v = document.getElementById('password').value;
+            if (!v) { showError('password', 'Password is required'); return false; }
+            if (v.length < 8) { showError('password', 'Password must be at least 8 characters'); return false; }
+            if (!/[A-Z]/.test(v)) { showError('password', 'Password must contain at least one uppercase letter'); return false; }
+            if (!/[0-9]/.test(v)) { showError('password', 'Password must contain at least one number'); return false; }
+            if (!/[^A-Za-z0-9]/.test(v)) { showError('password', 'Password must contain at least one special character'); return false; }
+            clearError('password'); markSuccess('password'); return true;
+        }
+
+        function validateConfirmPassword() {
+            const v = document.getElementById('confirmPassword').value;
+            const pw = document.getElementById('password').value;
+            if (!v) { showError('confirmPassword', 'Please confirm your password'); return false; }
+            if (v !== pw) { showError('confirmPassword', 'Passwords do not match'); return false; }
+            clearError('confirmPassword'); markSuccess('confirmPassword'); return true;
+        }
+
+        const validators = {
+            name: validateName, email: validateEmail, contact: validateContact,
+            gender: validateGender, dob: validateDob, marital_status: validateMaritalStatus,
+            residential_address: validateAddress, pincode: validatePincode,
+            password: validatePassword, confirmPassword: validateConfirmPassword
+        };
+
+        fields.forEach(f => {
+            const el = document.getElementById(f);
+            if (el) {
+                el.addEventListener('blur', validators[f]);
+                el.addEventListener('input', () => { if (el.classList.contains('error')) validators[f](); });
+            }
+        });
+
+        document.getElementById('signupForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const msg = document.getElementById('formMessage');
+            msg.style.display = 'none';
+
+            let allValid = true;
+            fields.forEach(f => { if (!validators[f]()) allValid = false; });
+            if (!allValid) return;
+
+            const data = {
+                name: document.getElementById('name').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                contact: document.getElementById('contact').value.trim(),
+                gender: document.getElementById('gender').value,
+                dob: document.getElementById('dob').value,
+                marital_status: document.getElementById('marital_status').value,
+                residential_address: document.getElementById('residential_address').value.trim(),
+                pincode: document.getElementById('pincode').value.trim(),
+                password: document.getElementById('password').value
+            };
+
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Account...';
+
+            try {
+                const res = await fetch('http://localhost:5000/api/signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                if (res.ok) {
+                    msg.textContent = 'Account created successfully! Redirecting to login...';
+                    msg.style.color = '#27ae60';
+                    msg.style.display = 'block';
+                    setTimeout(() => { window.location.href = 'login.html'; }, 2000);
+                } else {
+                    if (result.errors) {
+                        Object.keys(result.errors).forEach(f => showError(f, result.errors[f]));
+                    }
+                    msg.textContent = result.error || 'Registration failed.';
+                    msg.style.color = '#e74c3c';
+                    msg.style.display = 'block';
+                }
+            } catch (err) {
+                msg.textContent = 'Server error. Please try again later.';
+                msg.style.color = '#e74c3c';
+                msg.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-user-plus"></i> Create Account';
+            }
+        });
+    </script>
 </body>
 </html>
