@@ -155,20 +155,20 @@
         <a href="index.html" class="logo">Manzil Bharat</a>
         <ul class="side-nav-links">
             <li><a href="dashboard.html" class="active"><i class="fas fa-home"></i> Dashboard</a></li>
-            <li><a href="#"><i class="fas fa-car"></i> Cabs</a></li>
-            <li><a href="#"><i class="fas fa-motorcycle"></i> Bikes</a></li>
-            <li><a href="#"><i class="fas fa-plane"></i> Flights</a></li>
-            <li><a href="#"><i class="fas fa-train"></i> Trains</a></li>
-            <li><a href="#"><i class="fas fa-ship"></i> Cruise</a></li>
-            <li><a href="#"><i class="fas fa-bus"></i> Buses</a></li>
-            <li><a href="#"><i class="fas fa-bicycle"></i> Local Transport</a></li>
-            <li><a href="#"><i class="fas fa-hotel"></i> Hotels</a></li>
-            <li><a href="#"><i class="fas fa-utensils"></i> Restaurants</a></li>
-            <li><a href="#"><i class="fas fa-store"></i> Dhabas</a></li>
-            <li><a href="#"><i class="fas fa-shopping-basket"></i> Kirana Stores</a></li>
-            <li><a href="#"><i class="fas fa-pills"></i> Medical Stores</a></li>
-            <li><a href="#"><i class="fas fa-headset"></i> Support</a></li>
-            <li><a href="#"><i class="fas fa-ticket"></i> Book Now</a></li>
+            <li><a href="index.html"><i class="fas fa-car"></i> Cabs</a></li>
+            <li><a href="index.html"><i class="fas fa-motorcycle"></i> Bikes</a></li>
+            <li><a href="index.html"><i class="fas fa-plane"></i> Flights</a></li>
+            <li><a href="index.html"><i class="fas fa-train"></i> Trains</a></li>
+            <li><a href="index.html"><i class="fas fa-ship"></i> Cruise</a></li>
+            <li><a href="index.html"><i class="fas fa-bus"></i> Buses</a></li>
+            <li><a href="index.html"><i class="fas fa-bicycle"></i> Local Transport</a></li>
+            <li><a href="index.html"><i class="fas fa-hotel"></i> Hotels</a></li>
+            <li><a href="index.html"><i class="fas fa-utensils"></i> Restaurants</a></li>
+            <li><a href="index.html"><i class="fas fa-store"></i> Dhabas</a></li>
+            <li><a href="index.html"><i class="fas fa-shopping-basket"></i> Kirana Stores</a></li>
+            <li><a href="index.html"><i class="fas fa-pills"></i> Medical Stores</a></li>
+            <li><a href="helpcenter.html"><i class="fas fa-headset"></i> Support</a></li>
+            <li><a href="index.html"><i class="fas fa-ticket"></i> Book Now</a></li>
         </ul>
     </nav>
 
@@ -246,42 +246,42 @@
         <!-- Travel Services -->
         <h2 class="section-title">Travel Services</h2>
         <div class="services-grid">
-            <a href="#" class="service-card">
+            <a href="index.html" class="service-card">
                 <div class="service-icon icon-cab"><i class="fas fa-car"></i></div>
                 <h4>Cabs</h4>
                 <p>Book a ride</p>
             </a>
-            <a href="#" class="service-card">
+            <a href="index.html" class="service-card">
                 <div class="service-icon icon-bike"><i class="fas fa-motorcycle"></i></div>
                 <h4>Bikes</h4>
                 <p>Rent a bike</p>
             </a>
-            <a href="#" class="service-card">
+            <a href="index.html" class="service-card">
                 <div class="service-icon icon-flight"><i class="fas fa-plane"></i></div>
                 <h4>Flights</h4>
                 <p>Domestic & Intl</p>
             </a>
-            <a href="#" class="service-card">
+            <a href="index.html" class="service-card">
                 <div class="service-icon icon-train"><i class="fas fa-train"></i></div>
                 <h4>Trains</h4>
                 <p>IRCTC booking</p>
             </a>
-            <a href="#" class="service-card">
+            <a href="index.html" class="service-card">
                 <div class="service-icon icon-bus"><i class="fas fa-bus"></i></div>
                 <h4>Buses</h4>
                 <p>State & private</p>
             </a>
-            <a href="#" class="service-card">
+            <a href="index.html" class="service-card">
                 <div class="service-icon icon-hotel"><i class="fas fa-hotel"></i></div>
                 <h4>Hotels</h4>
                 <p>Stay anywhere</p>
             </a>
-            <a href="#" class="service-card">
+            <a href="index.html" class="service-card">
                 <div class="service-icon icon-food"><i class="fas fa-utensils"></i></div>
                 <h4>Restaurants</h4>
                 <p>Find food nearby</p>
             </a>
-            <a href="#" class="service-card">
+            <a href="index.html" class="service-card">
                 <div class="service-icon icon-medical"><i class="fas fa-pills"></i></div>
                 <h4>Medical</h4>
                 <p>Pharmacy nearby</p>
@@ -349,8 +349,9 @@
 
         // ======== LOAD USER DATA ========
         const user = JSON.parse(localStorage.getItem('manzilUser'));
+        const token = localStorage.getItem('manzilToken');
 
-        if (!user) {
+        if (!user || !token) {
             window.location.href = 'login.html';
         } else {
             document.getElementById('welcomeName').textContent = user.name || 'User';
@@ -358,8 +359,21 @@
             document.getElementById('userAvatar').textContent = (user.name || 'U').charAt(0).toUpperCase();
         }
 
-        // ======== LOAD BOOKINGS ========
-        const bookings = JSON.parse(localStorage.getItem('manzilBookings')) || [];
+        // ======== LOAD BOOKINGS FROM API ========
+        let bookings = [];
+
+        async function loadBookings() {
+            try {
+                const res = await fetch('/api/bookings/user', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (res.ok) {
+                    bookings = await res.json();
+                }
+            } catch (e) {}
+            renderBookings();
+            updateStats();
+        }
 
         function renderBookings() {
             const list = document.getElementById('bookingList');
@@ -374,10 +388,10 @@
             list.innerHTML = bookings.slice(-5).reverse().map(b => `
                 <li class="booking-item">
                     <div class="booking-info">
-                        <div class="booking-icon ${colors[b.type] || 'icon-cab'}"><i class="fas ${icons[b.type] || 'fa-ticket-alt'}"></i></div>
+                        <div class="booking-icon ${colors[b.booking_type] || 'icon-cab'}"><i class="fas ${icons[b.booking_type] || 'fa-ticket-alt'}"></i></div>
                         <div class="booking-details">
-                            <h4>${b.from || ''} → ${b.to || ''}</h4>
-                            <p>${b.date || ''} • ${b.type || 'Booking'}</p>
+                            <h4>${b.source || ''} → ${b.destination || ''}</h4>
+                            <p>${b.travel_date || ''} • ${b.booking_type || 'Booking'}</p>
                         </div>
                     </div>
                     <span class="booking-status status-${(b.status || 'pending').toLowerCase()}">${b.status || 'Pending'}</span>
@@ -385,12 +399,13 @@
             `).join('');
         }
 
-        renderBookings();
+        function updateStats() {
+            document.getElementById('totalBookings').textContent = bookings.length;
+            document.getElementById('completedTrips').textContent = bookings.filter(b => b.status === 'completed').length;
+            document.getElementById('pendingBookings').textContent = bookings.filter(b => b.status === 'pending').length;
+        }
 
-        // ======== UPDATE STATS ========
-        document.getElementById('totalBookings').textContent = bookings.length;
-        document.getElementById('completedTrips').textContent = bookings.filter(b => b.status === 'Completed').length;
-        document.getElementById('pendingBookings').textContent = bookings.filter(b => b.status === 'Pending').length;
+        loadBookings();
 
         // ======== LOGOUT ========
         document.getElementById('logoutBtn').addEventListener('click', () => {
@@ -401,12 +416,7 @@
 
         // ======== USER MENU TOGGLE ========
         document.getElementById('userMenu').addEventListener('click', () => {
-            const menu = document.getElementById('logoutBtn');
-            if (menu.style.display === 'none' || menu.style.display === '') {
-                menu.style.display = 'flex';
-            } else {
-                menu.style.display = 'none';
-            }
+            document.getElementById('logoutBtn').scrollIntoView({ behavior: 'smooth' });
         });
     </script>
 </body>

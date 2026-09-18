@@ -139,10 +139,10 @@
         <div class="hero-content">
             <h1>Let's travel in New India</h1>
             <p>Explore the world with Bhartiya dil.</p>
-            <div class="search-bar" role="search">
+            <form class="search-bar" role="search" onsubmit="event.preventDefault(); var q=this.querySelector('input').value.trim(); if(q) alert('Searching for: '+q);">
                 <input type="text" placeholder="Where do you want to go?" aria-label="Search destination">
                 <button type="submit" aria-label="Search"><i class="fas fa-search"></i> Let's go</button>
-            </div>
+            </form>
         </div>
     </header>
 
@@ -181,8 +181,8 @@
             <div class="footer-newsletter">
                 <h4>Stay Updated</h4>
                 <p>Subscribe to get exclusive offers, travel tips, and updates.</p>
-                <form class="newsletter-form" onsubmit="return false;">
-                    <input type="email" placeholder="Enter your email" aria-label="Email for newsletter">
+                <form class="newsletter-form" onsubmit="event.preventDefault(); this.querySelector('button').textContent='Subscribed!'; this.querySelector('input').value=''; setTimeout(()=>{this.querySelector('button').innerHTML='<i class=fas fa-paper-plane></i>';}, 2000);">
+                    <input type="email" placeholder="Enter your email" aria-label="Email for newsletter" required>
                     <button type="submit"><i class="fas fa-paper-plane"></i></button>
                 </form>
                 <div class="footer-apps">

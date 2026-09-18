@@ -10,11 +10,21 @@ import hashlib
 import hmac
 import json
 import secrets
+import base64
 from dotenv import load_dotenv
 from datetime import date, datetime, timedelta
 from functools import wraps
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
+
+
+def base64url_encode(data):
+    return base64.urlsafe_b64encode(data).rstrip(b'=').decode()
+
+
+def base64url_decode(s):
+    s += '=' * (4 - len(s) % 4)
+    return base64.urlsafe_b64decode(s)
 
 load_dotenv()
 
@@ -74,11 +84,26 @@ def create_token(user_id, email):
     }
     data = json.dumps(payload, sort_keys=True)
     sig = hmac.new(JWT_SECRET.encode(), data.encode(), hashlib.sha256).hexdigest()
-    return f"{secrets.token_urlsafe(16)}.{sig}"
+    encoded = base64url_encode(data.encode())
+    return f"{encoded}.{sig}"
 
 
 def verify_token(token):
-    return bool(token) and len(token) > 20
+    try:
+        parts = token.split('.')
+        if len(parts) != 2:
+            return None
+        data = base64url_decode(parts[0]).decode()
+        sig = parts[1]
+        expected = hmac.new(JWT_SECRET.encode(), data.encode(), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(sig, expected):
+            return None
+        payload = json.loads(data)
+        if datetime.fromisoformat(payload['exp']) < datetime.utcnow():
+            return None
+        return payload
+    except Exception:
+        return None
 
 
 def get_db():
@@ -313,6 +338,48 @@ def google_login():
             conn.close()
 
 
+@app.route('/api/forgot-password', methods=['POST'])
+@rate_limit(max_requests=3, window=300)
+def forgot_password():
+    data = request.get_json()
+    email = (data.get('email') or '').strip()
+    new_password = (data.get('new_password') or '').strip()
+
+    if not email or not new_password:
+        return jsonify({'error': 'Email and new password are required'}), 400
+
+    if len(new_password) < 8:
+        return jsonify({'error': 'Password must be at least 8 characters'}), 400
+    if not re.search(r'[A-Z]', new_password):
+        return jsonify({'error': 'Password must contain at least one uppercase letter'}), 400
+    if not re.search(r'[0-9]', new_password):
+        return jsonify({'error': 'Password must contain at least one number'}), 400
+    if not re.search(r'[^A-Za-z0-9]', new_password):
+        return jsonify({'error': 'Password must contain at least one special character'}), 400
+
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT id FROM users WHERE email = %s", (email,))
+        user = cur.fetchone()
+        if not user:
+            return jsonify({'error': 'No account found with this email'}), 404
+
+        hashed = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        cur.execute("UPDATE users SET password = %s WHERE id = %s", (hashed, user[0]))
+        conn.commit()
+        cur.close()
+        return jsonify({'message': 'Password updated successfully'}), 200
+    except Exception:
+        if conn:
+            conn.rollback()
+        return jsonify({'error': 'An internal error occurred. Please try again later.'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
 @app.route('/api/admin/login', methods=['POST'])
 @rate_limit(max_requests=5, window=60)
 def admin_login():
@@ -339,7 +406,8 @@ def require_admin(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
         token = request.headers.get('x-admin-token', '')
-        if not verify_token(token):
+        payload = verify_token(token)
+        if not payload:
             return jsonify({'error': 'Unauthorized'}), 401
         return f(*args, **kwargs)
     return wrapper
@@ -595,14 +663,16 @@ def admin_get_payment(payment_id):
 @app.route('/api/bookings/user', methods=['GET'])
 def get_user_bookings():
     token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    if not verify_token(token):
+    payload = verify_token(token)
+    if not payload:
         return jsonify({'error': 'Unauthorized'}), 401
 
+    user_id = payload.get('user_id')
     conn = None
     try:
         conn = get_db()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        cur.execute("""SELECT * FROM bookings ORDER BY created_at DESC""")
+        cur.execute("SELECT * FROM bookings WHERE user_id = %s ORDER BY created_at DESC", (user_id,))
         bookings = cur.fetchall()
         cur.close()
         return jsonify([dict(b) for b in bookings])
@@ -616,9 +686,11 @@ def get_user_bookings():
 @app.route('/api/bookings', methods=['POST'])
 def create_booking():
     token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    if not verify_token(token):
+    payload = verify_token(token)
+    if not payload:
         return jsonify({'error': 'Unauthorized'}), 401
 
+    user_id = payload.get('user_id')
     data = request.get_json()
     booking_type = (data.get('type') or '').strip()
     source = (data.get('from') or '').strip()
@@ -634,9 +706,9 @@ def create_booking():
         conn = get_db()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cur.execute(
-            """INSERT INTO bookings (booking_type, source, destination, travel_date, amount, status)
-               VALUES (%s, %s, %s, %s, %s, 'pending') RETURNING *""",
-            (booking_type, source, destination, travel_date, amount)
+            """INSERT INTO bookings (user_id, booking_type, source, destination, travel_date, amount, status)
+               VALUES (%s, %s, %s, %s, %s, %s, 'pending') RETURNING *""",
+            (user_id, booking_type, source, destination, travel_date, amount)
         )
         booking = cur.fetchone()
         conn.commit()
@@ -652,4 +724,4 @@ def create_booking():
 
 
 if __name__ == '__main__':
-    app.run(port=5000)
+    app.run(port=int(os.getenv('PORT', 5000)))

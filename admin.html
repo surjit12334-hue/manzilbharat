@@ -343,6 +343,7 @@
         async function deleteUser(id) {
             if (!confirm('Delete this user?')) return;
             await authFetch('/api/users/' + id, { method: 'DELETE' });
+            searchCache.users = null;
             loadUsers();
         }
 
@@ -393,12 +394,14 @@
                 return;
             }
             await authFetch('/api/bookings/' + id, { method: 'PUT', body: JSON.stringify({ status: status }) });
+            searchCache.bookings = null;
             loadBookings();
         }
 
         async function deleteBooking(id) {
             if (!confirm('Delete this booking?')) return;
             await authFetch('/api/bookings/' + id, { method: 'DELETE' });
+            searchCache.bookings = null;
             loadBookings();
         }
 
@@ -437,29 +440,49 @@
             ]);
         }
 
-        // Search
-        document.getElementById('searchUsers').addEventListener('input', async function() {
+        // Search with debounce
+        var searchCache = { users: null, bookings: null, payments: null };
+        var searchTimers = {};
+
+        function debounce(key, fn, delay) {
+            clearTimeout(searchTimers[key]);
+            searchTimers[key] = setTimeout(fn, delay);
+        }
+
+        async function fetchAndCache(type) {
+            if (!searchCache[type]) {
+                var res = await authFetch('/api/' + type);
+                if (!res) return null;
+                searchCache[type] = await res.json();
+            }
+            return searchCache[type];
+        }
+
+        document.getElementById('searchUsers').addEventListener('input', function() {
             var q = this.value.toLowerCase();
-            var res = await authFetch('/api/users');
-            if (!res) return;
-            var users = await res.json();
-            renderUsers(users.filter(function(u) { return (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q) || (u.phone || '').includes(q); }));
+            debounce('users', async function() {
+                var data = await fetchAndCache('users');
+                if (!data) return;
+                renderUsers(data.filter(function(u) { return (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q) || (u.phone || '').includes(q); }));
+            }, 300);
         });
 
-        document.getElementById('searchBookings').addEventListener('input', async function() {
+        document.getElementById('searchBookings').addEventListener('input', function() {
             var q = this.value.toLowerCase();
-            var res = await authFetch('/api/bookings');
-            if (!res) return;
-            var bookings = await res.json();
-            renderBookings(bookings.filter(function(b) { return (b.user_name || '').toLowerCase().includes(q) || (b.source || '').toLowerCase().includes(q) || (b.destination || '').toLowerCase().includes(q) || (b.booking_type || '').toLowerCase().includes(q); }));
+            debounce('bookings', async function() {
+                var data = await fetchAndCache('bookings');
+                if (!data) return;
+                renderBookings(data.filter(function(b) { return (b.user_name || '').toLowerCase().includes(q) || (b.source || '').toLowerCase().includes(q) || (b.destination || '').toLowerCase().includes(q) || (b.booking_type || '').toLowerCase().includes(q); }));
+            }, 300);
         });
 
-        document.getElementById('searchPayments').addEventListener('input', async function() {
+        document.getElementById('searchPayments').addEventListener('input', function() {
             var q = this.value.toLowerCase();
-            var res = await authFetch('/api/payments');
-            if (!res) return;
-            var payments = await res.json();
-            renderPayments(payments.filter(function(p) { return (p.user_name || '').toLowerCase().includes(q) || (p.razorpay_payment_id || '').toLowerCase().includes(q); }));
+            debounce('payments', async function() {
+                var data = await fetchAndCache('payments');
+                if (!data) return;
+                renderPayments(data.filter(function(p) { return (p.user_name || '').toLowerCase().includes(q) || (p.razorpay_payment_id || '').toLowerCase().includes(q); }));
+            }, 300);
         });
 
         // Helpers
