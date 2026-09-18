@@ -68,6 +68,9 @@
             .menu-toggle { display: block; }
         }
         @media (max-width: 480px) { .auth-wrapper { padding: 5rem 4% 2rem; } .auth-card { padding: 1.5rem; } }
+
+        .g_id_signin { width: 100% !important; border-radius: 50px !important; overflow: hidden; }
+        .g_id_signin iframe { width: 100% !important; border-radius: 50px !important; }
     </style>
 </head>
 <body>
@@ -95,7 +98,7 @@
                  data-size="large"
                  data-theme="outline"
                  data-text="sign_in_with"
-                 data-shape="rectangular"
+                 data-shape="pill"
                  data-logo_alignment="left"
                  style="width:100%;margin-bottom:0.5rem;">
             </div>
@@ -141,7 +144,7 @@
             const credential = response.credential;
             if (!credential) { alert('Google login failed. Please try again.'); return; }
 
-            fetch('http://localhost:5000/api/google-login', {
+            fetch('/api/google-login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ credential: credential })
@@ -171,7 +174,7 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
 
             try {
-                const res = await fetch('http://localhost:5000/api/login', {
+                const res = await fetch('/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, password })

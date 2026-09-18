@@ -312,7 +312,7 @@
                     <p>Discover new destinations</p>
                 </div>
             </div>
-            <div class="action-card">
+            <div class="action-card" onclick="window.location.href='helpcenter.html'">
                 <div class="action-icon"><i class="fas fa-headset"></i></div>
                 <div>
                     <h4>Get Support</h4>
@@ -402,7 +402,11 @@
         // ======== USER MENU TOGGLE ========
         document.getElementById('userMenu').addEventListener('click', () => {
             const menu = document.getElementById('logoutBtn');
-            menu.style.display = menu.style.display === 'none' ? 'flex' : 'none';
+            if (menu.style.display === 'none' || menu.style.display === '') {
+                menu.style.display = 'flex';
+            } else {
+                menu.style.display = 'none';
+            }
         });
     </script>
 </body>

@@ -72,6 +72,9 @@
             .menu-toggle { display: block; }
         }
         @media (max-width: 480px) { .auth-wrapper { padding: 5rem 4% 2rem; } .auth-card { padding: 1.5rem; } .form-row { grid-template-columns: 1fr; } }
+
+        .g_id_signin { width: 100% !important; border-radius: 50px !important; overflow: hidden; }
+        .g_id_signin iframe { width: 100% !important; border-radius: 50px !important; }
     </style>
 </head>
 <body>
@@ -99,7 +102,7 @@
                  data-size="large"
                  data-theme="outline"
                  data-text="sign_up_with"
-                 data-shape="rectangular"
+                 data-shape="pill"
                  data-logo_alignment="left"
                  style="width:100%;margin-bottom:0.5rem;">
             </div>
@@ -200,7 +203,9 @@
             if (!credential) { alert('Google signup failed. Please try again.'); return; }
 
             try {
-                const payload = JSON.parse(atob(credential.split('.')[1]));
+                const parts = credential.split('.');
+                if (parts.length !== 3) throw new Error('Invalid token');
+                const payload = JSON.parse(decodeURIComponent(escape(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))));
                 const name = payload.name || '';
                 const email = payload.email || '';
 
@@ -364,7 +369,7 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Account...';
 
             try {
-                const res = await fetch('http://localhost:5000/api/signup', {
+                const res = await fetch('/api/signup', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)

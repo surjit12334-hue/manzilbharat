@@ -331,7 +331,11 @@
                 { label: 'Name', value: u.name || '-' },
                 { label: 'Email', value: u.email },
                 { label: 'Phone', value: u.phone || '-' },
-                { label: 'Firebase UID', value: u.firebase_uid },
+                { label: 'Gender', value: u.gender || '-' },
+                { label: 'Date of Birth', value: u.dob || '-' },
+                { label: 'Marital Status', value: u.marital_status || '-' },
+                { label: 'Address', value: u.residential_address || '-' },
+                { label: 'Pincode', value: u.pincode || '-' },
                 { label: 'Joined', value: fmtDate(u.created_at) },
             ]);
         }
@@ -380,8 +384,14 @@
         }
 
         async function updateBookingStatus(id) {
-            var status = prompt('Enter new status (pending/confirmed/completed/cancelled):');
+            var validStatuses = ['pending', 'confirmed', 'completed', 'cancelled'];
+            var status = prompt('Enter new status (' + validStatuses.join('/') + '):');
             if (!status) return;
+            status = status.trim().toLowerCase();
+            if (!validStatuses.includes(status)) {
+                alert('Invalid status. Must be one of: ' + validStatuses.join(', '));
+                return;
+            }
             await authFetch('/api/bookings/' + id, { method: 'PUT', body: JSON.stringify({ status: status }) });
             loadBookings();
         }
