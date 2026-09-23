@@ -411,6 +411,8 @@ def require_admin(f):
         payload = verify_token(token)
         if not payload:
             return jsonify({'error': 'Unauthorized'}), 401
+        if payload.get('user_id') != 0 or payload.get('email') != ADMIN_EMAIL:
+            return jsonify({'error': 'Forbidden'}), 403
         return f(*args, **kwargs)
     return wrapper
 
