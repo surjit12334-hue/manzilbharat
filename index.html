@@ -41,6 +41,28 @@
         .search-bar button:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(255,107,53,0.4); }
         .search-bar button:active { transform: translateY(0); }
 
+        .search-wrap { position: relative; max-width: 600px; margin-left: auto; margin-right: auto; }
+
+        .ai-panel { background: white; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.25); max-width: 620px; margin: 12px auto 0; padding: 1.4rem 1.6rem; display: none; text-align: left; color: #333; animation: fadeInUp 0.4s ease-out; z-index: 600; position: relative; }
+        .ai-panel .ai-title { display: flex; align-items: center; gap: 0.7rem; font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .ai-panel .ai-title i { color: #FF6B35; }
+        .ai-panel .ai-body { font-size: 0.95rem; line-height: 1.7; white-space: pre-wrap; }
+        .ai-panel .ai-body strong { color: #E65100; }
+        .ai-panel .ai-loading { display: flex; align-items: center; gap: 0.7rem; color: #5a6a8a; }
+        .ai-panel .ai-loading .spinner { width: 18px; height: 18px; border: 3px solid #ffe0d1; border-top-color: #FF6B35; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .ai-panel .ai-err { color: #e74c3c; font-size: 0.9rem; }
+        .ai-panel .ai-hint { color: #5a6a8a; font-size: 0.8rem; margin-top: 0.8rem; }
+
+        .search-dropdown { position: absolute; top: 100%; left: 0; right: 0; margin-top: 8px; background: white; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.25); overflow: hidden; display: none; z-index: 700; text-align: left; }
+        .search-dropdown .sd-item { display: flex; align-items: flex-start; gap: 0.75rem; width: 100%; padding: 0.75rem 1rem; border: none; background: none; cursor: pointer; font-size: 0.92rem; color: #333; text-align: left; transition: background 0.2s ease; border-bottom: 1px solid #f0f2f6; }
+        .search-dropdown .sd-item:last-child { border-bottom: none; }
+        .search-dropdown .sd-item:hover { background: #fff4ee; }
+        .search-dropdown .sd-item i { color: #FF6B35; margin-top: 4px; }
+        .search-dropdown .sd-name { font-weight: 600; }
+        .search-dropdown .sd-region { color: #5a6a8a; font-size: 0.82rem; }
+        .search-dropdown .sd-empty { padding: 1rem; color: #5a6a8a; font-size: 0.9rem; text-align: center; }
+
         footer { background: linear-gradient(180deg, #0a1628 0%, #0d1f3c 100%); color: white; padding: 0; position: relative; }
         footer::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #FF6B35, #FFD700, #FF6B35); }
         .footer-top { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1.5fr; gap: 3rem; max-width: 1400px; margin: 0 auto; padding: 4rem 5% 3rem; }
@@ -138,10 +160,14 @@
         <div class="hero-content">
             <h1>Let's travel in New India</h1>
             <p>Explore the world with Bhartiya dil.</p>
-            <form class="search-bar" role="search" onsubmit="event.preventDefault(); var q=this.querySelector('input').value.trim(); if(q) alert('Searching for: '+q);">
-                <input type="text" placeholder="Where do you want to go?" aria-label="Search destination">
-                <button type="submit" aria-label="Search"><i class="fas fa-search"></i> Let's go</button>
-            </form>
+            <div class="search-wrap">
+                <form class="search-bar" role="search" onsubmit="event.preventDefault(); runSmartSearch();">
+                    <input type="text" id="destinationInput" placeholder="Where do you want to go?" aria-label="Search destination" autocomplete="off" oninput="onType(this.value)">
+                    <button type="submit" aria-label="Search"><i class="fas fa-search"></i> Let's go</button>
+                </form>
+                <div class="search-dropdown" id="searchDropdown"></div>
+                <div class="ai-panel" id="aiPanel"></div>
+            </div>
         </div>
     </header>
 
@@ -215,5 +241,143 @@
             </div>
         </div>
     </footer>
+
+    <script>
+        // ============ API KEY ============
+        const GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY_HERE';
+        // ================================
+
+        const input = document.getElementById('destinationInput');
+        const dropdown = document.getElementById('searchDropdown');
+        const panel = document.getElementById('aiPanel');
+        let selectedPlace = null;
+        let debounceTimer = null;
+
+        // ---------- Nominatim autocomplete ----------
+        async function onType(q) {
+            clearTimeout(debounceTimer);
+            const value = q.trim();
+            if (value.length < 3) { dropdown.style.display = 'none'; return; }
+            debounceTimer = setTimeout(async () => {
+                try {
+                    const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=5&addressdetails=1&q=' + encodeURIComponent(value);
+                    const res = await fetch(url);
+                    const results = await res.json();
+                    renderDropdown(results);
+                } catch (e) {
+                    dropdown.style.display = 'none';
+                }
+            }, 350);
+        }
+
+        function renderDropdown(results) {
+            if (!results || !results.length) {
+                dropdown.innerHTML = '<div class="sd-empty">No places found. Try another query.</div>';
+                dropdown.style.display = 'block';
+                return;
+            }
+            let html = '';
+            results.forEach((r, i) => {
+                html += '<button type="button" class="sd-item" onmousedown="pickResult(' + i + ')">' +
+                    '<i class="fas fa-map-marker-alt"></i>' +
+                    '<span><span class="sd-name"></span><br><span class="sd-region"></span></span></button>';
+            });
+            dropdown.innerHTML = html;
+            dropdown.querySelectorAll('.sd-item').forEach((el, i) => {
+                el.querySelector('.sd-name').textContent = results[i].name || (results[i].display_name || '').split(', ')[0];
+                el.querySelector('.sd-region').textContent = (results[i].display_name || '').split(', ').slice(1).join(', ');
+            });
+            dropdown.style.display = 'block';
+            window._nomResults = results;
+        }
+
+        window.pickResult = function(i) {
+            const r = window._nomResults[i];
+            if (!r) return;
+            selectedPlace = r;
+            const shortName = r.name || (r.display_name || '').split(', ')[0];
+            if (r.lat && r.lon) {
+                openMap(r, shortName);
+            } else {
+                input.value = shortName;
+                dropdown.style.display = 'none';
+                askGemini('destination', shortName);
+            }
+        };
+
+        function openMap(r, shortName) {
+            const url = 'map.html?lat=' + encodeURIComponent(r.lat) +
+                '&lon=' + encodeURIComponent(r.lon) +
+                '&name=' + encodeURIComponent(shortName) +
+                '&display=' + encodeURIComponent(r.display_name || shortName);
+            window.location.href = url;
+        }
+
+        async function runSmartSearch() {
+            const q = input.value.trim();
+            if (!q) return;
+            if (selectedPlace && selectedPlace.lat && selectedPlace.lon) {
+                openMap(selectedPlace, selectedPlace.name || q);
+                return;
+            }
+            showPanel('<div class="ai-loading"><div class="spinner"></div> Finding your place...</div>');
+            try {
+                const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(q);
+                const res = await fetch(url);
+                const results = await res.json();
+                if (results && results[0] && results[0].lat && results[0].lon) {
+                    openMap(results[0], results[0].name || q);
+                } else {
+                    askGemini('trip', q);
+                }
+            } catch (e) {
+                askGemini('trip', q);
+            }
+        }
+
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.search-wrap')) dropdown.style.display = 'none';
+        });
+
+        function showPanel(html) { panel.innerHTML = html; panel.style.display = 'block'; }
+
+        async function askGemini(kind, query) {
+            if (GEMINI_API_KEY.startsWith('YOUR_')) {
+                showPanel('<div class="ai-err">Gemini API key not set. Add your key in index.html (GEMINI_API_KEY).</div>');
+                return;
+            }
+            showPanel('<div class="ai-loading"><div class="spinner"></div> Thinking with AI...</div>');
+            const prompt = kind === 'destination'
+                ? 'You are Manzil Bharat, a travel guide. Given the destination "' + query + '", respond as a compact travel card using these EXACT section headers on separate lines: "Why go", "Best time to visit", "Top things to do", "Travel tip". Keep it under 120 words, no markdown bold, plain text with each section on its own line starting with the header.'
+                : 'You are Manzil Bharat, a travel assistant for India travel. User query: "' + query + '". Reply as 3 suggested destinations, one per line, formatted as "PlaceName - one-line reason". Then on its own line start with "Travel tip:" give one general tip. Under 120 words. No markdown.';
+            try {
+                const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=' + GEMINI_API_KEY, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+                if (!res.ok) {
+                    const e = await res.json().catch(() => null);
+                    throw new Error((e && e.error && e.error.message) || ('HTTP ' + res.status));
+                }
+                const data = await res.json();
+                const text = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts.map(p => p.text || '').join('')) || '';
+                escBody(text);
+            } catch (err) {
+                showPanel('<div class="ai-err">AI request failed: ' + (err.message || 'Error') + '</div>');
+            }
+        }
+
+        function escBody(text) {
+            const title = selectedPlace ? (selectedPlace.name || input.value.trim()) : input.value.trim();
+            showPanel(
+                '<div class="ai-title"><i class="fas fa-route"></i><span></span></div>' +
+                '<div class="ai-body"></div>' +
+                '<div class="ai-hint"><i class="fas fa-sparkles"></i> AI tips by Gemini</div>'
+            );
+            panel.querySelector('.ai-title span').textContent = title;
+            panel.querySelector('.ai-body').textContent = text;
+        }
+    </script>
 </body>
 </html>

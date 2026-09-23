@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Destination Map - Manzil Bharat</title>
+    <link rel="icon" type="image/png" href="icon.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { font-size: 16px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background: #f4f6fb; }
+
+        .topbar { background: linear-gradient(135deg, rgba(26,35,126,0.7), rgba(255,107,53,0.5)), url('homebackground.png') center/cover no-repeat; color: white; padding: 2.5rem 5%; position: relative; }
+        .topbar h1 { font-size: clamp(1.5rem, 4vw, 2.2rem); display: flex; align-items: center; gap: 0.8rem; }
+        .topbar h1 a { color: white; text-decoration: none; }
+        .topbar p { opacity: 0.9; margin-top: 0.3rem; max-width: 700px; }
+        .topbar .back { position: absolute; top: 1.5rem; right: 2rem; color: white; text-decoration: none; font-weight: 600; padding: 0.5rem 1rem; border: 2px solid rgba(255,255,255,0.7); border-radius: 25px; transition: all 0.3s ease; }
+        .topbar .back:hover { background: rgba(255,255,255,0.2); }
+
+        .controls { max-width: 1200px; margin: 1.2rem auto 0; padding: 0 2rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+        .controls .map-name { font-weight: 700; color: #1a237e; flex: 1; min-width: 200px; font-size: 1.05rem; }
+        .map-search { position: relative; min-width: 240px; flex: 0 1 300px; }
+        .map-search .s-bar { display: flex; width: 100%; }
+        .map-search .s-bar input { flex: 1; padding: 0.5rem 0.9rem; border: 2px solid #dde3ef; border-radius: 25px 0 0 25px; font-size: 0.9rem; outline: none; }
+        .map-search .s-bar input:focus { border-color: #FF6B35; }
+        .map-search .s-bar button { padding: 0.5rem 1rem; border: none; border-radius: 0 25px 25px 0; background: #FF6B35; color: white; cursor: pointer; }
+        .map-search .s-drop { position: absolute; top: 100%; left: 0; right: 0; background: white; border-radius: 12px; box-shadow: 0 12px 30px rgba(0,0,0,0.15); margin-top: 0.4rem; z-index: 900; display: none; overflow: hidden; }
+        .map-search .s-drop div { padding: 0.6rem 0.9rem; cursor: pointer; font-size: 0.88rem; }
+        .map-search .s-drop div:hover { background: #fff1ea; color: #1a237e; }
+
+        .layout { max-width: 1200px; margin: 0 auto; padding: 0 2rem 1rem; display: grid; grid-template-columns: 2fr 1fr; gap: 1.2rem; align-items: start; }
+        .map-panel { background: white; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.12); padding: 0.8rem; }
+        #map { border-radius: 12px; overflow: hidden; height: 70vh; min-height: 460px; width: 100%; }
+
+        .ai-panel { background: white; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.12); padding: 1.4rem 1.6rem; }
+        .ai-panel .ai-title { display: flex; align-items: center; gap: 0.7rem; font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .ai-panel .ai-title i { color: #FF6B35; }
+        .ai-panel .ai-body { font-size: 0.95rem; line-height: 1.75; white-space: pre-wrap; }
+        .ai-panel .ai-hint { color: #8a94a8; font-size: 0.8rem; margin-top: 1rem; }
+        .ai-panel .ai-loading { display: flex; align-items: center; gap: 0.7rem; color: #5a6a8a; }
+        .ai-panel .ai-loading .spinner { width: 18px; height: 18px; border: 3px solid #ffe0d1; border-top-color: #FF6B35; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .ai-panel .ai-err { color: #e74c3c; font-size: 0.9rem; }
+        .no-result { max-width: 1200px; margin: 2rem auto; padding: 0 2rem; }
+        .no-result a { color: #FF6B35; }
+
+        @media (max-width: 900px) {
+            .layout { grid-template-columns: 1fr; }
+            .ai-panel { order: -1; }
+            #map { height: 50vh; }
+            .topbar .back { position: static; display: inline-block; margin-top: 1rem; }
+        }
+
+        .gallery { max-width: 1200px; margin: 1.2rem auto; padding: 0 2rem; }
+        .gallery h2 { font-size: 1.2rem; color: #1a237e; margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.6rem; }
+        .gallery h2 i { color: #FF6B35; }
+        .gallery-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+        .gallery-grid .g-item { position: relative; border-radius: 14px; overflow: hidden; aspect-ratio: 4/3; background: #e6eaf2; cursor: pointer; box-shadow: 0 4px 18px rgba(0,0,0,0.12); transition: transform 0.25s ease, box-shadow 0.25s ease; }
+        .gallery-grid .g-item:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(0,0,0,0.2); }
+        .gallery-grid .g-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .gallery-grid .g-item .g-cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 0.6rem; font-size: 0.78rem; color: white; background: linear-gradient(transparent, rgba(0,0,0,0.75)); text-align: left; }
+        .faroc-case { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 1rem; }
+        .faroc-case img { max-width: 92vw; max-height: 80vh; border-radius: 10px; box-shadow: 0 0 50px rgba(0,0,0,0.6); }
+        .faroc-case .faroc-close { position: absolute; top: 1.2rem; right: 1.6rem; color: white; font-size: 2rem; cursor: pointer; background: none; border: none; }
+        @media (max-width: 700px) { .gallery-grid { grid-template-columns: 1fr 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <h1><a href="index.html"><i class="fas fa-map-marked-alt"></i> Manzil Bharat</a></h1>
+        <p id="pageSub">Exploring your destination...</p>
+        <a class="back" href="index.html"><i class="fas fa-arrow-left"></i> New search</a>
+    </div>
+
+    <div class="no-result" id="noResult" style="display:none;">
+        <p>No destination selected. <a href="index.html">Go back and search for a place.</a></p>
+    </div>
+
+    <div id="content">
+        <div class="controls">
+            <span class="map-name" id="mapName"></span>
+            <div class="map-search">
+                <div class="s-bar">
+                    <input type="text" id="mapSearchInput" placeholder="Search a place on the map..." autocomplete="off" aria-label="Search place on map">
+                    <button type="button" aria-label="Go" onclick="mapSearchGo()"><i class="fas fa-search"></i></button>
+                </div>
+                <div class="s-drop" id="mapSearchDrop"></div>
+            </div>
+        </div>
+        <div class="layout">
+            <div class="map-panel"><div id="map"></div></div>
+            <div class="ai-panel" id="aiPanel">
+                <div class="ai-loading"><div class="spinner"></div> Loading travel info...</div>
+            </div>
+        </div>
+        <div class="gallery" id="gallery">
+            <h2><i class="fas fa-images"></i> Photos of <span id="galleryTitle"></span></h2>
+            <div class="gallery-grid" id="galleryGrid"></div>
+        </div>
+    </div>
+
+    <div class="faroc-case" id="lightbox" onclick="this.style.display='none'">
+        <button class="faroc-close" aria-label="Close">&times;</button>
+        <img id="lightboxImg" src="" alt="Photo preview">
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY_HERE';
+
+        const params = new URLSearchParams(window.location.search);
+        const lat = params.get('lat');
+        const lon = params.get('lon');
+        const name = params.get('name') || 'this destination';
+        const display = params.get('display') || name;
+
+        const contentEl = document.getElementById('content');
+        const noResultEl = document.getElementById('noResult');
+        const aiPanel = document.getElementById('aiPanel');
+
+        let map = null, marker = null;
+
+        const satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: '&copy; Esri, Maxar, Earthstar Geographics'
+        });
+
+        const streetLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap contributors'
+        });
+
+        const mapSearchInput = document.getElementById('mapSearchInput');
+        const mapSearchDrop = document.getElementById('mapSearchDrop');
+        let photonResults = [];
+
+        function init() {
+            if (!lat || !lon) {
+                contentEl.style.display = 'none';
+                noResultEl.style.display = 'block';
+                return;
+            }
+            document.getElementById('mapName').textContent = display;
+            map = L.map('map').setView([parseFloat(lat), parseFloat(lon)], 11);
+            map.addLayer(satLayer);
+            L.control.attribution({ prefix: false }).addTo(map);
+            L.control.layers({
+                'Satellite': satLayer,
+                'Street': streetLayer
+            }, null, { position: 'topright' }).addTo(map);
+            placeMarker(parseFloat(lat), parseFloat(lon), display);
+            setTimeout(() => map.invalidateSize(), 100);
+            askGemini(name);
+            loadPhotos(name);
+
+            mapSearchInput.addEventListener('input', function() {
+                const q = this.value.trim();
+                if (q.length < 3) { mapSearchDrop.style.display = 'none'; return; }
+                photonSearch(q);
+            });
+            mapSearchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') { e.preventDefault(); mapSearchGo(); }
+            });
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.map-search')) mapSearchDrop.style.display = 'none';
+            });
+        }
+
+        async function photonSearch(q) {
+            try {
+                const res = await fetch('https://photon.komoot.io/api/?q=' + encodeURIComponent(q) + '&limit=6');
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                photonResults = (data.features || []).filter(function(f) { return f.geometry && f.geometry.coordinates; });
+                renderMapDrop();
+            } catch (e) {
+                photonResults = [];
+                renderMapDrop('Search failed.');
+            }
+        }
+
+        function renderMapDrop(msg) {
+            if (msg) { mapSearchDrop.innerHTML = '<div style="color:#e74c3c;">' + msg + '</div>'; mapSearchDrop.style.display = 'block'; return; }
+            if (!photonResults.length) { mapSearchDrop.style.display = 'none'; return; }
+            mapSearchDrop.innerHTML = '';
+            photonResults.forEach(function(f, i) {
+                const p = f.properties || {};
+                const nm = p.name || 'Unnamed place';
+                const ctx = [p.city, p.state, p.country].filter(Boolean).join(', ');
+                const div = document.createElement('div');
+                div.textContent = nm + (ctx ? ' — ' + ctx : '');
+                div.onclick = function() { pickMapResult(i); };
+                mapSearchDrop.appendChild(div);
+            });
+            mapSearchDrop.style.display = 'block';
+        }
+
+        function shortOf(displayText) {
+            return (displayText || '').split(',')[0];
+        }
+
+        function pickMapResult(i) {
+            const f = photonResults[i];
+            if (!f) return;
+            mapSearchDrop.style.display = 'none';
+            const lon = f.geometry.coordinates[0], la = f.geometry.coordinates[1];
+            const p = f.properties || {};
+            const nm = p.name || shortOf(p.city) || shortOf(p.state) || 'Place';
+            goTo(la, lon, nm, p.name || [p.city, p.state, p.country].filter(Boolean).join(', '));
+        }
+
+        function mapSearchGo() {
+            const q = mapSearchInput.value.trim();
+            if (!q || !photonResults.length) {
+                if (q) photonSearch(q);
+                return;
+            }
+            pickMapResult(0);
+        }
+
+        function placeMarker(la, lo, label) {
+            if (marker) map.removeLayer(marker);
+            marker = L.marker([la, lo]).addTo(map).bindPopup(label).openPopup();
+        }
+
+        function goTo(la, lo, nm, disp) {
+            document.getElementById('mapName').textContent = disp || nm;
+            document.getElementById('pageSub').textContent = 'Showing ' + (disp || nm) + '. Switch between satellite and street view using the map control.';
+            map.setView([la, lo], 11);
+            placeMarker(la, lo, disp || nm);
+            askGemini(nm);
+            loadPhotos(nm);
+        }
+
+        async function loadPhotos(query) {
+            const grid = document.getElementById('galleryGrid');
+            const titleEl = document.getElementById('galleryTitle');
+            if (titleEl) titleEl.textContent = query;
+            grid.innerHTML = '<div class="ai-loading"><div class="spinner"></div> Loading photos...</div>';
+            try {
+                const res = await fetch('https://api.openverse.org/v1/images/?q=' + encodeURIComponent(query) + '&page_size=6&license_type=commercial&mature=false');
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                const results = (data && data.results) || [];
+                if (!results.length) {
+                    grid.innerHTML = '<div class="sd-empty" style="grid-column:1/-1;color:#5a6a8a;">No photos found.</div>';
+                    return;
+                }
+                grid.innerHTML = '';
+                results.forEach(function(item) {
+                    const img = document.createElement('img');
+                    img.alt = item.title || query;
+                    img.loading = 'lazy';
+                    img.onerror = function() { this.closest('.g-item').style.display = 'none'; };
+                    const box = document.createElement('div');
+                    box.className = 'g-item';
+                    const cap = document.createElement('div');
+                    cap.className = 'g-cap';
+                    cap.textContent = item.title || query;
+                    const imgUrl = item.url || '';
+                    const sizedUrl = imgUrl.replace(/w\/\d+\/h\/\d+\//, 'w/800/h/600/');
+                    img.src = sizedUrl;
+                    box.appendChild(img);
+                    box.appendChild(cap);
+                    box.onclick = function() {
+                        document.getElementById('lightboxImg').src = sizedUrl.replace(/h\/\d+/, 'h/1600');
+                        document.getElementById('lightbox').style.display = 'flex';
+                    };
+                    grid.appendChild(box);
+                });
+            } catch (e) {
+                grid.innerHTML = '<div class="sd-empty" style="grid-column:1/-1;color:#5a6a8a;">Could not load photos.</div>';
+            }
+        }
+
+        async function askGemini(query) {
+            if (GEMINI_API_KEY.startsWith('YOUR_')) {
+                aiPanel.innerHTML = '<div class="ai-err">Gemini API key not set. Add your key.</div>';
+                return;
+            }
+            aiPanel.innerHTML = '<div class="ai-loading"><div class="spinner"></div> Thinking with AI...</div>';
+            const prompt = 'You are Manzil Bharat, a travel guide. Given the destination "' + query + '", respond as a compact travel card using these EXACT section headers on separate lines: "Why go", "Best time to visit", "Top things to do", "Travel tip". Keep it under 130 words, no markdown bold, plain text with each section on its own line starting with the header.';
+            try {
+                const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=' + GEMINI_API_KEY, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+                if (!res.ok) {
+                    const e = await res.json().catch(() => null);
+                    throw new Error((e && e.error && e.error.message) || ('HTTP ' + res.status));
+                }
+                const data = await res.json();
+                const text = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts.map(p => p.text || '').join('')) || '';
+                renderCard(text);
+            } catch (err) {
+                aiPanel.innerHTML = '<div class="ai-err">AI request failed: ' + (err.message || 'Error') + '</div>';
+            }
+        }
+
+        function renderCard(text) {
+            aiPanel.innerHTML =
+                '<div class="ai-title"><i class="fas fa-map-marker-alt"></i><span>' + name.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])) + '</span></div>' +
+                '<div class="ai-body"></div>' +
+                '<div class="ai-hint"><i class="fas fa-sparkles"></i> AI tips by Gemini</div>';
+            aiPanel.querySelector('.ai-body').textContent = text;
+        }
+
+        init();
+    </script>
+</body>
+</html>
