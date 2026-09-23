@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, make_response
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 import psycopg2
 import psycopg2.extras
@@ -773,29 +773,6 @@ def admin_get_payment(payment_id):
         return jsonify(dict(payment))
     except Exception:
         return jsonify({'error': 'An internal error occurred'}), 500
-    finally:
-        if conn:
-            conn.close()
-
-
-@app.route('/api/bookings/user', methods=['GET'])
-def get_user_bookings():
-    token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    payload = verify_token(token)
-    if not payload:
-        return jsonify({'error': 'Unauthorized'}), 401
-
-    user_id = payload.get('user_id')
-    conn = None
-    try:
-        conn = get_db()
-        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        cur.execute("SELECT * FROM bookings WHERE user_id = %s ORDER BY created_at DESC", (user_id,))
-        bookings = cur.fetchall()
-        cur.close()
-        return jsonify([dict(b) for b in bookings])
-    except Exception:
-        return jsonify([])
     finally:
         if conn:
             conn.close()
