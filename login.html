@@ -131,15 +131,12 @@
     <div id="forgotModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:2000;align-items:center;justify-content:center;">
         <div style="background:white;border-radius:16px;padding:2rem;width:90%;max-width:400px;">
             <h2 style="font-size:1.2rem;color:#0a1628;margin-bottom:1rem;">Reset Password</h2>
-            <p style="font-size:0.85rem;color:#666;margin-bottom:1rem;">Enter your email and new password.</p>
+            <p style="font-size:0.85rem;color:#666;margin-bottom:1rem;">Enter your email and we'll send you a password reset link.</p>
             <div style="margin-bottom:1rem;">
                 <input type="email" id="resetEmail" placeholder="Email address" style="width:100%;padding:0.8rem;border:2px solid #e0e5ec;border-radius:12px;font-size:1rem;outline:none;">
             </div>
-            <div style="margin-bottom:1rem;">
-                <input type="password" id="resetPassword" placeholder="New password" style="width:100%;padding:0.8rem;border:2px solid #e0e5ec;border-radius:12px;font-size:1rem;outline:none;">
-            </div>
             <p id="resetMessage" style="text-align:center;font-size:0.85rem;margin-bottom:0.5rem;display:none;"></p>
-            <button onclick="submitForgotPassword()" style="width:100%;padding:0.8rem;background:linear-gradient(135deg,#FF6B35,#E65100);color:white;border:none;border-radius:12px;font-size:1rem;font-weight:600;cursor:pointer;">Reset Password</button>
+            <button onclick="submitForgotPassword()" style="width:100%;padding:0.8rem;background:linear-gradient(135deg,#FF6B35,#E65100);color:white;border:none;border-radius:12px;font-size:1rem;font-weight:600;cursor:pointer;">Send Reset Link</button>
             <button onclick="closeForgotPassword()" style="width:100%;padding:0.6rem;background:none;border:none;color:#888;margin-top:0.5rem;cursor:pointer;font-size:0.9rem;">Cancel</button>
         </div>
     </div>
@@ -168,11 +165,10 @@
 
         async function submitForgotPassword() {
             const email = document.getElementById('resetEmail').value.trim();
-            const newPassword = document.getElementById('resetPassword').value;
             const msg = document.getElementById('resetMessage');
 
-            if (!email || !newPassword) {
-                msg.textContent = 'Please fill in all fields';
+            if (!email) {
+                msg.textContent = 'Please enter your email address';
                 msg.style.color = '#e74c3c';
                 msg.style.display = 'block';
                 return;
@@ -182,16 +178,16 @@
                 const res = await fetch('/api/forgot-password', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, new_password: newPassword })
+                    body: JSON.stringify({ email, origin: window.location.origin })
                 });
                 const result = await res.json();
                 if (res.ok) {
-                    msg.textContent = 'Password updated! You can now login.';
+                    msg.textContent = result.message || 'Reset link sent. Check your email.';
                     msg.style.color = '#27ae60';
                     msg.style.display = 'block';
-                    setTimeout(closeForgotPassword, 2000);
+                    setTimeout(closeForgotPassword, 3000);
                 } else {
-                    msg.textContent = result.error || 'Failed to reset password';
+                    msg.textContent = result.error || 'Failed to send reset link';
                     msg.style.color = '#e74c3c';
                     msg.style.display = 'block';
                 }

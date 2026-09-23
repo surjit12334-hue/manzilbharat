@@ -11,6 +11,8 @@ import hmac
 import json
 import secrets
 import base64
+import smtplib
+from email.mime.text import MIMEText
 from dotenv import load_dotenv
 from datetime import date, datetime, timedelta
 from functools import wraps
@@ -36,16 +38,26 @@ ADMIN_PASSWORD_HASH = bcrypt.hashpw(
     bcrypt.gensalt()
 ).decode('utf-8')
 
-app = Flask(__name__, static_folder='.', static_url_path='')
+SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
+SMTP_PORT = int(os.getenv('SMTP_PORT', 587))
+SMTP_USER = os.getenv('SMTP_USER')
+SMTP_PASSWORD = os.getenv('SMTP_PASSWORD')
 
-CORS(app, resources={r"/api/*": {"origins": [
+ALLOWED_ORIGINS = [
     "http://localhost:5000",
     "http://localhost:8000",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://127.0.0.1:5000",
     "https://surjit12334-hue.github.io"
-]}})
+]
+
+RESET_TOKEN_VALID_SECONDS = 1800
+used_reset_tokens = {}
+
+app = Flask(__name__, static_folder='.', static_url_path='')
+
+CORS(app, resources={r"/api/*": {"origins": ALLOWED_ORIGINS}})
 
 
 @app.after_request
@@ -106,6 +118,59 @@ def verify_token(token):
         return payload
     except Exception:
         return None
+
+
+def create_reset_token(email):
+    payload = {
+        'purpose': 'password-reset',
+        'email': email,
+        'exp': (datetime.utcnow() + timedelta(seconds=RESET_TOKEN_VALID_SECONDS)).isoformat()
+    }
+    data = json.dumps(payload, sort_keys=True)
+    sig = hmac.new(JWT_SECRET.encode(), data.encode(), hashlib.sha256).hexdigest()
+    return f"{base64url_encode(data.encode())}.{sig}"
+
+
+def verify_reset_token(token):
+    try:
+        now = time.time()
+        expired = [t for t, exp in used_reset_tokens.items() if exp < now]
+        for t in expired:
+            used_reset_tokens.pop(t, None)
+        if token in used_reset_tokens:
+            return None
+        parts = token.split('.')
+        if len(parts) != 2:
+            return None
+        data = base64url_decode(parts[0]).decode()
+        sig = parts[1]
+        expected = hmac.new(JWT_SECRET.encode(), data.encode(), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(sig, expected):
+            return None
+        payload = json.loads(data)
+        if payload.get('purpose') != 'password-reset' or not payload.get('email'):
+            return None
+        if datetime.fromisoformat(payload['exp']) < datetime.utcnow():
+            return None
+        return payload
+    except Exception:
+        return None
+
+
+def send_reset_email(email, reset_url):
+    msg = MIMEText(
+        f'You requested to reset your Manzil Bharat password.\n\n'
+        f'Click the link below to set a new password. It is valid for 30 minutes:\n\n'
+        f'{reset_url}\n\n'
+        f'If you did not request this, you can ignore this email.'
+    )
+    msg['Subject'] = 'Manzil Bharat - Password Reset'
+    msg['From'] = SMTP_USER
+    msg['To'] = email
+    with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+        server.starttls()
+        server.login(SMTP_USER, SMTP_PASSWORD)
+        server.sendmail(SMTP_USER, [email], msg.as_string())
 
 
 def get_db():
@@ -345,10 +410,57 @@ def google_login():
 def forgot_password():
     data = request.get_json()
     email = (data.get('email') or '').strip()
-    new_password = (data.get('new_password') or '').strip()
 
-    if not email or not new_password:
-        return jsonify({'error': 'Email and new password are required'}), 400
+    if not email:
+        return jsonify({'error': 'Email is required'}), 400
+
+    if SMTP_USER is None or SMTP_PASSWORD is None:
+        return jsonify({'error': 'Email service is not configured on the server'}), 500
+
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT id FROM users WHERE email = %s", (email,))
+        user = cur.fetchone()
+        cur.close()
+        if not user:
+            return jsonify({'message': 'If an account exists for this email, a password reset link has been sent.'}), 200
+    except Exception:
+        if conn:
+            conn.rollback()
+        return jsonify({'error': 'An internal error occurred. Please try again later.'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+    origin = (data.get('origin') or request.host_url.rstrip('/')).rstrip('/')
+    if origin not in ALLOWED_ORIGINS:
+        origin = request.host_url.rstrip('/')
+
+    try:
+        token = create_reset_token(email)
+        reset_url = f"{origin}/reset-password.html?token={token}"
+        send_reset_email(email, reset_url)
+    except Exception:
+        return jsonify({'error': 'Could not send the reset email. Please try again later.'}), 500
+
+    return jsonify({'message': 'A password reset link has been sent to your email. It is valid for 30 minutes.'}), 200
+
+
+@app.route('/api/reset-password', methods=['POST'])
+@rate_limit(max_requests=5, window=60)
+def reset_password():
+    data = request.get_json()
+    token = (data.get('token') or '').strip()
+    new_password = data.get('new_password') or ''
+
+    if not token or not new_password:
+        return jsonify({'error': 'Reset token and new password are required'}), 400
+
+    payload = verify_reset_token(token)
+    if not payload:
+        return jsonify({'error': 'Invalid or expired reset link. Please request a new one.'}), 400
 
     if len(new_password) < 8:
         return jsonify({'error': 'Password must be at least 8 characters'}), 400
@@ -359,6 +471,7 @@ def forgot_password():
     if not re.search(r'[^A-Za-z0-9]', new_password):
         return jsonify({'error': 'Password must contain at least one special character'}), 400
 
+    email = payload['email']
     conn = None
     try:
         conn = get_db()
@@ -366,12 +479,13 @@ def forgot_password():
         cur.execute("SELECT id FROM users WHERE email = %s", (email,))
         user = cur.fetchone()
         if not user:
-            return jsonify({'error': 'No account found with this email'}), 404
+            return jsonify({'error': 'No account found for this link'}), 404
 
         hashed = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         cur.execute("UPDATE users SET password = %s WHERE id = %s", (hashed, user[0]))
         conn.commit()
         cur.close()
+        used_reset_tokens[token] = time.time() + RESET_TOKEN_VALID_SECONDS
         return jsonify({'message': 'Password updated successfully'}), 200
     except Exception:
         if conn:
