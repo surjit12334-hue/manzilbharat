@@ -778,45 +778,5 @@ def admin_get_payment(payment_id):
             conn.close()
 
 
-@app.route('/api/bookings', methods=['POST'])
-def create_booking():
-    token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    payload = verify_token(token)
-    if not payload:
-        return jsonify({'error': 'Unauthorized'}), 401
-
-    user_id = payload.get('user_id')
-    data = request.get_json()
-    booking_type = (data.get('type') or '').strip()
-    source = (data.get('from') or '').strip()
-    destination = (data.get('to') or '').strip()
-    travel_date = (data.get('date') or '').strip()
-    amount = data.get('amount', 0)
-
-    if not booking_type or not source or not destination:
-        return jsonify({'error': 'Type, source, and destination are required'}), 400
-
-    conn = None
-    try:
-        conn = get_db()
-        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        cur.execute(
-            """INSERT INTO bookings (user_id, booking_type, source, destination, travel_date, amount, status)
-               VALUES (%s, %s, %s, %s, %s, %s, 'pending') RETURNING *""",
-            (user_id, booking_type, source, destination, travel_date, amount)
-        )
-        booking = cur.fetchone()
-        conn.commit()
-        cur.close()
-        return jsonify(dict(booking)), 201
-    except Exception:
-        if conn:
-            conn.rollback()
-        return jsonify({'error': 'An internal error occurred'}), 500
-    finally:
-        if conn:
-            conn.close()
-
-
 if __name__ == '__main__':
     app.run(port=int(os.getenv('PORT', 5000)))

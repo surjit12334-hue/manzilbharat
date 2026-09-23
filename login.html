@@ -211,8 +211,6 @@
             .then(res => res.json())
             .then(result => {
                 if (result.user) {
-                    localStorage.setItem('manzilUser', JSON.stringify(result.user));
-                    localStorage.setItem('manzilToken', result.token);
                     window.location.href = 'index.html';
                 } else {
                     alert(result.error || 'Login failed');
@@ -240,8 +238,6 @@
                 });
                 const result = await res.json();
                 if (res.ok) {
-                    localStorage.setItem('manzilUser', JSON.stringify(result.user));
-                    localStorage.setItem('manzilToken', result.token);
                     window.location.href = 'index.html';
                 } else {
                     alert(result.error || 'Login failed');
