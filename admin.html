@@ -89,13 +89,46 @@
         .modal-close { background: #FF6B35; color: white; border: none; padding: 0.6rem 1.5rem; border-radius: 10px; cursor: pointer; font-weight: 600; margin-top: 1rem; width: 100%; }
         .modal-close:hover { background: #E65100; }
 
+        body.locked .sidebar, body.locked .main { display: none; }
+
+        #loginModal { background: linear-gradient(135deg, rgba(26,35,126,0.85), rgba(255,107,53,0.7)), url('homebackground.png') center/cover no-repeat; }
+
+        .login-card { background: rgba(255,255,255,0.98); border-radius: 22px; box-shadow: 0 25px 80px rgba(0,0,0,0.35); padding: 2.5rem 2.2rem 2rem; width: 92%; max-width: 400px; text-align: center; animation: adminPop 0.45s cubic-bezier(0.2, 0.7, 0.3, 1.1); }
+        @keyframes adminPop { from { opacity: 0; transform: translateY(18px) scale(0.97); } to { opacity: 1; transform: none; } }
+        .login-brand { font-family: 'Pacifico', cursive; font-size: 1.9rem; color: #FF6B35; margin-bottom: 0.25rem; }
+        .login-title { font-size: 1.15rem; color: #0a1628; font-weight: 700; margin: 0 0 0.2rem; }
+        .login-sub { color: #8892b0; font-size: 0.82rem; margin-bottom: 1.6rem; }
+        .login-field { position: relative; margin-bottom: 1.1rem; text-align: left; }
+        .login-field i.input-icon { position: absolute; left: 0.95rem; top: 50%; transform: translateY(-50%); color: #8892b0; font-size: 0.95rem; pointer-events: none; transition: color 0.3s; }
+        .login-field input { width: 100%; padding: 0.85rem 0.95rem 0.85rem 2.5rem; border: 1.5px solid #e3e8f0; border-radius: 12px; font-size: 0.95rem; background: #f8fafc; color: #1c2733; outline: none; transition: all 0.25s ease; }
+        .login-field input:focus { border-color: #FF6B35; background: #fff; box-shadow: 0 0 0 3px rgba(255,107,53,0.15); }
+        .login-field input::placeholder { color: #a4b0c0; }
+        .login-field .pw-toggle { position: absolute; right: 0.9rem; top: 50%; transform: translateY(-50%); border: none; background: none; color: #8892b0; cursor: pointer; font-size: 0.95rem; padding: 0.3rem; }
+        .login-field .pw-toggle:hover { color: #FF6B35; }
+        .login-error { display: none; background: #fdecea; color: #c62828; font-size: 0.82rem; padding: 0.55rem 0.8rem; border-radius: 10px; margin-bottom: 1rem; border-left: 3px solid #c62828; text-align: left; }
+        .login-error.show { display: block; animation: adminPop 0.3s ease; }
+        .login-btn-full { width: 100%; padding: 0.85rem; border: none; border-radius: 12px; background: linear-gradient(135deg, #FF6B35, #E65100); color: #fff; font-size: 0.98rem; font-weight: 700; letter-spacing: 0.3px; cursor: pointer; transition: all 0.25s ease; box-shadow: 0 6px 18px rgba(255,107,53,0.35); }
+        .login-btn-full:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(255,107,53,0.45); }
+        .login-btn-full:active { transform: translateY(0); }
+        .login-btn-full:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
+        .login-back { display: inline-flex; align-items: center; gap: 0.4rem; margin-top: 1.3rem; color: #8892b0; font-size: 0.85rem; text-decoration: none; font-weight: 600; transition: color 0.3s; }
+        .login-back:hover { color: #FF6B35; }
+
+        /* Footer */
+        .admin-footer { margin: 2rem -2rem -1.5rem; padding: 1.5rem 2rem; background: linear-gradient(180deg, #0a1628 0%, #0d1f3c 100%); color: white; text-align: center; }
+        .admin-footer .footer-logo { font-family: 'Pacifico', cursive; font-size: 1.3rem; color: #FF6B35; text-decoration: none; display: inline-block; margin-bottom: 0.3rem; }
+        .admin-footer p { color: #8892b0; font-size: 0.85rem; }
+        .admin-footer .footer-bottom { border-top: 1px solid rgba(255,255,255,0.05); padding-top: 0.8rem; margin-top: 0.8rem; color: #5a6a8a; font-size: 0.8rem; }
+
         @media (max-width: 768px) {
             .sidebar { transform: translateX(-100%); }
             .main { margin-left: 0; padding: 1rem; }
             .stats-grid { grid-template-columns: 1fr 1fr; }
             th, td { padding: 0.6rem 0.8rem; font-size: 0.8rem; }
+            .admin-footer { margin: 2rem -1rem -1rem; padding: 1.5rem 1rem; }
         }
     </style>
+<script src="config.js"></script>
 </head>
 <body>
     <aside class="sidebar" id="sidebar">
@@ -180,6 +213,12 @@
                 </table>
             </div>
         </div>
+
+        <footer class="admin-footer">
+            <a href="index.html" class="footer-logo">Manzil Bharat</a>
+            <p>Admin Panel &middot; Explore the world with Bhartiya dil.</p>
+            <div class="footer-bottom">&copy; 2026 Manzil Bharat. All rights reserved.</div>
+        </footer>
     </main>
 
     <!-- Detail Modal -->
@@ -193,20 +232,24 @@
 
     <!-- Login Modal -->
     <div class="modal-overlay active" id="loginModal">
-        <div class="modal">
-            <h2>Admin Login</h2>
+        <div class="login-card">
+            <div class="login-brand">Manzil Bharat</div>
+            <p class="login-title">Admin Login</p>
+            <p class="login-sub">Restricted area &middot; Authorized personnel only</p>
             <form id="loginForm" onsubmit="return false;">
-                <div class="form-group">
-                    <label>Email</label>
-                    <input type="email" id="loginEmail" placeholder="admin@example.com" required style="width:100%;padding:0.8rem;border:2px solid #e0e5ec;border-radius:12px;font-size:1rem;outline:none;">
+                <div class="login-field">
+                    <i class="fas fa-envelope input-icon"></i>
+                    <input type="email" id="loginEmail" placeholder="admin@example.com" autocomplete="username" required>
                 </div>
-                <div class="form-group">
-                    <label>Password</label>
-                    <input type="password" id="loginPassword" placeholder="Password" required style="width:100%;padding:0.8rem;border:2px solid #e0e5ec;border-radius:12px;font-size:1rem;outline:none;">
+                <div class="login-field">
+                    <i class="fas fa-lock input-icon"></i>
+                    <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password" required>
+                    <button type="button" class="pw-toggle" onclick="togglePw()"><i class="fas fa-eye"></i></button>
                 </div>
-                <p id="loginError" style="color:red;font-size:0.85rem;margin-bottom:0.5rem;display:none;"></p>
-                <button type="submit" class="modal-close">Log In</button>
+                <p id="loginError" class="login-error"></p>
+                <button type="submit" id="loginBtn" class="login-btn-full"><i class="fas fa-sign-in-alt"></i> Log In</button>
             </form>
+            <a href="index.html" class="login-back"><i class="fas fa-arrow-left"></i> Back to site</a>
         </div>
     </div>
 
@@ -216,23 +259,58 @@
         // Login
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            var email = document.getElementById('loginEmail').value;
+            var email = document.getElementById('loginEmail').value.trim();
             var password = document.getElementById('loginPassword').value;
             var errEl = document.getElementById('loginError');
+            var btn = document.getElementById('loginBtn');
+
+            errEl.classList.remove('show');
+            if (!email || !password) {
+                errEl.textContent = 'Please enter your email and password.';
+                errEl.classList.add('show');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+
             try {
-                var res = await fetch('/api/admin/login', {
+                var res = await fetch(API_BASE + '/api/admin/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email: email, password: password })
                 });
                 var data = await res.json();
-                if (!res.ok) { errEl.textContent = data.error; errEl.style.display = 'block'; return; }
+                if (!res.ok) {
+                    errEl.textContent = data.error || 'Login failed. Try again.';
+                    errEl.classList.add('show');
+                    return;
+                }
                 adminToken = data.token;
                 localStorage.setItem('adminToken', adminToken);
                 document.getElementById('loginModal').classList.remove('active');
+                document.body.classList.remove('locked');
                 loadDashboard();
-            } catch (err) { errEl.textContent = 'Login failed. Try again.'; errEl.style.display = 'block'; }
+            } catch (err) {
+                errEl.textContent = 'Server error. Please try again.';
+                errEl.classList.add('show');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Log In';
+            }
         });
+
+        function togglePw() {
+            var f = document.getElementById('loginPassword');
+            var icon = f.form.querySelector('.pw-toggle i');
+            if (f.type === 'password') {
+                f.type = 'text';
+                icon.className = 'fas fa-eye-slash';
+            } else {
+                f.type = 'password';
+                icon.className = 'fas fa-eye';
+            }
+        }
 
         function authHeaders() { return { 'Content-Type': 'application/json', 'x-admin-token': adminToken }; }
 
@@ -240,12 +318,13 @@
             opts = opts || {};
             opts.headers = Object.assign(opts.headers || {}, authHeaders());
             var res = await fetch(url, opts);
-            if (res.status === 401) { localStorage.removeItem('adminToken'); adminToken = null; document.getElementById('loginModal').classList.add('active'); return null; }
+            if (res.status === 401) { localStorage.removeItem('adminToken'); adminToken = null; document.getElementById('loginModal').classList.add('active'); document.body.classList.add('locked'); return null; }
             return res;
         }
 
         // Check if already logged in
-        if (adminToken) { document.getElementById('loginModal').classList.remove('active'); }
+        document.body.classList.add('locked');
+        if (adminToken) { document.body.classList.remove('locked'); document.getElementById('loginModal').classList.remove('active'); }
 
         // Tab navigation
         document.querySelectorAll('.sidebar-nav a').forEach(function(link) {
@@ -275,7 +354,7 @@
         // Dashboard
         async function loadDashboard() {
             try {
-                var res = await authFetch('/api/stats');
+                var res = await authFetch(API_BASE + '/api/stats');
                 if (!res) return;
                 var stats = await res.json();
                 document.getElementById('statUsers').textContent = stats.totalUsers;
@@ -283,7 +362,7 @@
                 document.getElementById('statPayments').textContent = stats.totalPayments;
                 document.getElementById('statRevenue').textContent = '\u20B9' + stats.totalRevenue.toLocaleString('en-IN');
 
-                var res2 = await authFetch('/api/recent');
+                var res2 = await authFetch(API_BASE + '/api/recent');
                 var recent = await res2.json();
                 var html = '';
                 recent.bookings.forEach(function(b) {
@@ -304,7 +383,7 @@
         // Users
         async function loadUsers() {
             try {
-                var res = await authFetch('/api/users');
+                var res = await authFetch(API_BASE + '/api/users');
                 if (!res) return;
                 var users = await res.json();
                 renderUsers(users);
@@ -321,7 +400,7 @@
         }
 
         async function viewUser(id) {
-            var res = await authFetch('/api/users/' + id);
+            var res = await authFetch(API_BASE + '/api/users/' + id);
             if (!res) return;
             var u = await res.json();
             showModal('User Details', [
@@ -340,7 +419,7 @@
 
         async function deleteUser(id) {
             if (!confirm('Delete this user?')) return;
-            await authFetch('/api/users/' + id, { method: 'DELETE' });
+            await authFetch(API_BASE + '/api/users/' + id, { method: 'DELETE' });
             searchCache.users = null;
             loadUsers();
         }
@@ -348,7 +427,7 @@
         // Bookings
         async function loadBookings() {
             try {
-                var res = await authFetch('/api/bookings');
+                var res = await authFetch(API_BASE + '/api/bookings');
                 if (!res) return;
                 var bookings = await res.json();
                 renderBookings(bookings);
@@ -365,14 +444,13 @@
         }
 
         async function viewBooking(id) {
-            var res = await authFetch('/api/bookings/' + id);
+            var res = await authFetch(API_BASE + '/api/bookings/' + id);
             if (!res) return;
             var b = await res.json();
             showModal('Booking Details', [
                 { label: 'ID', value: b.id },
                 { label: 'User', value: (b.user_name || '-') + ' (' + (b.user_email || '') + ')' },
                 { label: 'Type', value: b.booking_type },
-                { label: 'Provider', value: b.provider || '-' },
                 { label: 'Source', value: b.source || '-' },
                 { label: 'Destination', value: b.destination || '-' },
                 { label: 'Travel Date', value: b.travel_date ? fmtDate(b.travel_date) : '-' },
@@ -391,14 +469,14 @@
                 alert('Invalid status. Must be one of: ' + validStatuses.join(', '));
                 return;
             }
-            await authFetch('/api/bookings/' + id, { method: 'PUT', body: JSON.stringify({ status: status }) });
+            await authFetch(API_BASE + '/api/bookings/' + id, { method: 'PUT', body: JSON.stringify({ status: status }) });
             searchCache.bookings = null;
             loadBookings();
         }
 
         async function deleteBooking(id) {
             if (!confirm('Delete this booking?')) return;
-            await authFetch('/api/bookings/' + id, { method: 'DELETE' });
+            await authFetch(API_BASE + '/api/bookings/' + id, { method: 'DELETE' });
             searchCache.bookings = null;
             loadBookings();
         }
@@ -406,7 +484,7 @@
         // Payments
         async function loadPayments() {
             try {
-                var res = await authFetch('/api/payments');
+                var res = await authFetch(API_BASE + '/api/payments');
                 if (!res) return;
                 var payments = await res.json();
                 renderPayments(payments);
@@ -423,7 +501,7 @@
         }
 
         async function viewPayment(id) {
-            var res = await authFetch('/api/payments/' + id);
+            var res = await authFetch(API_BASE + '/api/payments/' + id);
             if (!res) return;
             var p = await res.json();
             showModal('Payment Details', [
@@ -449,7 +527,7 @@
 
         async function fetchAndCache(type) {
             if (!searchCache[type]) {
-                var res = await authFetch('/api/' + type);
+                var res = await authFetch(API_BASE + '/api/' + type);
                 if (!res) return null;
                 searchCache[type] = await res.json();
             }
@@ -501,9 +579,10 @@
 
         // Logout
         async function logout() {
-            await authFetch('/api/admin/logout', { method: 'POST' });
+            await authFetch(API_BASE + '/api/admin/logout', { method: 'POST' });
             localStorage.removeItem('adminToken');
             adminToken = null;
+            document.body.classList.add('locked');
             document.getElementById('loginModal').classList.add('active');
         }
 

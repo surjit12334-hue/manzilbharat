@@ -76,6 +76,7 @@
         .g_id_signin { width: 100% !important; border-radius: 50px !important; overflow: hidden; }
         .g_id_signin iframe { width: 100% !important; border-radius: 50px !important; }
     </style>
+<script src="config.js"></script>
 </head>
 <body>
     <nav>
@@ -93,7 +94,7 @@
             <p class="subtitle">Join Manzil Bharat and explore India</p>
 
             <div id="g_id_onload"
-                 data-client_id="245677377454-3feugu3kk1kfgf2e1jrole61lca0c76f.apps.googleusercontent.com"
+                 data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
                  data-callback="handleGoogleSignup"
                  data-auto_prompt="false">
             </div>
@@ -106,6 +107,15 @@
                  data-logo_alignment="left"
                  style="width:100%;margin-bottom:0.5rem;">
             </div>
+            <script>
+                (function () {
+                    const cid = window.GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+                    const onload = document.getElementById('g_id_onload');
+                    const signin = document.querySelector('.g_id_signin');
+                    if (onload) onload.setAttribute('data-client_id', cid);
+                    if (signin) signin.setAttribute('data-client_id', cid);
+                })();
+            </script>
 
             <div class="divider">or sign up with email</div>
 
@@ -368,7 +378,7 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Account...';
 
             try {
-                const res = await fetch('/api/signup', {
+                const res = await fetch(API_BASE + '/api/signup', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)

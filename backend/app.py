@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import psycopg2
 import psycopg2.extras
@@ -58,6 +58,11 @@ used_reset_tokens = {}
 app = Flask(__name__, static_folder='.', static_url_path='')
 
 CORS(app, resources={r"/api/*": {"origins": ALLOWED_ORIGINS}})
+
+
+@app.route('/')
+def index():
+    return send_from_directory('.', 'index.html')
 
 
 @app.after_request

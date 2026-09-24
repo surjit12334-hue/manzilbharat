@@ -66,6 +66,7 @@
         .faroc-case .faroc-close { position: absolute; top: 1.2rem; right: 1.6rem; color: white; font-size: 2rem; cursor: pointer; background: none; border: none; }
         @media (max-width: 700px) { .gallery-grid { grid-template-columns: 1fr 1fr; } }
     </style>
+<script src="config.js"></script>
 </head>
 <body>
     <div class="topbar">
@@ -108,7 +109,7 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY_HERE';
+        var GEMINI_API_KEY = window.GEMINI_API_KEY || '';
 
         const params = new URLSearchParams(window.location.search);
         const lat = params.get('lat');
@@ -240,32 +241,39 @@
             if (titleEl) titleEl.textContent = query;
             grid.innerHTML = '<div class="ai-loading"><div class="spinner"></div> Loading photos...</div>';
             try {
-                const res = await fetch('https://api.openverse.org/v1/images/?q=' + encodeURIComponent(query) + '&page_size=6&license_type=commercial&mature=false');
+                const url = 'https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*' +
+                    '&generator=search&gsrsearch=' + encodeURIComponent(query + ' filetype:bitmap') +
+                    '&gsrnamespace=6&gsrlimit=6&prop=imageinfo&iiprop=url&iiurlwidth=800';
+                const res = await fetch(url);
                 if (!res.ok) throw new Error('HTTP ' + res.status);
                 const data = await res.json();
-                const results = (data && data.results) || [];
+                const pages = (data && data.query && data.query.pages) || {};
+                const results = Object.keys(pages).map(function(k) { return pages[k]; })
+                    .filter(function(p) { return p.imageinfo && p.imageinfo[0] && p.imageinfo[0].thumburl; });
                 if (!results.length) {
                     grid.innerHTML = '<div class="sd-empty" style="grid-column:1/-1;color:#5a6a8a;">No photos found.</div>';
                     return;
                 }
                 grid.innerHTML = '';
                 results.forEach(function(item) {
+                    const info = item.imageinfo[0];
+                    const thumb = info.thumburl || info.url;
+                    const larger = thumb.replace(/\/\d+px-/, '/1600px-');
+                    const title = cleanTitle(item.title);
                     const img = document.createElement('img');
-                    img.alt = item.title || query;
+                    img.alt = title;
                     img.loading = 'lazy';
                     img.onerror = function() { this.closest('.g-item').style.display = 'none'; };
                     const box = document.createElement('div');
                     box.className = 'g-item';
                     const cap = document.createElement('div');
                     cap.className = 'g-cap';
-                    cap.textContent = item.title || query;
-                    const imgUrl = item.url || '';
-                    const sizedUrl = imgUrl.replace(/w\/\d+\/h\/\d+\//, 'w/800/h/600/');
-                    img.src = sizedUrl;
+                    cap.textContent = title;
+                    img.src = thumb;
                     box.appendChild(img);
                     box.appendChild(cap);
                     box.onclick = function() {
-                        document.getElementById('lightboxImg').src = sizedUrl.replace(/h\/\d+/, 'h/1600');
+                        document.getElementById('lightboxImg').src = larger;
                         document.getElementById('lightbox').style.display = 'flex';
                     };
                     grid.appendChild(box);
@@ -275,9 +283,11 @@
             }
         }
 
+        function cleanTitle(t) { return (t || '').replace(/^File:/, '').replace(/\.[^.]+$/, ''); }
+
         async function askGemini(query) {
-            if (GEMINI_API_KEY.startsWith('YOUR_')) {
-                aiPanel.innerHTML = '<div class="ai-err">Gemini API key not set. Add your key.</div>';
+            if (!GEMINI_API_KEY) {
+                aiPanel.innerHTML = '<div class="ai-err">AI API key not set. Add your Gemini key.</div>';
                 return;
             }
             aiPanel.innerHTML = '<div class="ai-loading"><div class="spinner"></div> Thinking with AI...</div>';

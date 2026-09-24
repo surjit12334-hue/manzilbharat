@@ -29,6 +29,8 @@
         .auth-section .login-btn:hover { background: rgba(255,255,255,0.2); border-color: white; transform: translateY(-2px); box-shadow: 0 4px 15px rgba(255,255,255,0.15); }
         .auth-section .signup-btn { background: linear-gradient(135deg, #FF6B35, #E65100); border: 2px solid transparent; box-shadow: 0 4px 15px rgba(255,107,53,0.3); }
         .auth-section .signup-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(255,107,53,0.5); }
+        .auth-section .admin-btn { border: 2px solid rgba(255,255,255,0.5); backdrop-filter: blur(4px); background: rgba(255,255,255,0.08); padding: 0.6rem 0.9rem; }
+        .auth-section .admin-btn:hover { background: rgba(255,255,255,0.25); border-color: white; transform: translateY(-2px); box-shadow: 0 4px 15px rgba(255,255,255,0.15); }
 
         .hero-content { max-width: 800px; width: 100%; animation: fadeInUp 1s ease-out; }
         .hero-content h1 { font-size: clamp(2rem, 5vw, 3.5rem); margin-bottom: 1rem; text-shadow: 2px 2px 8px rgba(0,0,0,0.3); letter-spacing: -0.5px; }
@@ -150,12 +152,14 @@
         }
         @media print { .auth-section, .search-bar { display: none; } .hero { height: auto; background: none; color: black; } footer { background: none; color: black; } }
     </style>
+<script src="config.js"></script>
 </head>
 <body>
     <header class="hero">
         <div class="auth-section">
             <a href="login.html" class="login-btn"><i class="fas fa-sign-in-alt"></i> Login</a>
             <a href="createaccount.html" class="signup-btn"><i class="fas fa-user-plus"></i> Create Account</a>
+            <a href="admin.html" class="admin-btn" aria-label="Admin Panel"><i class="fas fa-user-shield"></i></a>
         </div>
         <div class="hero-content">
             <h1>Let's travel in New India</h1>
@@ -243,8 +247,8 @@
     </footer>
 
     <script>
-        // ============ API KEY ============
-        const GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY_HERE';
+        // ============ API KEY (GEMINI) ============
+        var GEMINI_API_KEY = window.GEMINI_API_KEY || '';
         // ================================
 
         const input = document.getElementById('destinationInput');
@@ -342,8 +346,8 @@
         function showPanel(html) { panel.innerHTML = html; panel.style.display = 'block'; }
 
         async function askGemini(kind, query) {
-            if (GEMINI_API_KEY.startsWith('YOUR_')) {
-                showPanel('<div class="ai-err">Gemini API key not set. Add your key in index.html (GEMINI_API_KEY).</div>');
+            if (!GEMINI_API_KEY) {
+                showPanel('<div class="ai-err">AI API key not set. Add your Gemini key in index.html (GEMINI_API_KEY).</div>');
                 return;
             }
             showPanel('<div class="ai-loading"><div class="spinner"></div> Thinking with AI...</div>');
