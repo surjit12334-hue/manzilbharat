@@ -384,11 +384,14 @@
                     body: JSON.stringify(data)
                 });
                 const result = await res.json();
-                if (res.ok) {
-                    msg.textContent = 'Account created successfully! Redirecting to login...';
+                if (res.ok && result.token) {
+                    const store = sessionStorage;
+                    store.setItem('manzilToken', result.token);
+                    store.setItem('manzilUser', JSON.stringify(result.user || {}));
+                    msg.textContent = 'Account created successfully! Redirecting...';
                     msg.style.color = '#27ae60';
                     msg.style.display = 'block';
-                    setTimeout(() => { window.location.href = 'login.html'; }, 2000);
+                    setTimeout(() => { window.location.href = 'index.html'; }, 1200);
                 } else {
                     if (result.errors) {
                         Object.keys(result.errors).forEach(f => showError(f, result.errors[f]));
@@ -398,7 +401,7 @@
                     msg.style.display = 'block';
                 }
             } catch (err) {
-                msg.textContent = 'Server error. Please try again later.';
+                msg.textContent = 'Cannot reach ' + API_BASE + '. Start it with: python3 backend/app.py';
                 msg.style.color = '#e74c3c';
                 msg.style.display = 'block';
             } finally {

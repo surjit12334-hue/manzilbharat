@@ -163,6 +163,16 @@
             document.getElementById('navLinks').classList.toggle('active');
         });
 
+        // ======== SESSION ========
+        // The API issues a signed token on login. It has to be persisted here or
+        // logging in is a no-op and the visitor stays signed out everywhere.
+        function saveSession(result) {
+            const remember = document.getElementById('remember').checked;
+            const store = remember ? localStorage : sessionStorage;
+            store.setItem('manzilToken', result.token);
+            store.setItem('manzilUser', JSON.stringify(result.user || {}));
+        }
+
         // ======== FORGOT PASSWORD ========
         function showForgotPassword() {
             document.getElementById('forgotModal').style.display = 'flex';
@@ -202,31 +212,33 @@
                     msg.style.display = 'block';
                 }
             } catch (err) {
-                msg.textContent = 'Server error. Try again.';
+                msg.textContent = 'Cannot reach ' + API_BASE + '. Start it with: python3 backend/app.py';
                 msg.style.color = '#e74c3c';
                 msg.style.display = 'block';
             }
         }
 
         // ======== GOOGLE LOGIN (via Google Identity Services) ========
-        function handleGoogleLogin(response) {
+        async function handleGoogleLogin(response) {
             const credential = response.credential;
             if (!credential) { alert('Google login failed. Please try again.'); return; }
 
-            fetch(API_BASE + '/api/google-login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ credential: credential })
-            })
-            .then(res => res.json())
-            .then(result => {
-                if (result.user) {
+            try {
+                const res = await fetch(API_BASE + '/api/google-login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ credential: credential })
+                });
+                const result = await res.json();
+                if (res.ok && result.token) {
+                    saveSession(result);
                     window.location.href = 'index.html';
                 } else {
                     alert(result.error || 'Login failed');
                 }
-            })
-            .catch(() => alert('Server error. Make sure app.py is running.'));
+            } catch (err) {
+                alert('Server error. Make sure app.py is running.');
+            }
         }
 
         // ======== EMAIL LOGIN ========
@@ -247,7 +259,8 @@
                     body: JSON.stringify({ email, password })
                 });
                 const result = await res.json();
-                if (res.ok) {
+                if (res.ok && result.token) {
+                    saveSession(result);
                     window.location.href = 'index.html';
                 } else {
                     alert(result.error || 'Login failed');

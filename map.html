@@ -263,7 +263,7 @@
                     const img = document.createElement('img');
                     img.alt = title;
                     img.loading = 'lazy';
-                    img.onerror = function() { this.closest('.g-item').style.display = 'none'; };
+                    img.onerror = function() { var box = this.closest('.g-item'); if (box) box.style.display = 'none'; };
                     const box = document.createElement('div');
                     box.className = 'g-item';
                     const cap = document.createElement('div');
@@ -306,13 +306,19 @@
                 const text = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts.map(p => p.text || '').join('')) || '';
                 renderCard(text);
             } catch (err) {
-                aiPanel.innerHTML = '<div class="ai-err">AI request failed: ' + (err.message || 'Error') + '</div>';
+                aiPanel.innerHTML = '<div class="ai-err">AI request failed: ' + escHtml(err.message || 'Error') + '</div>';
             }
+        }
+
+        function escHtml(s) {
+            var d = document.createElement('div');
+            d.appendChild(document.createTextNode(String(s == null ? '' : s)));
+            return d.innerHTML;
         }
 
         function renderCard(text) {
             aiPanel.innerHTML =
-                '<div class="ai-title"><i class="fas fa-map-marker-alt"></i><span>' + name.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])) + '</span></div>' +
+                '<div class="ai-title"><i class="fas fa-map-marker-alt"></i><span>' + escHtml(name) + '</span></div>' +
                 '<div class="ai-body"></div>' +
                 '<div class="ai-hint"><i class="fas fa-sparkles"></i> AI tips by Gemini</div>';
             aiPanel.querySelector('.ai-body').textContent = text;

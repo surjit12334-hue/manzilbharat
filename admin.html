@@ -13,27 +13,33 @@
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; color: #333; min-height: 100vh; display: flex; }
 
         /* Sidebar */
-        .sidebar { width: 240px; background: linear-gradient(180deg, #0a1628 0%, #0d1f3c 100%); color: white; padding: 1.5rem 0; position: fixed; height: 100vh; overflow-y: auto; z-index: 100; transition: transform 0.3s; }
+        .sidebar { width: 240px; background: linear-gradient(180deg, #0a1628 0%, #0d1f3c 100%); color: white; padding: 1.5rem 0; position: fixed; height: 100vh; overflow-y: auto; z-index: 100; transition: transform 0.3s; display: flex; flex-direction: column; }
         .sidebar-header { padding: 0 1.5rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.08); }
         .sidebar-header .logo { font-family: 'Pacifico', cursive; font-size: 1.5rem; color: #FF6B35; text-decoration: none; display: block; margin-bottom: 0.3rem; }
         .sidebar-header .tag { font-size: 0.75rem; color: #8892b0; background: rgba(255,107,53,0.15); padding: 0.2rem 0.6rem; border-radius: 20px; display: inline-block; }
 
-        .sidebar-nav { padding: 1rem 0; }
+        .sidebar-nav { padding: 1rem 0; flex: 1; }
         .sidebar-nav a { display: flex; align-items: center; gap: 0.8rem; padding: 0.8rem 1.5rem; color: #8892b0; text-decoration: none; font-size: 0.9rem; transition: all 0.3s; border-left: 3px solid transparent; }
         .sidebar-nav a:hover, .sidebar-nav a.active { color: white; background: rgba(255,107,53,0.1); border-left-color: #FF6B35; }
         .sidebar-nav a i { width: 20px; text-align: center; }
 
-        .sidebar-footer { position: absolute; bottom: 0; left: 0; right: 0; padding: 1rem 1.5rem; border-top: 1px solid rgba(255,255,255,0.08); }
+        .sidebar-footer { padding: 1rem 1.5rem; border-top: 1px solid rgba(255,255,255,0.08); }
         .sidebar-footer a { color: #8892b0; text-decoration: none; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; transition: color 0.3s; }
         .sidebar-footer a:hover { color: #FF6B35; }
+
+        .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.45); z-index: 90; }
+        body.nav-open .sidebar-overlay { display: block; }
 
         /* Main */
         .main { margin-left: 240px; flex: 1; padding: 1.5rem 2rem; min-height: 100vh; }
 
-        .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; gap: 1rem; }
+        .topbar-left { display: flex; align-items: center; gap: 0.8rem; min-width: 0; }
         .topbar h1 { font-size: 1.5rem; color: #0a1628; }
-        .topbar .back { color: #FF6B35; text-decoration: none; font-weight: 500; display: flex; align-items: center; gap: 0.4rem; }
+        .topbar .back { color: #FF6B35; text-decoration: none; font-weight: 500; display: flex; align-items: center; gap: 0.4rem; white-space: nowrap; }
         .topbar .back:hover { text-decoration: underline; }
+        .sidebar-toggle { display: none; width: 42px; height: 42px; flex-shrink: 0; border: 1px solid #e3e8f0; background: #fff; border-radius: 10px; color: #0a1628; font-size: 1.05rem; cursor: pointer; align-items: center; justify-content: center; }
+        .sidebar-toggle:hover { border-color: #FF6B35; color: #FF6B35; }
 
         /* Stats */
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.2rem; margin-bottom: 2rem; }
@@ -60,11 +66,15 @@
         td { padding: 0.9rem 1.5rem; border-bottom: 1px solid #f5f5f5; font-size: 0.9rem; color: #444; }
         tr:hover td { background: #fafbfc; }
 
-        .badge { padding: 0.25rem 0.7rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; display: inline-block; }
+        .badge { padding: 0.25rem 0.7rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; display: inline-block; background: #eceff1; color: #546e7a; }
         .badge.pending { background: #fff3e0; color: #e65100; }
         .badge.completed { background: #e8f5e9; color: #2e7d32; }
         .badge.confirmed { background: #e3f2fd; color: #1565c0; }
         .badge.cancelled { background: #ffebee; color: #c62828; }
+        .badge.authorized { background: #ede7f6; color: #5e35b1; }
+        .badge.captured { background: #e8f5e9; color: #2e7d32; }
+        .badge.refunded { background: #eceff1; color: #546e7a; }
+        .badge.failed { background: #ffebee; color: #c62828; }
 
         .action-btns { display: flex; gap: 0.4rem; }
         .action-btn { width: 30px; height: 30px; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; transition: all 0.3s; }
@@ -120,8 +130,12 @@
         .admin-footer p { color: #8892b0; font-size: 0.85rem; }
         .admin-footer .footer-bottom { border-top: 1px solid rgba(255,255,255,0.05); padding-top: 0.8rem; margin-top: 0.8rem; color: #5a6a8a; font-size: 0.8rem; }
 
+        .tab-content { display: block; }
+
         @media (max-width: 768px) {
             .sidebar { transform: translateX(-100%); }
+            body.nav-open .sidebar { transform: translateX(0); box-shadow: 0 0 40px rgba(0,0,0,0.4); }
+            .sidebar-toggle { display: inline-flex; }
             .main { margin-left: 0; padding: 1rem; }
             .stats-grid { grid-template-columns: 1fr 1fr; }
             th, td { padding: 0.6rem 0.8rem; font-size: 0.8rem; }
@@ -148,9 +162,14 @@
         </div>
     </aside>
 
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
     <main class="main">
         <div class="topbar">
-            <h1 id="pageTitle">Dashboard</h1>
+            <div class="topbar-left">
+                <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Open menu" aria-expanded="false" aria-controls="sidebar"><i class="fas fa-bars"></i></button>
+                <h1 id="pageTitle">Dashboard</h1>
+            </div>
             <a href="index.html" class="back"><i class="fas fa-arrow-left"></i> Back to Site</a>
         </div>
 
@@ -275,14 +294,33 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
 
             try {
-                var res = await fetch(API_BASE + '/api/admin/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: email, password: password })
-                });
-                var data = await res.json();
+                var res;
+                try {
+                    res = await fetch(API_BASE + '/api/admin/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: email, password: password })
+                    });
+                } catch (netErr) {
+                    errEl.textContent = 'Cannot reach the server at ' + API_BASE + '. Start it with: python3 backend/app.py';
+                    errEl.classList.add('show');
+                    return;
+                }
+                var data;
+                try {
+                    data = await res.json();
+                } catch (parseErr) {
+                    errEl.textContent = 'Unexpected response (HTTP ' + res.status + ') from ' + API_BASE + '. Check that the port matches config.js.';
+                    errEl.classList.add('show');
+                    return;
+                }
                 if (!res.ok) {
-                    errEl.textContent = data.error || 'Login failed. Try again.';
+                    errEl.textContent = data.error || 'Login failed (HTTP ' + res.status + ').';
+                    errEl.classList.add('show');
+                    return;
+                }
+                if (!data.token) {
+                    errEl.textContent = 'Login succeeded but no token was returned.';
                     errEl.classList.add('show');
                     return;
                 }
@@ -292,7 +330,7 @@
                 document.body.classList.remove('locked');
                 loadDashboard();
             } catch (err) {
-                errEl.textContent = 'Server error. Please try again.';
+                errEl.textContent = 'Unexpected error: ' + err.message;
                 errEl.classList.add('show');
             } finally {
                 btn.disabled = false;
@@ -314,13 +352,50 @@
 
         function authHeaders() { return { 'Content-Type': 'application/json', 'x-admin-token': adminToken }; }
 
+        function forceRelogin() {
+            localStorage.removeItem('adminToken');
+            adminToken = null;
+            document.body.classList.add('locked');
+            closeNav();
+            document.getElementById('loginModal').classList.add('active');
+        }
+
         async function authFetch(url, opts) {
             opts = opts || {};
             opts.headers = Object.assign(opts.headers || {}, authHeaders());
             var res = await fetch(url, opts);
-            if (res.status === 401) { localStorage.removeItem('adminToken'); adminToken = null; document.getElementById('loginModal').classList.add('active'); document.body.classList.add('locked'); return null; }
+            if (res.status === 401 || res.status === 403) { forceRelogin(); return null; }
             return res;
         }
+
+        // The API answers {error: ...} with a non-2xx status when a query fails.
+        // Without this, that object was fed into asArray()/asObject() and the
+        // failure rendered as an empty table or a dashboard full of zeros.
+        function ensureOk(res) {
+            if (!res.ok) throw new Error('Request failed (HTTP ' + res.status + ')');
+            return res;
+        }
+
+        function renderLoadError(tableId, colspan, err) {
+            var el = document.getElementById(tableId);
+            if (!el) return;
+            el.innerHTML = '<tr><td colspan="' + colspan + '" class="empty-state">' +
+                '<i class="fas fa-exclamation-triangle"></i>Could not load data: ' + esc(err.message) + '</td></tr>';
+        }
+
+        // Mobile drawer
+        function closeNav() {
+            document.body.classList.remove('nav-open');
+            var t = document.getElementById('sidebarToggle');
+            if (t) t.setAttribute('aria-expanded', 'false');
+        }
+
+        document.getElementById('sidebarToggle').addEventListener('click', function() {
+            var open = document.body.classList.toggle('nav-open');
+            this.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+        document.getElementById('sidebarOverlay').addEventListener('click', closeNav);
+        document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeNav(); });
 
         // Check if already logged in
         document.body.classList.add('locked');
@@ -332,6 +407,7 @@
                 e.preventDefault();
                 var tab = this.dataset.tab;
                 switchTab(tab);
+                closeNav();
             });
         });
 
@@ -351,32 +427,42 @@
             else if (tab === 'payments') loadPayments();
         }
 
+        function asArray(v) { return Array.isArray(v) ? v : []; }
+        function asObject(v) { return (v && typeof v === 'object' && !Array.isArray(v)) ? v : {}; }
+        var KNOWN_STATUS = ['pending', 'completed', 'confirmed', 'cancelled', 'authorized', 'captured', 'refunded', 'failed'];
+        function statusClass(s) {
+            s = String(s == null ? '' : s).toLowerCase();
+            return KNOWN_STATUS.indexOf(s) !== -1 ? s : 'pending';
+        }
+
         // Dashboard
         async function loadDashboard() {
             try {
                 var res = await authFetch(API_BASE + '/api/stats');
                 if (!res) return;
-                var stats = await res.json();
-                document.getElementById('statUsers').textContent = stats.totalUsers;
-                document.getElementById('statBookings').textContent = stats.totalBookings;
-                document.getElementById('statPayments').textContent = stats.totalPayments;
-                document.getElementById('statRevenue').textContent = '\u20B9' + stats.totalRevenue.toLocaleString('en-IN');
+                var stats = asObject(await ensureOk(res).json());
+                document.getElementById('statUsers').textContent = stats.totalUsers || 0;
+                document.getElementById('statBookings').textContent = stats.totalBookings || 0;
+                document.getElementById('statPayments').textContent = stats.totalPayments || 0;
+                document.getElementById('statRevenue').textContent = '\u20B9' + Number(stats.totalRevenue || 0).toLocaleString('en-IN');
 
                 var res2 = await authFetch(API_BASE + '/api/recent');
-                var recent = await res2.json();
+                if (!res2) return;
+                var recent = asObject(await ensureOk(res2).json());
                 var html = '';
-                recent.bookings.forEach(function(b) {
-                    html += '<tr><td><span class="badge confirmed">Booking</span></td><td>' + esc(b.source) + ' → ' + esc(b.destination) + '</td><td><span class="badge ' + b.status + '">' + b.status + '</span></td><td>' + fmtDate(b.created_at) + '</td></tr>';
+                asArray(recent.bookings).forEach(function(b) {
+                    html += '<tr><td><span class="badge confirmed">Booking</span></td><td>' + esc(b.source) + ' → ' + esc(b.destination) + '</td><td><span class="badge ' + statusClass(b.status) + '">' + esc(b.status) + '</span></td><td>' + fmtDate(b.created_at) + '</td></tr>';
                 });
-                recent.payments.forEach(function(p) {
-                    html += '<tr><td><span class="badge completed">Payment</span></td><td>₹' + p.amount + ' (' + esc(p.currency) + ')</td><td><span class="badge ' + p.status + '">' + p.status + '</span></td><td>' + fmtDate(p.created_at) + '</td></tr>';
+                asArray(recent.payments).forEach(function(p) {
+                    html += '<tr><td><span class="badge completed">Payment</span></td><td>₹' + esc(p.amount) + ' (' + esc(p.currency) + ')</td><td><span class="badge ' + statusClass(p.status) + '">' + esc(p.status) + '</span></td><td>' + fmtDate(p.created_at) + '</td></tr>';
                 });
-                recent.users.forEach(function(u) {
-                    html += '<tr><td><span class="badge pending">User</span></td><td>' + esc(u.name || 'N/A') + ' (' + esc(u.email) + ')</td><td>-</td><td>' + fmtDate(u.created_at) + '</td></tr>';
+                asArray(recent.users).forEach(function(u) {
+                    html += '<tr><td><span class="badge pending">User</span></td><td>' + esc(u.name || 'N/A') + ' (' + esc(u.email || 'N/A') + ')</td><td>-</td><td>' + fmtDate(u.created_at) + '</td></tr>';
                 });
                 document.getElementById('recentBody').innerHTML = html || '<tr><td colspan="4" class="empty-state">No recent activity</td></tr>';
             } catch (err) {
                 console.error(err);
+                renderLoadError('recentBody', 4, err);
             }
         }
 
@@ -385,16 +471,17 @@
             try {
                 var res = await authFetch(API_BASE + '/api/users');
                 if (!res) return;
-                var users = await res.json();
+                var users = asArray(await ensureOk(res).json());
+                searchCache.users = users;
                 renderUsers(users);
-            } catch (err) { console.error(err); }
+            } catch (err) { console.error(err); renderLoadError('usersBody', 6, err); }
         }
 
         function renderUsers(users) {
             var html = '';
             if (users.length === 0) { document.getElementById('usersBody').innerHTML = '<tr><td colspan="6" class="empty-state"><i class="fas fa-users"></i>No users yet</td></tr>'; return; }
             users.forEach(function(u) {
-                html += '<tr><td>' + u.id + '</td><td>' + esc(u.name || '-') + '</td><td>' + esc(u.email) + '</td><td>' + esc(u.phone || '-') + '</td><td>' + fmtDate(u.created_at) + '</td><td><div class="action-btns"><button class="action-btn view" onclick="viewUser(' + u.id + ')"><i class="fas fa-eye"></i></button><button class="action-btn delete" onclick="deleteUser(' + u.id + ')"><i class="fas fa-trash"></i></button></div></td></tr>';
+                html += '<tr><td>' + esc(u.id) + '</td><td>' + esc(u.name || '-') + '</td><td>' + esc(u.email || '-') + '</td><td>' + esc(u.phone || '-') + '</td><td>' + fmtDate(u.created_at) + '</td><td><div class="action-btns"><button class="action-btn view" onclick="viewUser(' + Number(u.id) + ')"><i class="fas fa-eye"></i></button><button class="action-btn delete" onclick="deleteUser(' + Number(u.id) + ')"><i class="fas fa-trash"></i></button></div></td></tr>';
             });
             document.getElementById('usersBody').innerHTML = html;
         }
@@ -402,7 +489,7 @@
         async function viewUser(id) {
             var res = await authFetch(API_BASE + '/api/users/' + id);
             if (!res) return;
-            var u = await res.json();
+            var u = asObject(await res.json());
             showModal('User Details', [
                 { label: 'ID', value: u.id },
                 { label: 'Name', value: u.name || '-' },
@@ -429,16 +516,17 @@
             try {
                 var res = await authFetch(API_BASE + '/api/bookings');
                 if (!res) return;
-                var bookings = await res.json();
+                var bookings = asArray(await ensureOk(res).json());
+                searchCache.bookings = bookings;
                 renderBookings(bookings);
-            } catch (err) { console.error(err); }
+            } catch (err) { console.error(err); renderLoadError('bookingsBody', 7, err); }
         }
 
         function renderBookings(bookings) {
             var html = '';
             if (bookings.length === 0) { document.getElementById('bookingsBody').innerHTML = '<tr><td colspan="7" class="empty-state"><i class="fas fa-ticket-alt"></i>No bookings yet</td></tr>'; return; }
             bookings.forEach(function(b) {
-                html += '<tr><td>' + b.id + '</td><td>' + esc(b.user_name || '-') + '</td><td>' + esc(b.booking_type) + '</td><td>' + esc(b.source || '-') + ' → ' + esc(b.destination || '-') + '</td><td>₹' + (b.amount || 0) + '</td><td><span class="badge ' + b.status + '">' + b.status + '</span></td><td><div class="action-btns"><button class="action-btn view" onclick="viewBooking(' + b.id + ')"><i class="fas fa-eye"></i></button><button class="action-btn edit" onclick="updateBookingStatus(' + b.id + ')"><i class="fas fa-check"></i></button><button class="action-btn delete" onclick="deleteBooking(' + b.id + ')"><i class="fas fa-trash"></i></button></div></td></tr>';
+                html += '<tr><td>' + esc(b.id) + '</td><td>' + esc(b.user_name || '-') + '</td><td>' + esc(b.booking_type) + '</td><td>' + esc(b.source || '-') + ' → ' + esc(b.destination || '-') + '</td><td>₹' + esc(b.amount || 0) + '</td><td><span class="badge ' + statusClass(b.status) + '">' + esc(b.status) + '</span></td><td><div class="action-btns"><button class="action-btn view" onclick="viewBooking(' + Number(b.id) + ')"><i class="fas fa-eye"></i></button><button class="action-btn edit" onclick="updateBookingStatus(' + Number(b.id) + ')"><i class="fas fa-check"></i></button><button class="action-btn delete" onclick="deleteBooking(' + Number(b.id) + ')"><i class="fas fa-trash"></i></button></div></td></tr>';
             });
             document.getElementById('bookingsBody').innerHTML = html;
         }
@@ -446,7 +534,7 @@
         async function viewBooking(id) {
             var res = await authFetch(API_BASE + '/api/bookings/' + id);
             if (!res) return;
-            var b = await res.json();
+            var b = asObject(await res.json());
             showModal('Booking Details', [
                 { label: 'ID', value: b.id },
                 { label: 'User', value: (b.user_name || '-') + ' (' + (b.user_email || '') + ')' },
@@ -486,16 +574,17 @@
             try {
                 var res = await authFetch(API_BASE + '/api/payments');
                 if (!res) return;
-                var payments = await res.json();
+                var payments = asArray(await ensureOk(res).json());
+                searchCache.payments = payments;
                 renderPayments(payments);
-            } catch (err) { console.error(err); }
+            } catch (err) { console.error(err); renderLoadError('paymentsBody', 7, err); }
         }
 
         function renderPayments(payments) {
             var html = '';
             if (payments.length === 0) { document.getElementById('paymentsBody').innerHTML = '<tr><td colspan="7" class="empty-state"><i class="fas fa-credit-card"></i>No payments yet</td></tr>'; return; }
             payments.forEach(function(p) {
-                html += '<tr><td>' + p.id + '</td><td>' + esc(p.user_name || '-') + '</td><td>₹' + p.amount + ' ' + esc(p.currency) + '</td><td>' + esc(p.razorpay_payment_id || '-') + '</td><td><span class="badge ' + p.status + '">' + p.status + '</span></td><td>' + fmtDate(p.created_at) + '</td><td><div class="action-btns"><button class="action-btn view" onclick="viewPayment(' + p.id + ')"><i class="fas fa-eye"></i></button></div></td></tr>';
+                html += '<tr><td>' + esc(p.id) + '</td><td>' + esc(p.user_name || '-') + '</td><td>₹' + esc(p.amount) + ' ' + esc(p.currency) + '</td><td>' + esc(p.razorpay_payment_id || '-') + '</td><td><span class="badge ' + statusClass(p.status) + '">' + esc(p.status) + '</span></td><td>' + fmtDate(p.created_at) + '</td><td><div class="action-btns"><button class="action-btn view" onclick="viewPayment(' + Number(p.id) + ')"><i class="fas fa-eye"></i></button></div></td></tr>';
             });
             document.getElementById('paymentsBody').innerHTML = html;
         }
@@ -503,7 +592,7 @@
         async function viewPayment(id) {
             var res = await authFetch(API_BASE + '/api/payments/' + id);
             if (!res) return;
-            var p = await res.json();
+            var p = asObject(await res.json());
             showModal('Payment Details', [
                 { label: 'ID', value: p.id },
                 { label: 'User', value: (p.user_name || '-') + ' (' + (p.user_email || '') + ')' },
@@ -528,8 +617,10 @@
         async function fetchAndCache(type) {
             if (!searchCache[type]) {
                 var res = await authFetch(API_BASE + '/api/' + type);
-                if (!res) return null;
-                searchCache[type] = await res.json();
+                // Bail out (and let the caller keep the current view) rather than
+                // caching the {error: ...} object as if it were a record list.
+                if (!res || !res.ok) return null;
+                searchCache[type] = asArray(await res.json());
             }
             return searchCache[type];
         }
@@ -574,16 +665,13 @@
 
         document.getElementById('modal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
 
-        function fmtDate(d) { if (!d) return '-'; return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); }
-        function esc(s) { var div = document.createElement('div'); div.appendChild(document.createTextNode(s)); return div.innerHTML; }
+        function fmtDate(d) { if (!d) return '-'; var dt = new Date(d); if (isNaN(dt.getTime())) return '-'; return dt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+        function esc(s) { if (s == null) return ''; var div = document.createElement('div'); div.appendChild(document.createTextNode(String(s))); return div.innerHTML; }
 
-        // Logout
-        async function logout() {
-            await authFetch(API_BASE + '/api/admin/logout', { method: 'POST' });
-            localStorage.removeItem('adminToken');
-            adminToken = null;
-            document.body.classList.add('locked');
-            document.getElementById('loginModal').classList.add('active');
+        // Logout is client-side only: the token is a stateless HMAC, so there is
+        // nothing for the server to revoke.
+        function logout() {
+            forceRelogin();
         }
 
         // Init

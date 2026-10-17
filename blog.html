@@ -122,9 +122,9 @@
                     var desc = stripHtml(item.description || item.content || '').substring(0, 150);
 
                     html += '<div class="blog-card">' +
-                        '<a href="' + item.link + '" target="_blank" rel="noopener">' +
+                        '<a href="' + escAttr(item.link) + '" target="_blank" rel="noopener">' +
                         '<div class="blog-thumb">' +
-                        (thumb ? '<img src="' + thumb + '" alt="' + escHtml(item.title) + '" loading="lazy">' : '') +
+                        (thumb ? '<img src="' + escAttr(thumb) + '" alt="' + escHtml(item.title) + '" loading="lazy">' : '') +
                         (videoId ? '<div class="play-icon"><i class="fas fa-play"></i></div>' : '') +
                         '</div>' +
                         '<div class="blog-info">' +
@@ -157,9 +157,17 @@
         }
 
         function escHtml(str) {
+            if (str == null) return '';
             var div = document.createElement('div');
-            div.appendChild(document.createTextNode(str));
+            div.appendChild(document.createTextNode(String(str)));
             return div.innerHTML;
+        }
+
+        // For values interpolated into an attribute: also neutralise quotes so a
+        // crafted feed value cannot break out of href="" / src="".
+        function escAttr(str) {
+            if (str == null) return '';
+            return escHtml(String(str)).replace(/`/g, '&#96;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         }
 
         var menuToggle = document.getElementById('menuToggle');

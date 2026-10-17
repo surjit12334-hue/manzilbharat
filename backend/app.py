@@ -1,5 +1,7 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, abort
 from flask_cors import CORS
+from werkzeug.exceptions import HTTPException
+from werkzeug.middleware.proxy_fix import ProxyFix
 import psycopg2
 import psycopg2.extras
 import bcrypt
@@ -9,7 +11,6 @@ import time
 import hashlib
 import hmac
 import json
-import secrets
 import base64
 import smtplib
 from email.mime.text import MIMEText
@@ -30,13 +31,35 @@ def base64url_decode(s):
 
 load_dotenv()
 
+
+def _required(name, min_len=0):
+    value = os.getenv(name)
+    if not value or not value.strip():
+        raise RuntimeError(
+            f"{name} is not set. Copy .env.example to .env and set {name}, "
+            "or export it before starting the server."
+        )
+    value = value.strip()
+    if len(value) < min_len:
+        raise RuntimeError(
+            f"{name} must be at least {min_len} characters (got {len(value)})."
+        )
+    return value
+
+
 GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
-JWT_SECRET = os.getenv('JWT_SECRET', secrets.token_hex(32))
-ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', 'admin@manzilbharat.in')
+JWT_SECRET = _required('JWT_SECRET', min_len=32)
+ADMIN_EMAIL = _required('ADMIN_EMAIL')
+ADMIN_PASSWORD = _required('ADMIN_PASSWORD', min_len=12)
 ADMIN_PASSWORD_HASH = bcrypt.hashpw(
-    (os.getenv('ADMIN_PASSWORD', 'Admin@12345')).encode('utf-8'),
+    ADMIN_PASSWORD.encode('utf-8'),
     bcrypt.gensalt()
 ).decode('utf-8')
+
+# Compared against when the admin email does not match, so the login endpoint
+# always performs one bcrypt check and response timing does not reveal whether
+# an admin account exists for a given address.
+_DUMMY_ADMIN_HASH = bcrypt.hashpw(b'not-the-admin-password', bcrypt.gensalt())
 
 SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
 SMTP_PORT = int(os.getenv('SMTP_PORT', 587))
@@ -55,14 +78,54 @@ ALLOWED_ORIGINS = [
 RESET_TOKEN_VALID_SECONDS = 1800
 used_reset_tokens = {}
 
-app = Flask(__name__, static_folder='.', static_url_path='')
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
+
+app = Flask(__name__, static_folder=PROJECT_ROOT, static_url_path='')
+
+# Trust one proxy hop so request.remote_addr (used by the rate limiter) is the
+# real client IP when running behind nginx / gunicorn. Without this every user
+# shares the proxy's IP and one visitor can exhaust the shared rate limit.
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 
 CORS(app, resources={r"/api/*": {"origins": ALLOWED_ORIGINS}})
+
+STATIC_ALLOWED_EXTENSIONS = {
+    '.html', '.js', '.css', '.json', '.png', '.jpg', '.jpeg', '.gif', '.svg',
+    '.webp', '.ico', '.pdf', '.woff', '.woff2', '.ttf', '.eot'
+}
+
+
+@app.before_request
+def block_private_files():
+    """The static root is the whole project, so only let web assets through.
+
+    Without this, /.env, /schema.sql, /seed.sql and /backend/app.py are all
+    downloadable over HTTP. Anything without a known asset extension (or with
+    a dot-prefixed path segment) is refused.
+    """
+    if request.path.startswith('/api/'):
+        return None
+    filename = request.path.lstrip('/')
+    if not filename:
+        return None
+    if any(segment.startswith('.') for segment in filename.split('/')):
+        abort(404)
+    if os.path.splitext(filename)[1].lower() not in STATIC_ALLOWED_EXTENSIONS:
+        abort(404)
+    return None
+
+
+@app.errorhandler(HTTPException)
+def handle_http_exception(error):
+    if request.path.startswith('/api/'):
+        return jsonify({'error': error.description}), error.code
+    return error
 
 
 @app.route('/')
 def index():
-    return send_from_directory('.', 'index.html')
+    return send_from_directory(PROJECT_ROOT, 'index.html')
 
 
 @app.after_request
@@ -71,10 +134,15 @@ def set_security_headers(response):
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'
     response.headers['X-XSS-Protection'] = '1; mode=block'
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    # Auth responses carry tokens and password hashes; keep them out of any
+    # shared/browser cache.
+    if request.path.startswith('/api/'):
+        response.headers['Cache-Control'] = 'no-store'
     return response
 
 
 rate_limit_store = {}
+
 
 def rate_limit(max_requests=30, window=60):
     def decorator(f):
@@ -89,6 +157,12 @@ def rate_limit(max_requests=30, window=60):
             if len(rate_limit_store[key]) >= max_requests:
                 return jsonify({'error': 'Too many requests. Please try again later.'}), 429
             rate_limit_store[key].append(now)
+            # Drop buckets for callers that have gone quiet, otherwise the dict
+            # grows one empty list per distinct IP/endpoint forever.
+            stale = [k for k, times in rate_limit_store.items()
+                     if k != key and not times]
+            for k in stale:
+                rate_limit_store.pop(k, None)
             return f(*args, **kwargs)
         return wrapper
     return decorator
@@ -118,6 +192,10 @@ def verify_token(token):
         if not hmac.compare_digest(sig, expected):
             return None
         payload = json.loads(data)
+        # Reset tokens share this signature scheme; without this check one would
+        # be accepted as a session token. Session tokens always carry a user_id.
+        if 'user_id' not in payload or 'email' not in payload:
+            return None
         if datetime.fromisoformat(payload['exp']) < datetime.utcnow():
             return None
         return payload
@@ -126,6 +204,12 @@ def verify_token(token):
 
 
 def create_reset_token(email):
+    # Prune here as well as in verify_reset_token: a server that only ever
+    # issues links (and never has one redeemed) would otherwise accumulate
+    # entries forever.
+    now = time.time()
+    for t in [t for t, exp in used_reset_tokens.items() if exp < now]:
+        used_reset_tokens.pop(t, None)
     payload = {
         'purpose': 'password-reset',
         'email': email,
@@ -193,6 +277,10 @@ def get_db():
 def verify_google_token(credential):
     try:
         idinfo = id_token.verify_oauth2_token(credential, google_requests.Request(), GOOGLE_CLIENT_ID)
+        # A Google account can have unverified emails; trusting one would let an
+        # attacker take over an account by registering the victim's address.
+        if not idinfo.get('email_verified'):
+            return None
         return {
             'email': idinfo.get('email'),
             'name': idinfo.get('name', ''),
@@ -207,7 +295,9 @@ def verify_google_token(credential):
 def signup():
     data = request.get_json()
     name = (data.get('name') or '').strip()
-    email = (data.get('email') or '').strip()
+    # Emails are compared and stored case-insensitively, otherwise A@b.com and
+    # a@b.com become two separate accounts that cannot log into each other.
+    email = (data.get('email') or '').strip().lower()
     contact = (data.get('contact') or '').strip()
     gender = (data.get('gender') or '').strip()
     dob = (data.get('dob') or '').strip()
@@ -297,6 +387,7 @@ def signup():
             (name, email, contact, gender, dob, marital_status, residential_address, pincode, hashed)
         )
         user = cur.fetchone()
+        cur.close()
         conn.commit()
         token = create_token(user[0], user[2])
         return jsonify({'message': 'Account created successfully', 'user': {'id': user[0], 'name': user[1], 'email': user[2], 'contact': user[3]}, 'token': token}), 201
@@ -317,7 +408,7 @@ def signup():
 @rate_limit(max_requests=10, window=60)
 def login():
     data = request.get_json()
-    email = (data.get('email') or '').strip()
+    email = (data.get('email') or '').strip().lower()
     password = data.get('password') or ''
 
     if not email or not password:
@@ -331,11 +422,10 @@ def login():
         user = cur.fetchone()
         cur.close()
 
-        if not user:
-            return jsonify({'error': 'No account found with this email'}), 401
-
-        if not user[4] or not bcrypt.checkpw(password.encode('utf-8'), user[4].encode('utf-8')):
-            return jsonify({'error': 'Incorrect password'}), 401
+        # Identical message for "no such account" and "wrong password" so the
+        # endpoint cannot be used to enumerate registered email addresses.
+        if not user or not user[4] or not bcrypt.checkpw(password.encode('utf-8'), user[4].encode('utf-8')):
+            return jsonify({'error': 'Invalid email or password'}), 401
 
         token = create_token(user[0], user[2])
         return jsonify({
@@ -364,7 +454,7 @@ def google_login():
         return jsonify({'error': 'Invalid Google credential'}), 401
 
     name = google_user['name']
-    email = google_user['email']
+    email = (google_user['email'] or '').strip().lower()
 
     conn = None
     try:
@@ -414,7 +504,7 @@ def google_login():
 @rate_limit(max_requests=3, window=300)
 def forgot_password():
     data = request.get_json()
-    email = (data.get('email') or '').strip()
+    email = (data.get('email') or '').strip().lower()
 
     if not email:
         return jsonify({'error': 'Email is required'}), 400
@@ -509,6 +599,9 @@ def admin_login():
     password = data.get('password') or ''
 
     if email != ADMIN_EMAIL:
+        # Spend the same bcrypt work as a real check so response timing does
+        # not reveal whether the submitted email is the admin's.
+        bcrypt.checkpw(password.encode('utf-8'), _DUMMY_ADMIN_HASH)
         return jsonify({'error': 'Invalid admin credentials'}), 401
 
     if not bcrypt.checkpw(password.encode('utf-8'), ADMIN_PASSWORD_HASH.encode('utf-8')):
@@ -516,11 +609,6 @@ def admin_login():
 
     token = create_token(0, email)
     return jsonify({'token': token, 'message': 'Admin login successful'}), 200
-
-
-@app.route('/api/admin/logout', methods=['POST'])
-def admin_logout():
-    return jsonify({'message': 'Logged out'}), 200
 
 
 def require_admin(f):
@@ -559,7 +647,9 @@ def get_stats():
             'totalRevenue': float(total_revenue)
         })
     except Exception:
-        return jsonify({'totalUsers': 0, 'totalBookings': 0, 'totalPayments': 0, 'totalRevenue': 0})
+        # Surface the failure instead of returning zeros: a DB outage rendered
+        # as "0 users, ₹0 revenue" is silently wrong data.
+        return jsonify({'error': 'Could not load stats'}), 500
     finally:
         if conn:
             conn.close()
@@ -589,7 +679,7 @@ def get_recent():
             'users': [dict(u) for u in users]
         })
     except Exception:
-        return jsonify({'bookings': [], 'payments': [], 'users': []})
+        return jsonify({'error': 'Could not load recent activity'}), 500
     finally:
         if conn:
             conn.close()
@@ -607,7 +697,7 @@ def get_users():
         cur.close()
         return jsonify([dict(u) for u in users])
     except Exception:
-        return jsonify([])
+        return jsonify({'error': 'Could not load users'}), 500
     finally:
         if conn:
             conn.close()
@@ -641,9 +731,21 @@ def delete_user(user_id):
         conn = get_db()
         cur = conn.cursor()
         cur.execute("DELETE FROM users WHERE id = %s", (user_id,))
+        if cur.rowcount == 0:
+            conn.rollback()
+            cur.close()
+            return jsonify({'error': 'User not found'}), 404
         conn.commit()
         cur.close()
         return jsonify({'message': 'User deleted'})
+    except psycopg2.errors.ForeignKeyViolation:
+        if conn:
+            conn.rollback()
+        return jsonify({
+            'error': 'This user still has bookings or payments. '
+                     'Apply the ON DELETE CASCADE migration in schema.sql, '
+                     'then retry.'
+        }), 409
     except Exception:
         if conn:
             conn.rollback()
@@ -667,7 +769,7 @@ def admin_get_bookings():
         cur.close()
         return jsonify([dict(b) for b in bookings])
     except Exception:
-        return jsonify([])
+        return jsonify({'error': 'Could not load bookings'}), 500
     finally:
         if conn:
             conn.close()
@@ -709,6 +811,10 @@ def admin_update_booking(booking_id):
         conn = get_db()
         cur = conn.cursor()
         cur.execute("UPDATE bookings SET status = %s WHERE id = %s", (status, booking_id))
+        if cur.rowcount == 0:
+            conn.rollback()
+            cur.close()
+            return jsonify({'error': 'Booking not found'}), 404
         conn.commit()
         cur.close()
         return jsonify({'message': 'Booking updated'})
@@ -729,6 +835,10 @@ def admin_delete_booking(booking_id):
         conn = get_db()
         cur = conn.cursor()
         cur.execute("DELETE FROM bookings WHERE id = %s", (booking_id,))
+        if cur.rowcount == 0:
+            conn.rollback()
+            cur.close()
+            return jsonify({'error': 'Booking not found'}), 404
         conn.commit()
         cur.close()
         return jsonify({'message': 'Booking deleted'})
@@ -755,7 +865,7 @@ def admin_get_payments():
         cur.close()
         return jsonify([dict(p) for p in payments])
     except Exception:
-        return jsonify([])
+        return jsonify({'error': 'Could not load payments'}), 500
     finally:
         if conn:
             conn.close()
