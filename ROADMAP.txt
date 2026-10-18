@@ -150,15 +150,30 @@ and there is no way to create a booking at all.
          WHY: gives login a purpose; this is the page judges will look
          for after the demo of signing up.
 
-  [ ] 6. Newsletter + contact endpoints (1-2 h)                     [h]
-         a. Table: subscribers(email UNIQUE, created_at)
-            Table: messages(id, name, email, subject, body, created_at)
-         b. POST /api/newsletter  (validate email, dedupe, 409/200)
-         c. POST /api/contact     (validate, store)
-         d. Wire index.html newsletter form (currently a fake
-            "Subscribed!" button) and contact.html form
-         e. Show messages in the admin panel (new tab - the tab
-            infrastructure already exists in admin.html)
+  [x] 6. Newsletter + contact endpoints (1-2 h)                     [h] DONE
+         a. Tables: subscribers(email UNIQUE, created_at) and
+            messages(id, name, email, subject, body, created_at) -
+            schema.sql updated AND applied to the dev DB as postgres,
+            with ALL grants + sequence USAGE granted to manzil_user
+            (the app user cannot CREATE TABLE - permission denied)
+         b. POST /api/newsletter @rate_limit(10,60): email validated,
+            ON CONFLICT (email) DO NOTHING -> 201 new / 200 already
+            subscribed (no subscriber list leaked), case-insensitive
+         c. POST /api/contact @rate_limit(5,60): 4-field validation
+            with {errors:{field:message}} like signup -> 201
+         d. index.html fake "Subscribed!" button replaced with a real
+            fetch + status line (ok/err); contact.html had NO form at
+            all -> new two-column contact form card (name/email/
+            subject/message, per-field errors, spinner, status line)
+         e. admin.html new "Messages" tab (sidebar + table + debounced
+            search + view modal); GET /api/admin/messages is
+            require_admin and returns the latest 500. NOTE: admin
+            routes read the x-admin-token header, not Authorization.
+         TESTED (23 checks): newsletter 201/200 dedupe/400 x2 + field
+         error; contact 201 stored/400 x2/4 field errors; messages
+         admin 200, user token 403, no token 401; fake handler gone;
+         all pages 200; inline JS node --check clean; log clean;
+         test rows deleted afterwards.
 
   [ ] 7. Password change for logged-in users (1 h)                  [h]
          PUT /api/me/password  (current + new, bcrypt check)

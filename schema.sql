@@ -41,6 +41,24 @@ CREATE TABLE IF NOT EXISTS payments (
     created_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Newsletter signups. No user_id: subscribers are often signed out, and
+-- ON CONFLICT (email) makes a double-submit idempotent.
+CREATE TABLE IF NOT EXISTS subscribers (
+    id         SERIAL PRIMARY KEY,
+    email      VARCHAR(255) NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Contact-form messages, shown in the admin panel's Messages tab.
+CREATE TABLE IF NOT EXISTS messages (
+    id         SERIAL PRIMARY KEY,
+    name       VARCHAR(255) NOT NULL,
+    email      VARCHAR(255) NOT NULL,
+    subject    VARCHAR(255) NOT NULL,
+    body       TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- ============================================================================
 -- Existing DB fixes (run on the CURRENT live database only if migrating)
 -- ============================================================================

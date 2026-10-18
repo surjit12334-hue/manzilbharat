@@ -679,6 +679,105 @@ def get_me():
 
 
 # ---------------------------------------------------------------------------
+# Newsletter + contact - public, no account needed. The old frontend
+# "confirmed" a subscription without asking the server; these routes make
+# both forms store something real.
+# ---------------------------------------------------------------------------
+
+EMAIL_RE = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
+
+
+@app.route('/api/newsletter', methods=['POST'])
+@rate_limit(max_requests=10, window=60)
+def newsletter_subscribe():
+    data = request.get_json(silent=True) or {}
+    email = (data.get('email') or '').strip().lower()
+
+    if not email:
+        return jsonify({'error': 'Email is required', 'errors': {'email': 'Email is required'}}), 400
+    if len(email) > 255 or not re.match(EMAIL_RE, email):
+        return jsonify({'error': 'Validation failed', 'errors': {'email': 'Enter a valid email address'}}), 400
+
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        # Idempotent: a re-submit (or someone else typing your address)
+        # must not explode on the UNIQUE constraint or leak subscribers.
+        cur.execute(
+            "INSERT INTO subscribers (email) VALUES (%s) ON CONFLICT (email) DO NOTHING",
+            (email,)
+        )
+        inserted = cur.rowcount
+        conn.commit()
+        cur.close()
+        if inserted:
+            return jsonify({'message': 'Subscribed! Watch your inbox for travel deals.'}), 201
+        return jsonify({'message': 'You are already subscribed. Nothing to do!'}), 200
+    except Exception:
+        if conn:
+            conn.rollback()
+        app.logger.exception('newsletter_subscribe failed for %s', email)
+        return jsonify({'error': 'Could not subscribe right now. Please try again later.'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route('/api/contact', methods=['POST'])
+@rate_limit(max_requests=5, window=60)
+def contact_message():
+    data = request.get_json(silent=True) or {}
+    name = (data.get('name') or '').strip()
+    email = (data.get('email') or '').strip().lower()
+    subject = (data.get('subject') or '').strip()
+    body = (data.get('body') or '').strip()
+
+    errors = {}
+    if not name:
+        errors['name'] = 'Name is required'
+    elif len(name) > 255:
+        errors['name'] = 'Name is too long (max 255 characters)'
+    if not email:
+        errors['email'] = 'Email is required'
+    elif len(email) > 255 or not re.match(EMAIL_RE, email):
+        errors['email'] = 'Enter a valid email address'
+    if not subject:
+        errors['subject'] = 'Subject is required'
+    elif len(subject) > 255:
+        errors['subject'] = 'Subject is too long (max 255 characters)'
+    if not body:
+        errors['body'] = 'Message is required'
+    elif len(body) < 10:
+        errors['body'] = 'Message must be at least 10 characters'
+    elif len(body) > 5000:
+        errors['body'] = 'Message is too long (max 5000 characters)'
+
+    if errors:
+        return jsonify({'error': 'Validation failed', 'errors': errors}), 400
+
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO messages (name, email, subject, body) VALUES (%s, %s, %s, %s)",
+            (name, email, subject, body)
+        )
+        conn.commit()
+        cur.close()
+        return jsonify({'message': 'Thanks for reaching out! We will get back to you within 1 working day.'}), 201
+    except Exception:
+        if conn:
+            conn.rollback()
+        app.logger.exception('contact_message failed for %s', email)
+        return jsonify({'error': 'Could not send your message. Please try again later.'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+# ---------------------------------------------------------------------------
 # Bookings - the user-facing half. Admin CRUD (GET/PUT/DELETE on
 # /api/bookings/<id>) stays behind require_admin further down; users get
 # create / list-own / cancel-own here so a customer can never touch
@@ -1198,6 +1297,25 @@ def admin_get_payment(payment_id):
         return jsonify(dict(payment))
     except Exception:
         return jsonify({'error': 'An internal error occurred'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route('/api/admin/messages', methods=['GET'])
+@require_admin
+def admin_get_messages():
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("SELECT * FROM messages ORDER BY created_at DESC LIMIT 500")
+        messages = cur.fetchall()
+        cur.close()
+        return jsonify([dict(m) for m in messages]), 200
+    except Exception:
+        app.logger.exception('admin_get_messages failed')
+        return jsonify({'error': 'Could not load messages'}), 500
     finally:
         if conn:
             conn.close()

@@ -90,6 +90,10 @@
         .newsletter-form input:focus { border-color: #FF6B35; background: rgba(255,255,255,0.08); box-shadow: 0 0 0 3px rgba(255,107,53,0.1); }
         .newsletter-form button { background: linear-gradient(135deg, #FF6B35, #E65100); color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .newsletter-form button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255,107,53,0.4); }
+        .newsletter-form button:disabled { opacity: 0.6; cursor: wait; transform: none; }
+        .newsletter-status { min-height: 1.1rem; margin-top: 0.5rem; font-size: 0.82rem; }
+        .newsletter-status.ok { color: #27ae60; }
+        .newsletter-status.err { color: #e74c3c; }
         .footer-apps { margin-top: 1.5rem; }
         .footer-apps p { color: #8892b0; font-size: 0.85rem; margin-bottom: 0.8rem; }
         .app-buttons { display: flex; gap: 0.8rem; }
@@ -211,10 +215,11 @@
             <div class="footer-newsletter">
                 <h4>Stay Updated</h4>
                 <p>Subscribe to get exclusive offers, travel tips, and updates.</p>
-                <form class="newsletter-form" onsubmit="event.preventDefault(); var btn = this.querySelector('button'); btn.textContent='Subscribed!'; this.querySelector('input').value=''; setTimeout(function(){btn.innerHTML='<i class=&quot;fas fa-paper-plane&quot;></i>';}, 2000);">
+                <form class="newsletter-form" onsubmit="event.preventDefault(); subscribeNewsletter(this);">
                     <input type="email" placeholder="Enter your email" aria-label="Email for newsletter" required>
                     <button type="submit"><i class="fas fa-paper-plane"></i></button>
                 </form>
+                <div class="newsletter-status" id="newsletterStatus" role="status" aria-live="polite"></div>
                 <div class="footer-apps">
                     <p>Download our app</p>
                     <div class="app-buttons">
@@ -252,6 +257,39 @@
 
         const prefill = new URLSearchParams(window.location.search).get('q');
         if (prefill) { input.value = prefill.trim(); }
+
+        // ---------- Newsletter (footer) ----------
+        // The old form faked a "Subscribed!" button; this stores the
+        // address server-side and shows the server's real answer.
+        async function subscribeNewsletter(form) {
+            const input = form.querySelector('input[type="email"]');
+            const btn = form.querySelector('button');
+            const status = document.getElementById('newsletterStatus');
+            status.textContent = '';
+            status.className = 'newsletter-status';
+            btn.disabled = true;
+            try {
+                const res = await fetch(API_BASE + '/api/newsletter', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: input.value.trim() })
+                });
+                const data = await res.json().catch(function () { return null; });
+                if (res.ok) {
+                    status.textContent = (data && data.message) || 'Subscribed!';
+                    status.className = 'newsletter-status ok';
+                    input.value = '';
+                } else {
+                    status.textContent = (data && data.errors && data.errors.email) || (data && data.error) || ('HTTP ' + res.status);
+                    status.className = 'newsletter-status err';
+                }
+            } catch (e) {
+                status.textContent = 'Cannot reach the server. Is it running?';
+                status.className = 'newsletter-status err';
+            } finally {
+                btn.disabled = false;
+            }
+        }
 
         // ---------- Nominatim autocomplete ----------
         async function onType(q) {
