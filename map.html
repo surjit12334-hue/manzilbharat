@@ -109,8 +109,6 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        var GEMINI_API_KEY = window.GEMINI_API_KEY || '';
-
         const params = new URLSearchParams(window.location.search);
         const lat = params.get('lat');
         const lon = params.get('lon');
@@ -286,27 +284,20 @@
         function cleanTitle(t) { return (t || '').replace(/^File:/, '').replace(/\.[^.]+$/, ''); }
 
         async function askGemini(query) {
-            if (!GEMINI_API_KEY) {
-                aiPanel.innerHTML = '<div class="ai-err">AI API key not set. Add your Gemini key.</div>';
-                return;
-            }
             aiPanel.innerHTML = '<div class="ai-loading"><div class="spinner"></div> Thinking with AI...</div>';
-            const prompt = 'You are Manzil Bharat, a travel guide. Given the destination "' + query + '", respond as a compact travel card using these EXACT section headers on separate lines: "Why go", "Best time to visit", "Top things to do", "Travel tip". Keep it under 130 words, no markdown bold, plain text with each section on its own line starting with the header.';
             try {
-                const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=' + GEMINI_API_KEY, {
+                // Server-side proxy: the Gemini key lives in .env on the
+                // server, never in this page.
+                const res = await fetch(API_BASE + '/api/ai-guide', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                    body: JSON.stringify({ kind: 'destination', query: query })
                 });
-                if (!res.ok) {
-                    const e = await res.json().catch(() => null);
-                    throw new Error((e && e.error && e.error.message) || ('HTTP ' + res.status));
-                }
-                const data = await res.json();
-                const text = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts.map(p => p.text || '').join('')) || '';
-                renderCard(text);
+                const data = await res.json().catch(() => null);
+                if (!res.ok) throw new Error((data && data.error) || ('HTTP ' + res.status));
+                renderCard(data.text || '');
             } catch (err) {
-                aiPanel.innerHTML = '<div class="ai-err">AI request failed: ' + escHtml(err.message || 'Error') + '</div>';
+                aiPanel.innerHTML = '<div class="ai-err">' + escHtml(err.message || 'Error') + '</div>';
             }
         }
 

@@ -51,27 +51,30 @@ PHASE 1 - MAKE IT REAL (the product is missing)            [3-4 days]
 Goal: a logged-in user can do something. Right now login leads nowhere
 and there is no way to create a booking at all.
 
-  [ ] 1. Fix config.js API_BASE (5 min)                             [m]
+  [x] 1. Fix config.js API_BASE (5 min)                             [m]
+         DONE -> commit 7230322
          Change: window.API_BASE = 'http://localhost:5000'
          To:     window.API_BASE = '';    // same-origin
          WHY: every login/signup/admin/reset call breaks on any real
          domain. Test by opening the site on a non-localhost host.
+         (Also updated the5 error messages that printed API_BASE /
+          told users to match a port in config.js.)
 
-  [ ] 2. Server-side AI proxy (2-3 h)                               [h]
-         a. Add to .env:  GEMINI_API_KEY=...
-         b. Add to .env.example (commented, no real key)
-         c. New route in backend/app.py:
-              POST /api/ai-guide   { "kind": "destination"|"trip",
-                                     "query": "..." }
-            - reuse the two prompt strings currently in index.html
-              and map.html
-            - call Gemini with the key from os.environ
-            - @rate_limit(max_requests=15, window=60)
-            - return { "text": "..." }
-         d. Replace the browser fetch in index.html:363 and
-            map.html:296 with a fetch to /api/ai-guide
-         e. Delete window.GEMINI_API_KEY from config.js
+  [x] 2. Server-side AI proxy (2-3 h)                               [h] DONE
+         a. GEMINI_API_KEY=... + GEMINI_MODEL=... in .env (real key
+            verified: gemini-3.6-flash answered HTTP 200)
+         b. both added to .env.example with a "never in a .js file" note
+         c. new route POST /api/ai-guide {kind, query}
+            - prompts moved out of index.html / map.html into AI_PROMPTS
+            - key read from env, requests.post(timeout=30)
+            - @rate_limit(15, 60); 400 validation; 502/504/429 mapping;
+              Google's body is logged server-side, never forwarded
+         d. index.html + map.html now fetch /api/ai-guide
+         e. window.GEMINI_API_KEY deleted from config.js
          WHY: a key in the browser is stolen and billed within days.
+         TESTED: destination card 200 (all 4 sections), trip 200,
+         bad kind/empty/long -> 400, request #16 -> 429, key matches
+         in served pages = 0, all pages 200, server log clean.
 
   [ ] 3. User auth guard + /api/me (1-2 h)                          [h]
          a. @require_user decorator (like require_admin but checks

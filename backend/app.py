@@ -5,6 +5,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 import psycopg2
 import psycopg2.extras
 import bcrypt
+import requests
 import re
 import os
 import time
@@ -48,6 +49,10 @@ def _required(name, min_len=0):
 
 
 GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
+# Optional: without it /api/ai-guide answers 503 and the rest of the site
+# keeps working. Never sent to the browser - see ai_guide() below.
+GEMINI_API_KEY = (os.getenv('GEMINI_API_KEY') or '').strip()
+GEMINI_MODEL = (os.getenv('GEMINI_MODEL') or '').strip() or 'gemini-3.6-flash'
 JWT_SECRET = _required('JWT_SECRET', min_len=32)
 ADMIN_EMAIL = _required('ADMIN_EMAIL')
 ADMIN_PASSWORD = _required('ADMIN_PASSWORD', min_len=12)
@@ -589,6 +594,84 @@ def reset_password():
     finally:
         if conn:
             conn.close()
+
+
+# ---------------------------------------------------------------------------
+# AI travel guide - server-side proxy for the Gemini API.
+#
+# The key is read from .env and never leaves this process. index.html and
+# map.html used to call Google directly with a key from config.js, which
+# publishes the key to every visitor; a published key gets scraped and
+# billed within days. The rate limit protects the quota as well.
+# ---------------------------------------------------------------------------
+
+AI_PROMPTS = {
+    'destination': (
+        'You are Manzil Bharat, a travel guide. Given the destination "{query}", '
+        'respond as a compact travel card using these EXACT section headers on '
+        'separate lines: "Why go", "Best time to visit", "Top things to do", '
+        '"Travel tip". Keep it under 120 words, no markdown bold, plain text with '
+        'each section on its own line starting with the header.'
+    ),
+    'trip': (
+        'You are Manzil Bharat, a travel assistant for India travel. User query: '
+        '"{query}". Reply as 3 suggested destinations, one per line, formatted as '
+        '"PlaceName - one-line reason". Then on its own line start with "Travel '
+        'tip:" give one general tip. Under 120 words. No markdown.'
+    ),
+}
+
+
+@app.route('/api/ai-guide', methods=['POST'])
+@rate_limit(max_requests=15, window=60)
+def ai_guide():
+    data = request.get_json(silent=True) or {}
+    kind = (data.get('kind') or '').strip()
+    query = (data.get('query') or '').strip()
+
+    if kind not in AI_PROMPTS:
+        return jsonify({'error': 'Unknown guide type'}), 400
+    if not query:
+        return jsonify({'error': 'A destination or query is required'}), 400
+    if len(query) > 300:
+        return jsonify({'error': 'Query is too long (max 300 characters)'}), 400
+    if not GEMINI_API_KEY:
+        return jsonify({'error': 'AI is not configured on this server. Set GEMINI_API_KEY in .env.'}), 503
+
+    prompt = AI_PROMPTS[kind].replace('{query}', query)
+
+    try:
+        resp = requests.post(
+            'https://generativelanguage.googleapis.com/v1beta/models/'
+            + GEMINI_MODEL + ':generateContent',
+            params={'key': GEMINI_API_KEY},
+            json={'contents': [{'parts': [{'text': prompt}]}]},
+            timeout=30,
+        )
+    except requests.exceptions.Timeout:
+        return jsonify({'error': 'The AI service timed out. Please try again.'}), 504
+    except requests.exceptions.RequestException:
+        return jsonify({'error': 'Could not reach the AI service. Please try again later.'}), 502
+
+    if resp.status_code == 429:
+        return jsonify({'error': 'The AI service is rate-limited right now. Please try again in a minute.'}), 429
+    if resp.status_code != 200:
+        # Log server-side for debugging, but never forward Google's body to
+        # the client (it can echo request details).
+        app.logger.warning('Gemini returned HTTP %s: %s', resp.status_code, resp.text[:300])
+        return jsonify({'error': 'The AI service returned an error. Please try again later.'}), 502
+
+    try:
+        body = resp.json()
+        parts = body['candidates'][0]['content']['parts']
+        text = ''.join(p.get('text') or '' for p in parts).strip()
+    except (ValueError, KeyError, IndexError, TypeError):
+        app.logger.warning('Gemini response had unexpected shape: %s', resp.text[:300])
+        return jsonify({'error': 'The AI service returned an unexpected response.'}), 502
+
+    if not text:
+        return jsonify({'error': 'The AI service returned an empty response. Please try again.'}), 502
+    return jsonify({'text': text}), 200
 
 
 @app.route('/api/admin/login', methods=['POST'])

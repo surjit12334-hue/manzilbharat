@@ -239,10 +239,6 @@
     </footer>
 
     <script>
-        // ============ API KEY (GEMINI) ============
-        var GEMINI_API_KEY = window.GEMINI_API_KEY || '';
-        // ================================
-
         const input = document.getElementById('destinationInput');
         const dropdown = document.getElementById('searchDropdown');
         const panel = document.getElementById('aiPanel');
@@ -343,29 +339,20 @@
         }
 
         async function askGemini(kind, query) {
-            if (!GEMINI_API_KEY) {
-                showPanel('<div class="ai-err">AI API key not set. Add your Gemini key in config.js.</div>');
-                return;
-            }
             showPanel('<div class="ai-loading"><div class="spinner"></div> Thinking with AI...</div>');
-            const prompt = kind === 'destination'
-                ? 'You are Manzil Bharat, a travel guide. Given the destination "' + query + '", respond as a compact travel card using these EXACT section headers on separate lines: "Why go", "Best time to visit", "Top things to do", "Travel tip". Keep it under 120 words, no markdown bold, plain text with each section on its own line starting with the header.'
-                : 'You are Manzil Bharat, a travel assistant for India travel. User query: "' + query + '". Reply as 3 suggested destinations, one per line, formatted as "PlaceName - one-line reason". Then on its own line start with "Travel tip:" give one general tip. Under 120 words. No markdown.';
             try {
-                const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=' + GEMINI_API_KEY, {
+                // Server-side proxy: the Gemini key lives in .env on the
+                // server, never in this page.
+                const res = await fetch(API_BASE + '/api/ai-guide', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                    body: JSON.stringify({ kind: kind, query: query })
                 });
-                if (!res.ok) {
-                    const e = await res.json().catch(() => null);
-                    throw new Error((e && e.error && e.error.message) || ('HTTP ' + res.status));
-                }
-                const data = await res.json();
-                const text = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts.map(p => p.text || '').join('')) || '';
-                escBody(text);
+                const data = await res.json().catch(() => null);
+                if (!res.ok) throw new Error((data && data.error) || ('HTTP ' + res.status));
+                escBody(data.text || '');
             } catch (err) {
-                showPanel('<div class="ai-err">AI request failed: ' + escHtml(err.message || 'Error') + '</div>');
+                showPanel('<div class="ai-err">' + escHtml(err.message || 'Error') + '</div>');
             }
         }
 
