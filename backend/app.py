@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory, abort
+from flask import Flask, request, jsonify, send_from_directory, abort, g
 from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -591,6 +591,57 @@ def reset_password():
         if conn:
             conn.rollback()
         return jsonify({'error': 'An internal error occurred. Please try again later.'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+def get_bearer_token():
+    header = request.headers.get('Authorization', '')
+    if header[:7].lower() == 'bearer ':
+        return header[7:].strip()
+    return ''
+
+
+def require_user(f):
+    """Guard an endpoint with a user session token.
+
+    Sent as:  Authorization: Bearer <token>
+    Admin sessions carry user_id 0 (the admin sentinel) and are refused
+    here, so an admin login can never act as a normal user's identity.
+    """
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        payload = verify_token(get_bearer_token())
+        if not payload:
+            return jsonify({'error': 'Unauthorized'}), 401
+        if payload.get('user_id') == 0:
+            return jsonify({'error': 'Forbidden'}), 403
+        g.user = payload
+        return f(*args, **kwargs)
+    return wrapper
+
+
+@app.route('/api/me', methods=['GET'])
+@require_user
+def get_me():
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(
+            "SELECT id, name, email, contact, created_at FROM users WHERE id = %s",
+            (g.user['user_id'],)
+        )
+        user = cur.fetchone()
+        cur.close()
+        if not user:
+            # Token verifies but the account is gone (deleted by admin):
+            # tell the client so it can drop the stale session.
+            return jsonify({'error': 'Account no longer exists'}), 404
+        return jsonify(dict(user)), 200
+    except Exception:
+        return jsonify({'error': 'Could not load your profile'}), 500
     finally:
         if conn:
             conn.close()

@@ -76,15 +76,22 @@ and there is no way to create a booking at all.
          bad kind/empty/long -> 400, request #16 -> 429, key matches
          in served pages = 0, all pages 200, server log clean.
 
-  [ ] 3. User auth guard + /api/me (1-2 h)                          [h]
-         a. @require_user decorator (like require_admin but checks
-            any valid token from the Authorization: Bearer header)
-         b. GET /api/me -> { id, name, email, contact }
-         c. Read the token from localStorage 'manzilToken'
-            (login.html:172, createaccount.html:389)
-         d. sendToken() helper in a shared auth.js
+  [x] 3. User auth guard + /api/me (1-2 h)                          [h] DONE
+         a. @require_user decorator: checks Authorization: Bearer <token>,
+            stores the payload in flask g, and REFUSES admin tokens
+            (user_id 0) so an admin session cannot act as a user
+         b. GET /api/me -> {id, name, email, contact, created_at};
+            404 when the account was deleted so the client drops the
+            stale session
+         c. NEW auth.js: MBAuth.getToken/setSession/clearSession/
+            authHeaders/me/requireLogin/logout - reads BOTH storages
+            (remember-me tokens live in localStorage, others in
+            sessionStorage)
+         d. login.html + createaccount.html now save via MBAuth
          WHY: manzilToken is stored today but NEVER sent anywhere -
          login currently does nothing for users.
+         TESTED: valid 200; none/garbage/tampered 401; admin token 403;
+         deleted user with old token 404. Log clean.
 
   [ ] 4. Booking API (half a day)                                   [d/2]
          a. POST /api/bookings  (@require_user)
@@ -120,6 +127,13 @@ and there is no way to create a booking at all.
   [ ] 7. Password change for logged-in users (1 h)                  [h]
          PUT /api/me/password  (current + new, bcrypt check)
          WHY: DPDP + basic hygiene; reset email alone is not enough.
+
+  [ ] 8. (YOUR TASK, free) Configure password-reset email: SMTP_USER /
+         SMTP_PASSWORD in .env are empty, so /api/forgot-password
+         answers 500 "Email service is not configured" by design.
+         Gmail app password -> free, ~10 min. Until then, use
+         "forgot password" only in the admin demo, not in front of
+         judges.
 
   DONE WHEN: fresh browser -> sign up -> plan -> book -> see it in
   My Trips -> cancel it. All with the network tab open and no errors.

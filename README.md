@@ -96,7 +96,7 @@ Status column: `live` = implemented today, `todo` = Phase 1 of ROADMAP.txt.
 | POST | `/forgot-password` | — | live | Emails a signed 30-minute reset link |
 | POST | `/reset-password` | — | live | Redeem reset link |
 | POST | `/ai-guide` | — | live | Server-side Gemini proxy (rate-limited) |
-| GET | `/me` | user | todo | Current user profile |
+| GET | `/me` | user | live | Current user profile |
 | GET, POST, DELETE | `/bookings` | user/admin | todo (admin part live) | Trip bookings |
 | POST | `/admin/login` | — | live | Admin session |
 | GET | `/stats`, `/recent` | admin | live | Dashboard |

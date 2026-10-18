@@ -73,6 +73,7 @@
         .g_id_signin iframe { width: 100% !important; border-radius: 50px !important; }
     </style>
 <script src="config.js"></script>
+<script src="auth.js"></script>
 </head>
 <body>
     <nav>
@@ -164,13 +165,11 @@
         });
 
         // ======== SESSION ========
-        // The API issues a signed token on login. It has to be persisted here or
-        // logging in is a no-op and the visitor stays signed out everywhere.
+        // The API issues a signed token on login; MBAuth (auth.js) persists
+        // it so /api/me and the booking endpoints can send it back.
         function saveSession(result) {
             const remember = document.getElementById('remember').checked;
-            const store = remember ? localStorage : sessionStorage;
-            store.setItem('manzilToken', result.token);
-            store.setItem('manzilUser', JSON.stringify(result.user || {}));
+            MBAuth.setSession(result.token, result.user, remember);
         }
 
         // ======== FORGOT PASSWORD ========
