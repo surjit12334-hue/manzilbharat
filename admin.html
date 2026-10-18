@@ -302,7 +302,7 @@
                         body: JSON.stringify({ email: email, password: password })
                     });
                 } catch (netErr) {
-                    errEl.textContent = 'Cannot reach the server at ' + API_BASE + '. Start it with: python3 backend/app.py';
+                    errEl.textContent = 'Cannot reach the server. Is it running? Start it with: ./start.sh';
                     errEl.classList.add('show');
                     return;
                 }
@@ -310,7 +310,7 @@
                 try {
                     data = await res.json();
                 } catch (parseErr) {
-                    errEl.textContent = 'Unexpected response (HTTP ' + res.status + ') from ' + API_BASE + '. Check that the port matches config.js.';
+                    errEl.textContent = 'Unexpected response (HTTP ' + res.status + ') from /api/admin/login. Is another server running on this port?';
                     errEl.classList.add('show');
                     return;
                 }
