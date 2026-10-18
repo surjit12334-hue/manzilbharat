@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS bookings (
     booking_type VARCHAR(50) NOT NULL,
     source       VARCHAR(255),
     destination  VARCHAR(255),
-    travel_date  VARCHAR(20),
+    travel_date  DATE,
     amount       NUMERIC(10,2) DEFAULT 0,
     status       VARCHAR(20) DEFAULT 'pending',
     created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -55,3 +55,12 @@ CREATE TABLE IF NOT EXISTS payments (
 -- ALTER TABLE payments DROP CONSTRAINT IF EXISTS payments_user_id_fkey;
 -- ALTER TABLE payments ADD CONSTRAINT payments_user_id_fkey
 --     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+
+-- travel_date was VARCHAR(20); the booking API needs a real DATE (sorting,
+-- validation, "no past dates"). Run AS THE TABLE OWNER (postgres):
+--   sudo -u postgres psql -d manzil_bharat -c \
+--     "ALTER TABLE bookings ALTER COLUMN travel_date TYPE DATE
+--      USING NULLIF(travel_date,'')::date;"
+-- Values must all be YYYY-MM-DD before running this; check with:
+--   SELECT travel_date FROM bookings
+--      WHERE travel_date IS NOT NULL AND travel_date !~ '^\d{4}-\d{2}-\d{2}$';

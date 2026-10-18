@@ -93,16 +93,36 @@ and there is no way to create a booking at all.
          TESTED: valid 200; none/garbage/tampered 401; admin token 403;
          deleted user with old token 404. Log clean.
 
-  [ ] 4. Booking API (half a day)                                   [d/2]
-         a. POST /api/bookings  (@require_user)
-            fields: booking_type, source, destination, travel_date,
-                    amount  -> validate all, travel_date as ISO date
-         b. GET  /api/bookings/mine (@require_user)
-         c. DELETE /api/bookings/<id> (@require_user, owner only)
-         d. Change schema: travel_date VARCHAR(20) -> DATE
-            (update schema.sql fresh-create AND add a commented
-            ALTER for the existing live DB, same style as before)
-         WHY: tables + admin UI exist but NOTHING can create a row.
+  [x] 4. Booking API (half a day)                                   [d/2] DONE
+         a. POST /api/bookings (@require_user): booking_type whitelist
+            (flight/bus/train/cab/hotel/package), source+destination,
+            travel_date must be ISO and not in the past, amount
+            0..1,000,000 (bool/NaN/inf rejected), status always
+            'pending' - the client cannot set it. 400 carries an
+            {errors:{field:message}} dict like signup does.
+         b. GET /api/bookings/mine (@require_user), owner rows only
+         c. POST /api/bookings/<id>/cancel (@require_user)
+            - 404 missing / 403 not yours / 409 completed /
+              200 idempotent when already cancelled
+            - DEVIATION from the original plan (owner DELETE): a user
+              cancelling keeps the row for the admin audit trail, and a
+              second DELETE route would collide with the admin route.
+              Admin keeps hard DELETE.
+         d. schema: travel_date VARCHAR(20) -> DATE
+            - fresh schema.sql updated; migration documented (comments)
+            - APPLIED to the dev DB as owner (postgres): backup taken
+              first at /tmp/opencode/backup_before_travel_date.sql,
+              5/5 rows preserved, column type now `date`
+         e. NEW ISODatetimeJSONProvider: psycopg2 returns date objects,
+            so every admin endpoint selecting travel_date would have
+            failed to jsonify; timestamps now serialize as ISO too.
+         TESTED (20 checks): create 201 + echo; 7 validation cases 400;
+         mine 200; cancel 200 / idempotent 200 / cross-user 403 /
+         missing 404 / completed 409; no-token 401 x3; admin list 200
+         with correct date + user_name join; recent 200; stats 200;
+         log clean.
+         WHY: the tables + admin UI existed but NOTHING could create a
+         booking - the product's core action did not exist.
 
   [ ] 5. "My Trips" page (1 day)                                    [d]
          - New mytrips.html: list of the user's bookings, status,

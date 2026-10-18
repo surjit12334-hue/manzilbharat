@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify, send_from_directory, abort, g
+from flask.json.provider import DefaultJSONProvider
 from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -99,6 +100,25 @@ app = Flask(__name__, static_folder=PROJECT_ROOT, static_url_path='')
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 
 CORS(app, resources={r"/api/*": {"origins": ALLOWED_ORIGINS}})
+
+
+class ISODatetimeJSONProvider(DefaultJSONProvider):
+    """JSON-encode date/datetime as ISO-8601.
+
+    psycopg2 returns datetime.date for the bookings.travel_date DATE column
+    (and datetime for timestamps); without this every endpoint selecting
+    them fails to jsonify. ISO strings also parse cleanly with new Date()
+    in admin.html and mytrips.html.
+    """
+
+    @staticmethod
+    def default(o):
+        if isinstance(o, (date, datetime)):
+            return o.isoformat()
+        return DefaultJSONProvider.default(o)
+
+
+app.json = ISODatetimeJSONProvider(app)
 
 STATIC_ALLOWED_EXTENSIONS = {
     '.html', '.js', '.css', '.json', '.png', '.jpg', '.jpeg', '.gif', '.svg',
@@ -653,6 +673,151 @@ def get_me():
         return jsonify(dict(user)), 200
     except Exception:
         return jsonify({'error': 'Could not load your profile'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Bookings - the user-facing half. Admin CRUD (GET/PUT/DELETE on
+# /api/bookings/<id>) stays behind require_admin further down; users get
+# create / list-own / cancel-own here so a customer can never touch
+# someone else's row or hard-delete history (cancelling keeps the audit
+# trail the admin panel reports on).
+# ---------------------------------------------------------------------------
+
+BOOKING_TYPES = ('flight', 'bus', 'train', 'cab', 'hotel', 'package')
+MAX_BOOKING_AMOUNT = 1000000
+
+
+@app.route('/api/bookings', methods=['POST'])
+@require_user
+def create_booking():
+    data = request.get_json(silent=True) or {}
+    booking_type = (data.get('booking_type') or '').strip().lower()
+    source = (data.get('source') or '').strip()
+    destination = (data.get('destination') or '').strip()
+    travel_date_raw = (data.get('travel_date') or '').strip()
+    amount_raw = data.get('amount')
+
+    errors = {}
+
+    if booking_type not in BOOKING_TYPES:
+        errors['booking_type'] = 'Choose a trip type: ' + ', '.join(BOOKING_TYPES)
+    if not source:
+        errors['source'] = 'Source city is required'
+    elif len(source) > 255:
+        errors['source'] = 'Source is too long (max 255 characters)'
+    if not destination:
+        errors['destination'] = 'Destination is required'
+    elif len(destination) > 255:
+        errors['destination'] = 'Destination is too long (max 255 characters)'
+
+    travel_date = None
+    if not travel_date_raw:
+        errors['travel_date'] = 'Travel date is required'
+    else:
+        try:
+            travel_date = date.fromisoformat(travel_date_raw)
+            if travel_date < date.today():
+                errors['travel_date'] = 'Travel date cannot be in the past'
+        except ValueError:
+            errors['travel_date'] = 'Use the YYYY-MM-DD format'
+
+    amount = None
+    if isinstance(amount_raw, bool) or amount_raw is None or amount_raw == '':
+        errors['amount'] = 'Estimated amount is required'
+    else:
+        try:
+            amount = round(float(amount_raw), 2)
+            # NaN fails both comparisons, inf fails the upper bound.
+            if not (0 <= amount <= MAX_BOOKING_AMOUNT):
+                raise ValueError
+        except (TypeError, ValueError):
+            amount = None
+            errors['amount'] = f'Amount must be a number between 0 and {MAX_BOOKING_AMOUNT:,}'
+
+    if errors:
+        return jsonify({'error': 'Validation failed', 'errors': errors}), 400
+
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(
+            """INSERT INTO bookings (user_id, booking_type, source, destination, travel_date, amount, status)
+               VALUES (%s, %s, %s, %s, %s, %s, 'pending')
+               RETURNING *""",
+            (g.user['user_id'], booking_type, source, destination, travel_date, amount)
+        )
+        booking = dict(cur.fetchone())
+        conn.commit()
+        cur.close()
+        return jsonify({'message': 'Booking created', 'booking': booking}), 201
+    except Exception:
+        if conn:
+            conn.rollback()
+        app.logger.exception('create_booking failed for user %s', g.user['user_id'])
+        return jsonify({'error': 'Could not save the booking. Please try again.'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route('/api/bookings/mine', methods=['GET'])
+@require_user
+def my_bookings():
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(
+            "SELECT * FROM bookings WHERE user_id = %s ORDER BY created_at DESC, id DESC",
+            (g.user['user_id'],)
+        )
+        rows = [dict(r) for r in cur.fetchall()]
+        cur.close()
+        return jsonify(rows), 200
+    except Exception:
+        app.logger.exception('my_bookings failed for user %s', g.user['user_id'])
+        return jsonify({'error': 'Could not load your bookings'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route('/api/bookings/<int:booking_id>/cancel', methods=['POST'])
+@require_user
+def cancel_booking(booking_id):
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("SELECT * FROM bookings WHERE id = %s", (booking_id,))
+        booking = cur.fetchone()
+        if not booking:
+            cur.close()
+            return jsonify({'error': 'Booking not found'}), 404
+        if booking['user_id'] != g.user['user_id']:
+            cur.close()
+            return jsonify({'error': 'You can only cancel your own bookings'}), 403
+        if booking['status'] == 'completed':
+            cur.close()
+            return jsonify({'error': 'A completed booking cannot be cancelled'}), 409
+        if booking['status'] == 'cancelled':
+            cur.close()
+            return jsonify({'message': 'Booking is already cancelled', 'booking': dict(booking)}), 200
+
+        cur.execute("UPDATE bookings SET status = 'cancelled' WHERE id = %s RETURNING *", (booking_id,))
+        updated = dict(cur.fetchone())
+        conn.commit()
+        cur.close()
+        return jsonify({'message': 'Booking cancelled', 'booking': updated}), 200
+    except Exception:
+        if conn:
+            conn.rollback()
+        app.logger.exception('cancel_booking %s failed for user %s', booking_id, g.user['user_id'])
+        return jsonify({'error': 'Could not cancel the booking'}), 500
     finally:
         if conn:
             conn.close()
