@@ -124,13 +124,29 @@ and there is no way to create a booking at all.
          WHY: the tables + admin UI existed but NOTHING could create a
          booking - the product's core action did not exist.
 
-  [ ] 5. "My Trips" page (1 day)                                    [d]
-         - New mytrips.html: list of the user's bookings, status,
-           total spent, cancel button, "Plan a trip" CTA -> index.html
-         - Add link in the header/footer of every page
-         - Show a "Hi, <name>" state when logged in (uses /api/me),
-           "Login" when not
-         - Redirect to index.html if no token
+  [x] 5. "My Trips" page (1 day)                                    [d] DONE
+         - NEW mytrips.html: booking list with status badges, stats
+           (total/upcoming/cancelled/planned spend), cancel button
+           (confirm + idempotent), inline "new trip" form posting to
+           POST /api/bookings with per-field errors, empty state CTA,
+           redirects signed-out visitors to login.html?next=mytrips.html
+         - login.html honors ?next= but ONLY for plain local
+           /[a-z0-9_-]+.html pages, so a crafted link cannot bounce
+           users to another site
+         - NEW nav-auth.js: one shared header state for every page
+           (data-mb-show="guest|user", data-mb-name, data-mb-logout;
+           hides both states while /api/me confirms a token so signed-
+           in users never see a flash of "Login")
+         - "My Trips" link added to the nav of all 11 nav pages, the
+           map.html topbar (with mobile CSS fix) and the index.html
+           footer Quick Links; index hero now swaps Login/Create
+           Account for "Hi, <name>"/Logout when signed in
+         - admin.html + reset-password.html intentionally unchanged
+         TESTED (15 checks vs the running server): fresh signup 201 ->
+         /api/me 200 -> login 200 -> create booking 201 -> appears in
+         /mine -> cancel 200 -> idempotent cancel 200 -> signed-out
+         /mine 401; all 16 pages 200; config.js/auth.js/nav-auth.js
+         served; test user cleaned up; server log clean.
          WHY: gives login a purpose; this is the page judges will look
          for after the demo of signing up.
 

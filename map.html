@@ -18,6 +18,8 @@
         .topbar p { opacity: 0.9; margin-top: 0.3rem; max-width: 700px; }
         .topbar .back { position: absolute; top: 1.5rem; right: 2rem; color: white; text-decoration: none; font-weight: 600; padding: 0.5rem 1rem; border: 2px solid rgba(255,255,255,0.7); border-radius: 25px; transition: all 0.3s ease; }
         .topbar .back:hover { background: rgba(255,255,255,0.2); }
+        .topbar .topbar-links { position: absolute; top: 1.5rem; right: 2rem; display: flex; gap: 0.6rem; flex-wrap: wrap; justify-content: flex-end; }
+        .topbar .topbar-links .back { position: static; }
 
         .controls { max-width: 1200px; margin: 1.2rem auto 0; padding: 0 2rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
         .controls .map-name { font-weight: 700; color: #1a237e; flex: 1; min-width: 200px; font-size: 1.05rem; }
@@ -51,6 +53,7 @@
             .ai-panel { order: -1; }
             #map { height: 50vh; }
             .topbar .back { position: static; display: inline-block; margin-top: 1rem; }
+            .topbar .topbar-links { position: static; margin-top: 1rem; }
         }
 
         .gallery { max-width: 1200px; margin: 1.2rem auto; padding: 0 2rem; }
@@ -72,7 +75,10 @@
     <div class="topbar">
         <h1><a href="index.html"><i class="fas fa-map-marked-alt"></i> Manzil Bharat</a></h1>
         <p id="pageSub">Exploring your destination...</p>
-        <a class="back" href="index.html"><i class="fas fa-arrow-left"></i> New search</a>
+        <div class="topbar-links">
+            <a class="back" href="mytrips.html"><i class="fas fa-route"></i> My Trips</a>
+            <a class="back" href="index.html"><i class="fas fa-arrow-left"></i> New search</a>
+        </div>
     </div>
 
     <div class="no-result" id="noResult" style="display:none;">

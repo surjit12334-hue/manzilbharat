@@ -72,7 +72,11 @@
         <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
         <ul class="nav-links" id="navLinks">
             <li><a href="index.html">Home</a></li>
+            <li><a href="mytrips.html">My Trips</a></li>
             <li><a href="contact.html">Contact</a></li>
+            <li data-mb-show="guest"><a href="login.html">Login</a></li>
+            <li data-mb-show="user" hidden><a href="mytrips.html"><i class="fas fa-user-circle"></i> Hi, <span data-mb-name>traveller</span></a></li>
+            <li data-mb-show="user" hidden><a href="#" data-mb-logout>Logout</a></li>
         </ul>
     </nav>
 
@@ -187,5 +191,8 @@
             }
         });
     </script>
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="nav-auth.js"></script>
 </body>
 </html>

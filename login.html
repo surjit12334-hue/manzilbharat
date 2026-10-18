@@ -81,7 +81,11 @@
         <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
         <ul class="nav-links" id="navLinks">
             <li><a href="index.html">Home</a></li>
+            <li><a href="mytrips.html">My Trips</a></li>
             <li><a href="contact.html">Contact</a></li>
+            <li data-mb-show="guest"><a href="login.html">Login</a></li>
+            <li data-mb-show="user" hidden><a href="mytrips.html"><i class="fas fa-user-circle"></i> Hi, <span data-mb-name>traveller</span></a></li>
+            <li data-mb-show="user" hidden><a href="#" data-mb-logout>Logout</a></li>
         </ul>
     </nav>
 
@@ -172,6 +176,14 @@
             MBAuth.setSession(result.token, result.user, remember);
         }
 
+        // Where to go after a successful login. ?next= is honoured only for
+        // plain local .html pages so a crafted link cannot bounce users to
+        // another site.
+        function afterLogin() {
+            const next = new URLSearchParams(window.location.search).get('next');
+            window.location.href = (next && /^[a-z0-9_-]+\.html$/i.test(next)) ? next : 'index.html';
+        }
+
         // ======== FORGOT PASSWORD ========
         function showForgotPassword() {
             document.getElementById('forgotModal').style.display = 'flex';
@@ -231,7 +243,7 @@
                 const result = await res.json();
                 if (res.ok && result.token) {
                     saveSession(result);
-                    window.location.href = 'index.html';
+                    afterLogin();
                 } else {
                     alert(result.error || 'Login failed');
                 }
@@ -260,7 +272,7 @@
                 const result = await res.json();
                 if (res.ok && result.token) {
                     saveSession(result);
-                    window.location.href = 'index.html';
+                    afterLogin();
                 } else {
                     alert(result.error || 'Login failed');
                 }
@@ -272,5 +284,6 @@
             }
         });
     </script>
+    <script src="nav-auth.js"></script>
 </body>
 </html>
