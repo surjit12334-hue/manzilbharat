@@ -70,6 +70,11 @@ SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
 SMTP_PORT = int(os.getenv('SMTP_PORT', 587))
 SMTP_USER = os.getenv('SMTP_USER')
 SMTP_PASSWORD = os.getenv('SMTP_PASSWORD')
+if not (SMTP_USER and SMTP_PASSWORD):
+    # Surfaced at boot: an empty SMTP_USER= in .env reads as '', which the
+    # old `is None` check let through and produced a bogus send failure.
+    print('NOTE: SMTP_USER / SMTP_PASSWORD not set - password-reset emails '
+          'are disabled until you fill them in .env')
 
 ALLOWED_ORIGINS = [
     "http://localhost:5000",
@@ -514,7 +519,10 @@ def forgot_password():
     if not email:
         return jsonify({'error': 'Email is required'}), 400
 
-    if SMTP_USER is None or SMTP_PASSWORD is None:
+    # Truthiness, not `is None`: `SMTP_USER=` in .env yields an empty string,
+    # which must count as "not configured" instead of attempting a login
+    # with no credentials and failing with a misleading send error.
+    if not SMTP_USER or not SMTP_PASSWORD:
         return jsonify({'error': 'Email service is not configured on the server'}), 500
 
     conn = None
@@ -543,6 +551,9 @@ def forgot_password():
         reset_url = f"{origin}/reset-password.html?token={token}"
         send_reset_email(email, reset_url)
     except Exception:
+        # The bare except previously hid the SMTP reason (auth failure, bad
+        # credentials, network) from both the operator and the log.
+        app.logger.exception('Password-reset email could not be sent to %s', email)
         return jsonify({'error': 'Could not send the reset email. Please try again later.'}), 500
 
     return jsonify({'message': 'A password reset link has been sent to your email. It is valid for 30 minutes.'}), 200
