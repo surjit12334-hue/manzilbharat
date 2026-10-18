@@ -7,3 +7,8 @@ google-auth>=2.27.0
 # google-auth's requests transport imports this at module load; without it
 # backend/app.py raises ImportError on startup.
 requests>=2.31.0
+# Production only (dev runs `python3 backend/app.py`): multi-worker WSGI
+# server + response compression. Both are imported lazily/optionally, so
+# the app still runs without them, but ./start-prod.sh needs gunicorn.
+gunicorn>=21.2.0
+flask-compress>=1.14

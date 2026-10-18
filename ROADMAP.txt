@@ -218,13 +218,22 @@ PHASE 2 - MAKE IT SHIP (free deployment)                    [2-3 days]
 ===============================================================================
 Goal: a live URL you can put in the SIH submission.
 
-  [ ] 1. Production server (2-3 h)                                  [h]
-         a. Add gunicorn to backend/requirements.txt
-         b. Add Procfile or start-prod.sh:
-              gunicorn -w 2 -b 0.0.0.0:$PORT backend.app:app
-         c. Dockerfile (optional but nice for judges)
-         NOTE: with 2 workers the in-memory rate limiter and reset
-         tokens break - see step 3 FIRST if you skip the DB move.
+  [x] 1. Production server (2-3 h)                                  [h] DONE
+         a. gunicorn + flask-compress added to backend/requirements.txt
+         b. NEW start-prod.sh: gunicorn -w ${WEB_CONCURRENCY:-2}
+            -b 0.0.0.0:$PORT backend.app:app, logs to stdout so the
+            host captures them. It parses .env itself instead of
+            `source .env`: Gmail app passwords contain SPACES
+            ("abcd efgh ijkl mnop") and sourcing tries to EXECUTE the
+            second word; host env (Render's $PORT) always wins.
+         c. NEW Dockerfile (python:3.12-slim) + .dockerignore that
+            keeps .env OUT of the image - secrets come from the host.
+         TESTED: PORT=5001 ./start-prod.sh -> 2 workers booted; all
+         pages 200; /api/me 401 without token; signup 201 -> me 200
+         -> booking 201 under gunicorn; test rows deleted; clean exit.
+         NOTE: with 2 workers the OLD in-memory rate limiter and reset
+         tokens are now 2x broken - step 2 fixes exactly that, and
+         must land BEFORE any real deployment.
 
   [ ] 2. Move in-memory state into Postgres (2-3 h)                 [h]
          a. Table rate_limits(key TEXT, hits INT[], ...) or simply
