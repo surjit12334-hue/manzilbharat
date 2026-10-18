@@ -175,9 +175,25 @@ and there is no way to create a booking at all.
          all pages 200; inline JS node --check clean; log clean;
          test rows deleted afterwards.
 
-  [ ] 7. Password change for logged-in users (1 h)                  [h]
-         PUT /api/me/password  (current + new, bcrypt check)
+  [x] 7. Password change for logged-in users (1 h)                  [h] DONE
+         PUT /api/me/password behind @require_user + @rate_limit(10,60)
+         (bcrypt-expensive + brute-force target). Body: current +
+         new. New password reuses signup's exact rules (8+, uppercase,
+         number, special) and must differ from the current one; errors
+         come back as {errors:{field:message}} like signup.
+         A WRONG current password answers 401 but its body carries
+         errors.current_password, so the client can tell it apart from
+         require_user's session-dead 401 (mytrips.html does exactly
+         that - wrong password shows a field error, dead session
+         redirects to login).
+         UI: "Security" button on mytrips.html opens a change-password
+         panel (current/new/confirm, client-side match check).
          WHY: DPDP + basic hygiene; reset email alone is not enough.
+         TESTED (13 checks): no token 401; empty/weak/same-as-current
+         400; wrong current 401 naming the field; change 200; old
+         password rejected on login; new password logs in; old token
+         still valid; inline JS node --check clean; log clean; test
+         user deleted.
 
   [x] 8. Configure password-reset email (free, Gmail app password)  [x] DONE
          - SMTP_USER (28 chars) + SMTP_PASSWORD (19 chars, grouped
@@ -193,6 +209,8 @@ and there is no way to create a booking at all.
 
   DONE WHEN: fresh browser -> sign up -> plan -> book -> see it in
   My Trips -> cancel it. All with the network tab open and no errors.
+  -> PHASE 1 COMPLETE. All 8 steps done and e2e-tested
+     (steps 5-7 alone: 15 + 23 + 13 checks, all green).
 
 
 ===============================================================================

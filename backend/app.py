@@ -678,6 +678,72 @@ def get_me():
             conn.close()
 
 
+@app.route('/api/me/password', methods=['PUT'])
+@require_user
+@rate_limit(max_requests=10, window=60)
+def change_password():
+    """Password change for a signed-in user.
+
+    A reset email alone is not enough (DPDP + basic hygiene): someone at a
+    shared computer must be able to lock the account without inbox access.
+    The endpoint is bcrypt-expensive and a brute-force target, hence the
+    rate limit on top of require_user.
+    """
+    data = request.get_json(silent=True) or {}
+    current_password = data.get('current_password') or ''
+    new_password = data.get('new_password') or ''
+
+    errors = {}
+    if not current_password:
+        errors['current_password'] = 'Current password is required'
+    if not new_password:
+        errors['new_password'] = 'New password is required'
+    elif len(new_password) < 8:
+        errors['new_password'] = 'Password must be at least 8 characters'
+    elif not re.search(r'[A-Z]', new_password):
+        errors['new_password'] = 'Password must contain at least one uppercase letter'
+    elif not re.search(r'[0-9]', new_password):
+        errors['new_password'] = 'Password must contain at least one number'
+    elif not re.search(r'[^A-Za-z0-9]', new_password):
+        errors['new_password'] = 'Password must contain at least one special character'
+    elif new_password == current_password:
+        errors['new_password'] = 'New password must be different from the current one'
+    if errors:
+        return jsonify({'error': 'Validation failed', 'errors': errors}), 400
+
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT password FROM users WHERE id = %s", (g.user['user_id'],))
+        row = cur.fetchone()
+        if not row:
+            cur.close()
+            return jsonify({'error': 'Account no longer exists'}), 404
+        stored = row[0] or ''
+        # NOTE: a WRONG current password answers 401 on purpose, but its body
+        # carries errors.current_password so the client can tell it apart
+        # from require_user's "your session is dead" 401.
+        if not stored or not bcrypt.checkpw(current_password.encode('utf-8'), stored.encode('utf-8')):
+            cur.close()
+            return jsonify({'error': 'Current password is incorrect',
+                            'errors': {'current_password': 'Current password is incorrect'}}), 401
+        hashed = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        cur.execute("UPDATE users SET password = %s WHERE id = %s", (hashed, g.user['user_id']))
+        conn.commit()
+        cur.close()
+        app.logger.info('Password changed for user %s', g.user['user_id'])
+        return jsonify({'message': 'Password updated. Use your new password the next time you log in.'}), 200
+    except Exception:
+        if conn:
+            conn.rollback()
+        app.logger.exception('change_password failed for user %s', g.user['user_id'])
+        return jsonify({'error': 'Could not change your password. Please try again later.'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
 # ---------------------------------------------------------------------------
 # Newsletter + contact - public, no account needed. The old frontend
 # "confirmed" a subscription without asking the server; these routes make
