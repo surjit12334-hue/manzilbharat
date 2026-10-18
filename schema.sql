@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS bookings (
     id           SERIAL PRIMARY KEY,
-    user_id      INTEGER REFERENCES users(id),
+    user_id      INTEGER REFERENCES users(id) ON DELETE CASCADE,
     booking_type VARCHAR(50) NOT NULL,
     source       VARCHAR(255),
     destination  VARCHAR(255),
@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS bookings (
 
 CREATE TABLE IF NOT EXISTS payments (
     id                 SERIAL PRIMARY KEY,
-    user_id            INTEGER REFERENCES users(id),
+    user_id            INTEGER REFERENCES users(id) ON DELETE CASCADE,
     booking_id         INTEGER REFERENCES bookings(id),
     amount             NUMERIC(10,2) NOT NULL,
     currency           VARCHAR(10) DEFAULT 'INR',
@@ -46,3 +46,12 @@ CREATE TABLE IF NOT EXISTS payments (
 -- ============================================================================
 -- ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 -- UPDATE users SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL;
+
+-- Required for the admin panel's "delete user" button to work: without these
+-- the delete aborts on bookings_user_id_fkey / payments_user_id_fkey.
+-- ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_user_id_fkey;
+-- ALTER TABLE bookings ADD CONSTRAINT bookings_user_id_fkey
+--     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+-- ALTER TABLE payments DROP CONSTRAINT IF EXISTS payments_user_id_fkey;
+-- ALTER TABLE payments ADD CONSTRAINT payments_user_id_fkey
+--     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;

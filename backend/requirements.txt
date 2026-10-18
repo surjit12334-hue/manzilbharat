@@ -4,3 +4,6 @@ psycopg2-binary>=2.9.9
 bcrypt>=4.1.0
 python-dotenv>=1.0.0
 google-auth>=2.27.0
+# google-auth's requests transport imports this at module load; without it
+# backend/app.py raises ImportError on startup.
+requests>=2.31.0
