@@ -128,12 +128,17 @@ and there is no way to create a booking at all.
          PUT /api/me/password  (current + new, bcrypt check)
          WHY: DPDP + basic hygiene; reset email alone is not enough.
 
-  [ ] 8. (YOUR TASK, free) Configure password-reset email: SMTP_USER /
-         SMTP_PASSWORD in .env are empty, so /api/forgot-password
-         answers 500 "Email service is not configured" by design.
-         Gmail app password -> free, ~10 min. Until then, use
-         "forgot password" only in the admin demo, not in front of
-         judges.
+  [x] 8. Configure password-reset email (free, Gmail app password)  [x] DONE
+         - SMTP_USER (28 chars) + SMTP_PASSWORD (19 chars, grouped
+           format with spaces - Gmail accepts it as-is) in .env
+         - FIXED A BUG found on the way (commit 5247a15): an empty
+           SMTP_USER= read as '' slipped past the old `is None` guard,
+           so forgot-password returned a misleading 'could not send'
+           error; guard is now truthy, the send path logs the real
+           SMTP exception, and boot prints a NOTE when disabled
+         TESTED: direct SMTP self-send SENT OK; after restart the boot
+         NOTE is gone; POST /api/forgot-password -> 200 "link sent,
+         valid for 30 minutes"; no exceptions in the log.
 
   DONE WHEN: fresh browser -> sign up -> plan -> book -> see it in
   My Trips -> cancel it. All with the network tab open and no errors.
