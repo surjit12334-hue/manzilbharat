@@ -1,0 +1,336 @@
+===============================================================================
+                 MANZIL BHARAT - STEP BY STEP ROADMAP
+             (Everything below costs Rs. 0 - only your time)
+===============================================================================
+
+STATUS KEY:   [ ] not started    [~] in progress    [x] done
+EFFORT:       minutes (m) / hours (h) / days (d)
+
+GOAL OF THIS ROADMAP:
+  Turn the current demo (search + AI card + map + admin panel) into a
+  WORKING PRODUCT: a judge can sign up, plan a trip, book it, and see it
+  in their account - and you can hand them a live URL.
+
+HOW TO USE:
+  Work top to bottom inside each Phase. Phases 1-2 are the critical path
+  (nothing else matters if the site cannot deploy and users have nothing
+  to do after login). Commit after every checked item with a clear
+  message. Never commit .env.
+
+
+===============================================================================
+PHASE 0 - CLEAN THE SLATE                                    [~30 minutes]
+===============================================================================
+Goal: start from a clean, trustworthy git state.
+
+  [ ] 1. Review the uncommitted changes and commit or discard them:
+         - modified: backend/requirements.txt, reset-password.html, schema.sql
+         - deleted:  SIH2026.pdf (keep it - move to docs/ instead?)
+         - untracked: .env.example (MUST be committed), ankit.jpeg
+  [ ] 2. Confirm .env is ignored:        git status --ignored
+  [ ] 3. Create a branch per phase:      git checkout -b phase-1-product
+  [ ] 4. Write a minimal README.md:
+         - what the project is (SIH 2026 PS 26204)
+         - how to run it (cp .env.example .env, edit, ./start.sh)
+         - how to set up the DB (schema.sql, seed.sql)
+  [ ] 5. Delete the two false trust badges: "SSL Secured", "PCI Compliant"
+         (index.html, footer-certifications) - re-add only after real
+         payments exist.
+
+  DONE WHEN: git status is clean, README lets a stranger run the app.
+
+
+===============================================================================
+PHASE 1 - MAKE IT REAL (the product is missing)            [3-4 days]
+===============================================================================
+Goal: a logged-in user can do something. Right now login leads nowhere
+and there is no way to create a booking at all.
+
+  [ ] 1. Fix config.js API_BASE (5 min)                             [m]
+         Change: window.API_BASE = 'http://localhost:5000'
+         To:     window.API_BASE = '';    // same-origin
+         WHY: every login/signup/admin/reset call breaks on any real
+         domain. Test by opening the site on a non-localhost host.
+
+  [ ] 2. Server-side AI proxy (2-3 h)                               [h]
+         a. Add to .env:  GEMINI_API_KEY=...
+         b. Add to .env.example (commented, no real key)
+         c. New route in backend/app.py:
+              POST /api/ai-guide   { "kind": "destination"|"trip",
+                                     "query": "..." }
+            - reuse the two prompt strings currently in index.html
+              and map.html
+            - call Gemini with the key from os.environ
+            - @rate_limit(max_requests=15, window=60)
+            - return { "text": "..." }
+         d. Replace the browser fetch in index.html:363 and
+            map.html:296 with a fetch to /api/ai-guide
+         e. Delete window.GEMINI_API_KEY from config.js
+         WHY: a key in the browser is stolen and billed within days.
+
+  [ ] 3. User auth guard + /api/me (1-2 h)                          [h]
+         a. @require_user decorator (like require_admin but checks
+            any valid token from the Authorization: Bearer header)
+         b. GET /api/me -> { id, name, email, contact }
+         c. Read the token from localStorage 'manzilToken'
+            (login.html:172, createaccount.html:389)
+         d. sendToken() helper in a shared auth.js
+         WHY: manzilToken is stored today but NEVER sent anywhere -
+         login currently does nothing for users.
+
+  [ ] 4. Booking API (half a day)                                   [d/2]
+         a. POST /api/bookings  (@require_user)
+            fields: booking_type, source, destination, travel_date,
+                    amount  -> validate all, travel_date as ISO date
+         b. GET  /api/bookings/mine (@require_user)
+         c. DELETE /api/bookings/<id> (@require_user, owner only)
+         d. Change schema: travel_date VARCHAR(20) -> DATE
+            (update schema.sql fresh-create AND add a commented
+            ALTER for the existing live DB, same style as before)
+         WHY: tables + admin UI exist but NOTHING can create a row.
+
+  [ ] 5. "My Trips" page (1 day)                                    [d]
+         - New mytrips.html: list of the user's bookings, status,
+           total spent, cancel button, "Plan a trip" CTA -> index.html
+         - Add link in the header/footer of every page
+         - Show a "Hi, <name>" state when logged in (uses /api/me),
+           "Login" when not
+         - Redirect to index.html if no token
+         WHY: gives login a purpose; this is the page judges will look
+         for after the demo of signing up.
+
+  [ ] 6. Newsletter + contact endpoints (1-2 h)                     [h]
+         a. Table: subscribers(email UNIQUE, created_at)
+            Table: messages(id, name, email, subject, body, created_at)
+         b. POST /api/newsletter  (validate email, dedupe, 409/200)
+         c. POST /api/contact     (validate, store)
+         d. Wire index.html newsletter form (currently a fake
+            "Subscribed!" button) and contact.html form
+         e. Show messages in the admin panel (new tab - the tab
+            infrastructure already exists in admin.html)
+
+  [ ] 7. Password change for logged-in users (1 h)                  [h]
+         PUT /api/me/password  (current + new, bcrypt check)
+         WHY: DPDP + basic hygiene; reset email alone is not enough.
+
+  DONE WHEN: fresh browser -> sign up -> plan -> book -> see it in
+  My Trips -> cancel it. All with the network tab open and no errors.
+
+
+===============================================================================
+PHASE 2 - MAKE IT SHIP (free deployment)                    [2-3 days]
+===============================================================================
+Goal: a live URL you can put in the SIH submission.
+
+  [ ] 1. Production server (2-3 h)                                  [h]
+         a. Add gunicorn to backend/requirements.txt
+         b. Add Procfile or start-prod.sh:
+              gunicorn -w 2 -b 0.0.0.0:$PORT backend.app:app
+         c. Dockerfile (optional but nice for judges)
+         NOTE: with 2 workers the in-memory rate limiter and reset
+         tokens break - see step 3 FIRST if you skip the DB move.
+
+  [ ] 2. Move in-memory state into Postgres (2-3 h)                 [h]
+         a. Table rate_limits(key TEXT, hits INT[], ...) or simply
+            (key, timestamp) rows, pruned on write
+         b. Table reset_tokens(token_hash PRIMARY KEY, email, exp,
+            used_at) - store only the HASH of the token
+         c. Replace rate_limit_store and used_reset_tokens dicts
+         WHY: today a restart or a 2nd worker silently disables rate
+         limits and allows reset token reuse.
+
+  [ ] 3. Free hosting + DB (half a day)                             [d/2]
+         - Host:  Render / Railway / Fly.io free tier (Flask, free)
+         - DB:    Neon / Supabase / Aiven free tier (Postgres, free)
+         - Apply schema.sql, then seed.sql on the hosted DB
+         - Set all env vars in the host's dashboard (never upload .env)
+         - Set API_BASE = '' (Phase 1 step 1) so it works on the host
+
+  [ ] 4. Static asset performance (1 h)                             [h]
+         a. Compress homebackground.png (2.4 MB -> target <200 KB):
+            pngquant / cwebp / tinywebp, all free
+         b. Compress ankit.jpeg (620 KB), sonu.jpeg, sanya.jpeg
+         c. loading="lazy" on team photos and below-the-fold images
+         d. Verify size: du -h *.png *.jpeg after
+
+  [ ] 5. Cache + compression headers (1 h)                          [h]
+         - after_request: Cache-Control: public, max-age=604800 for
+           static assets (keep no-store for /api/*)
+         - gzip via the host or Flask middleware (flask-compress,
+           free)
+
+  [ ] 6. OG + meta tags (1-2 h)                                     [h]
+         - <meta name="description"> on all 17 pages
+         - og:title, og:description, og:image, og:url, twitter:card
+         - use icon.png / a cropped hero as og:image (<=1 MB)
+         WHY: WhatsApp/X previews are your viral loop; 15 pages
+         currently share as plain text.
+
+  DONE WHEN: https://your-app.on-render.com loads in <3s on mobile
+  throttling, and sign up + booking works on that URL.
+
+
+===============================================================================
+PHASE 3 - PROVE IT WORKS (tests + CI)                        [1-2 days]
+===============================================================================
+Goal: stop the "fix everything" -> "break something" commit cycle.
+
+  [ ] 1. Test setup (2-3 h)                                         [h]
+         a. pytest + a throwaway Postgres DB (or pytest fixtures
+            that create/drop tables)
+         b. Flask test client - no server needed
+         c. conftest.py: register helper, login helper, admin helper
+
+  [ ] 2. Core test suite (half a day)                              [d/2]
+         - signup: valid, duplicate email, weak password, bad pincode
+         - login: correct, wrong password, unknown email (same error)
+         - reset: token flow, expired token, reuse rejected
+         - admin: 401 without token, 403 with a user token
+         - bookings: create, list mine, delete other user's -> 403
+         - ai-guide: 429 after the rate limit (mock Gemini)
+         - /.env and /backend/app.py -> 404
+
+  [ ] 3. CI with GitHub Actions (1 h)                               [h]
+         - .github/workflows/ci.yml: install deps, run pytest
+         - Free for public repos
+         - Make it required: no green check, no merge
+
+  [ ] 4. Lint (30 m)                                                [m]
+         - ruff (Python) + a JS formatter. One config file each.
+
+  DONE WHEN: you can refactor app.py with confidence and CI proves it.
+
+
+===============================================================================
+PHASE 4 - DEMO THE PITCH (free data instead of paid APIs)   [2-3 days]
+===============================================================================
+Goal: cover the SIH problem statement (itinerary, budget, hotels,
+transport) without paying for a single travel API.
+
+  [ ] 1. Day-wise itinerary (1-1 d)                                 [d]
+         - Extend POST /api/ai-guide with kind='itinerary':
+           { destination, days, budget, interests }
+         - Prompt Gemini for JSON:
+           { days: [ { day, morning, afternoon, evening, cost } ] }
+         - Parse + validate server-side, cache the result in a table
+           itinerary_cache(query_hash, payload, created_at)
+         - Render as day cards on map.html / a new trip.html
+
+  [ ] 2. Budget estimate (2-3 h)                                    [h]
+         - From the same itinerary JSON: sum cost per day
+         - Breakdown: stay / transport / food / activities
+         - Static price table in JSON (free, editable): a small
+           city->cost-per-day dataset for your 5 demo cities
+
+  [ ] 3. Demo city data instead of paid APIs (half a day)           [d/2]
+         - data/<city>.json: 5-8 hotels, 5 things to do, 3 eateries
+           (hand-written, real places - judge-checkable)
+         - Serve with GET /api/places?city=...
+         - BE HONEST in the pitch: "integration layer ready,
+           provider keys pending - here is the contract"
+
+  [ ] 4. Transport cards (2-3 h)                                    [h]
+         - Use the free Overpass API (OpenStreetMap) for nearby
+           stations, or reuse the same static JSON approach
+         - Show metro/rail/airport info for the chosen destination
+
+  [ ] 5. Replace rss2json.com blog (2-3 h)                          [h]
+         - 3-5 real posts as HTML/Markdown, served by Flask or
+           static files, listed on blog.html
+         - Free, no third party that can vanish mid-judging
+
+  [ ] 6. Save itineraries (2 h)                                     [h]
+         - Table saved_trips(user_id, title, payload, created_at)
+         - POST/GET /api/me/trips, show on My Trips page
+         - THIS is what makes it "personalized" per the PS
+
+  [ ] 7. Nominatim/Photon hygiene (1 h)                             [h]
+         - Send a real User-Agent with contact info (policy)
+         - Cache results in a small table to cut repeat calls
+         - Policy: https://operations.osmfoundation.org/policies/nominatim/
+
+  DONE WHEN: pick a city -> get an itinerary + budget + places ->
+save it -> see it under My Trips. Fully offline-capable data.
+
+
+===============================================================================
+PHASE 5 - TRUST & COMPLIANCE (free, but looks expensive)     [1 day]
+===============================================================================
+
+  [ ] 1. DPDP consent (2-3 h)
+         - consent checkbox on signup (already required - make it an
+           explicit labeled consent, not buried in T&C)
+         - table consents(user_id, text_version, created_at)
+         - DELETE /api/me (self-serve account deletion) + export
+           GET /api/me/export (JSON of their data)
+         - Link both from privacypolicy.html
+
+  [ ] 2. Razorpay TEST mode (half a day, no money)
+         - Free to build: order creation + signature verification
+           server-side, never touch card data
+         - Tables already exist (payments with razorpay ids)
+         - Mark every payment as 'test' in the UI
+         - Skip entirely if time is short - but then remove the
+           payment icons and refund policy claims
+
+  [ ] 3. Security headers + cookie hardening (1 h)
+         - Add CSP, Strict-Transport-Security, Permissions-Policy
+           to the after_request hook (app.py:131)
+         - Consider httpOnly cookie for the token instead of
+           localStorage (optional, bigger change)
+
+  [ ] 4. Logging + backups (2 h)
+         - Python logging -> file + stdout (host captures it)
+         - Log: logins, signups, admin actions, 500s (never log
+           passwords/tokens)
+         - Nightly pg_dump to local disk / free object storage
+           (cron + the free tier's volume)
+
+  [ ] 5. Analytics without a third party (1-2 h)
+         - table page_views(path, day, count) updated in
+           after_request
+         - Chart in the admin panel - you already have charts there
+
+  DONE WHEN: privacy policy matches what the code actually does,
+  and you can show a backup + an audit log to a judge.
+
+
+===============================================================================
+PHASE 6 - PRESENTATION & SUBMISSION                          [1 day]
+===============================================================================
+
+  [ ] 1. Demo script (write it down, rehearse 3x)
+         - 30 sec: the problem (scattered info, no personalization)
+         - 60 sec: live flow: signup -> search -> itinerary -> budget
+                   -> book -> My Trips -> admin panel
+         - 30 sec: what's real vs. what's an integration stub
+  [ ] 2. Screenshots/video backup for every step (network can fail)
+  [ ] 3. Update aboutus.html team photos (compress them first)
+  [ ] 4. Final cross-check of all 17 pages: no broken links, no
+         lorem ipsum, forms all work
+  [ ] 5. ROADMAP + README updated to reflect reality
+  [ ] 6. Tag the repo:  git tag -a v1.0-sih && git push --tags
+
+
+===============================================================================
+WHAT WE ARE DELIBERATELY NOT DOING (needs money or others)
+===============================================================================
+  - Custom domain (~Rs.800/yr)     -> use the free host's subdomain
+  - Live Razorpay (KYC + fees)     -> test mode only, for now
+  - Paid hotel/flight/cab APIs     -> static demo data + honest pitch
+  - Professional security audit    -> tests + code review instead
+  - Ads / marketing spend          -> judges are the audience for now
+
+
+===============================================================================
+SUGGESTED SCHEDULE (solo, part-time)
+===============================================================================
+  Week 1 : Phase 0 + Phase 1        -> the product actually works
+  Week 2 : Phase 2 + Phase 3        -> it is live and tested
+  Week 3 : Phase 4                 -> it matches the problem statement
+  Week 4 : Phase 5 + Phase 6        -> it is trustworthy and demoable
+
+  If time runs short: Phase 0, 1, 2, 3 and 6 are MANDATORY.
+  Phase 4 items 1-3 and Phase 5 item 1 are the highest-value extras.
+
+===============================================================================
