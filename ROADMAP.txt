@@ -28,7 +28,8 @@ Goal: start from a clean, trustworthy git state.
            -> committed as 2bcb8c4
          - untracked: .env.example, ankit.jpeg, ROADMAP.txt
            -> committed as 4086ca1
-         - deleted:  SIH2026.pdf -> DECISION: left uncommitted for now
+         - deleted:  SIH2026.pdf -> deleted in e38e309 (still in git
+           history at commit fb41298 if ever needed)
   [x] 2. Confirm .env is ignored:        git status --ignored   (.env shows !!)
   [x] 3. Create a branch per phase:      git checkout -b phase-1-product
   [x] 4. Write a minimal README.md:      committed as b25f5d0
@@ -41,7 +42,7 @@ Goal: start from a clean, trustworthy git state.
          equally unbacked -> remove it in Phase 5 step 2 (with Razorpay).
 
   DONE WHEN: git status is clean, README lets a stranger run the app.
-  -> DONE (except the deliberately parked SIH2026.pdf deletion).
+  -> DONE. git status is clean.
 
 
 ===============================================================================
