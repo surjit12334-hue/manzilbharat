@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manzil Bharat - Let's Travel Together</title>
     <link rel="icon" type="image/png" href="icon.png">
+    <!-- The hero background is this page's LCP element (above the fold), so
+         fetch it early and at high priority. Other pages use the same image
+         only as a dimmed backdrop below the fold, so they don't preload it. -->
+    <link rel="preload" as="image" href="homebackground.jpg" fetchpriority="high">
     <meta name="description" content="Manzil Bharat - Your trusted travel partner for cabs, bikes, flights, trains, buses, hotels, and more across India.">
     <meta name="keywords" content="travel, India, cabs, bikes, flights, trains, buses, hotels, booking, Manzil Bharat">
     <meta name="author" content="Manzil Bharat">
@@ -21,7 +25,7 @@
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        .hero { position: relative; min-height: 100vh; background: linear-gradient(135deg, rgba(26,35,126,0.7), rgba(255,107,53,0.5)), url('homebackground.png') center/cover no-repeat; display: flex; align-items: center; justify-content: center; text-align: center; color: white; padding: 5rem 5% 3rem; }
+        .hero { position: relative; min-height: 100vh; background: linear-gradient(135deg, rgba(26,35,126,0.7), rgba(255,107,53,0.5)), url('homebackground.jpg') center/cover no-repeat; display: flex; align-items: center; justify-content: center; text-align: center; color: white; padding: 5rem 5% 3rem; }
 
         .auth-section { position: absolute; right: 30px; top: 30px; display: flex; align-items: center; gap: 1rem; z-index: 1000; flex-wrap: wrap; justify-content: flex-end; animation: fadeIn 0.8s ease-out; }
         .auth-section a { text-decoration: none; color: white; font-weight: 500; padding: 0.6rem 1.2rem; border-radius: 25px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); white-space: nowrap; }

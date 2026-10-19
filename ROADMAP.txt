@@ -275,12 +275,26 @@ Goal: a live URL you can share anywhere.
            idempotent cancel 200, signed-out 401, mytrips.html 200;
            all test rows deleted afterwards.
 
-  [ ] 4. Static asset performance (1 h)                             [h]
-         a. Compress homebackground.png (2.4 MB -> target <200 KB):
-            pngquant / cwebp / tinywebp, all free
-         b. Compress ankit.jpeg (620 KB), sonu.jpeg, sanya.jpeg
-         c. loading="lazy" on team photos and below-the-fold images
-         d. Verify size: du -h *.png *.jpeg after
+  [x] 4. Static asset performance (1 h)                             [h] DONE
+         a. homebackground.png 2.4 MB -> homebackground.jpg 195 KB
+            (89.8% smaller; PNG is the wrong format for a photo).
+            The .png is deleted and all 6 pages that used it as a CSS
+            background now point at the .jpg. PSNR 32.5 dB, and it sits
+            under a dark gradient overlay, so artifacts are invisible.
+         b. Team photos downscaled to a 400px long edge (they render at
+            180x180, 250px on one breakpoint): ankit 620->22 KB,
+            sanya 176->22 KB, sonu 156->28 KB, surjit 37->21 KB.
+            PSNR 33-39 dB.
+         c. loading="lazy" + decoding="async" + width/height on the 5
+            team photos (map.html's gallery and blog.html already lazy-
+            load); index.html now <link rel="preload" as="image"
+            fetchpriority="high"> for the hero, since it is the LCP
+            element there and a CSS background cannot be lazy-loaded.
+         d. Total image weight 2.9 MB -> 303 KB (302 KB saved).
+            /homebackground.png now 404s on purpose; no page referenced
+            the old name anywhere (checked repo-wide).
+         TOOLING NOTE: only ffmpeg was installed, no pngquant/cwebp/
+         ImageMagick - Pillow from the existing venv did the job.
 
   [ ] 5. Cache + compression headers (1 h)                          [h]
          - after_request: Cache-Control: public, max-age=604800 for
