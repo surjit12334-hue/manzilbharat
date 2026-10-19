@@ -366,11 +366,34 @@ PHASE 3 - PROVE IT WORKS (tests + CI)                        [1-2 days]
 ===============================================================================
 Goal: stop the "fix everything" -> "break something" commit cycle.
 
-  [ ] 1. Test setup (2-3 h)                                         [h]
-         a. pytest + a throwaway Postgres DB (or pytest fixtures
-            that create/drop tables)
-         b. Flask test client - no server needed
-         c. conftest.py: register helper, login helper, admin helper
+  [x] 1. Test setup (2-3 h)                                         [h] DONE
+         a. requirements-dev.txt (pytest only - Render installs
+            backend/requirements.txt and nothing from here), pytest.ini.
+            Local test DB manzil_bharat_test was created with
+            `sudo -u postgres createdb -O manzil_user ...` because the
+            app's own DB user has neither CREATEDB nor CREATE in the dev
+            DB. conftest reads TEST_DATABASE_URL, or locally derives the
+            name from DB_* by appending "_test".
+         b. Flask test client - no server, no ports. Flask's testing mode
+            is on so an unexpected exception surfaces as a traceback.
+         c. tests/conftest.py: session fixture applies schema.sql once;
+            an autouse fixture TRUNCATEs every table (RESTART IDENTITY
+            CASCADE) before AND after each test, which also resets the
+            DB-backed rate limiter - otherwise one test's login attempts
+            would push the next into 429. Helpers: register, user,
+            login, auth, admin_headers.
+         SAFETY: conftest refuses to run if the resolved database name
+         does not contain "test", because every test truncates. It also
+         sets JWT_SECRET/ADMIN_EMAIL/ADMIN_PASSWORD itself (the app
+         refuses to boot without them), forces EMAIL_PROVIDER=disabled
+         and drops GEMINI_API_KEY, so the suite is offline.
+         tests/test_setup.py = 8 tests proving the harness (right DB,
+         tables built, per-test isolation, real HTTP round trip, the
+         /.env + /backend/app.py 404 guard).
+         VERIFIED: 8 passed; the development DB was untouched
+         (13 users before and after, test DB 0).
+         NOTE: pytest surfaces DeprecationWarning for
+         datetime.utcnow() in app.py - a Phase 5 tidy-up, not a failure.
 
   [ ] 2. Core test suite (half a day)                              [d/2]
          - signup: valid, duplicate email, weak password, bad pincode

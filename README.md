@@ -139,6 +139,11 @@ manzilbharat/
 ├── backend/
 │   ├── app.py              # Flask app: API + static file serving
 │   └── requirements.txt
+├── tests/                  # pytest suite (conftest points at <DB_NAME>_test)
+│   ├── conftest.py         # fixtures: throwaway DB, client, register/login/admin
+│   └── test_setup.py
+├── requirements-dev.txt    # pytest - never installed by Render
+├── pytest.ini
 ├── index.html              # Landing + destination search
 ├── map.html                # Leaflet map, AI travel card, photo gallery
 ├── login.html              # Login / forgot password / Google sign-in
@@ -186,12 +191,27 @@ Status column: `live` = implemented today, `todo` = Phase 1 of ROADMAP.txt.
 
 ## Testing
 
-_No test suite yet — planned in Phase 3 of `ROADMAP.txt` (`pytest` + GitHub
-Actions). Until then, smoke-test with:_
+```bash
+# 1. One-off: create the throwaway test database. This needs a role with
+#    CREATEDB - the app's own user has neither CREATEDB nor CREATE:
+sudo -u postgres createdb -O manzil_user manzil_bharat_test
+
+# 2. Dev dependencies (production installs backend/requirements.txt only)
+venv/bin/pip install -r requirements-dev.txt
+venv/bin/python -m pytest
+```
+
+`tests/conftest.py` points the app at `<DB_NAME>_test` (or at
+`TEST_DATABASE_URL` when set, which is what CI uses), applies `schema.sql`
+once per session, and truncates every table before and after each test, so the
+development database is never written to. It refuses to run if the resolved
+database name does not contain "test", precisely because every test truncates.
+
+Smoke test after a deploy:
 
 ```bash
-./start.sh
-curl -i http://localhost:5000/api/stats   # expect 401 Unauthorized
+curl -i https://manzilbharat.onrender.com/api/stats   # expect 401
+curl https://manzilbharat.onrender.com/api/health     # {"db":"ok","status":"ok"}
 ```
 
 ---
