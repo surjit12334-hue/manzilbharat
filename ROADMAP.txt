@@ -28,12 +28,12 @@ Goal: start from a clean, trustworthy git state.
            -> committed as 2bcb8c4
          - untracked: .env.example, ankit.jpeg, ROADMAP.txt
            -> committed as 4086ca1
-         - deleted:  SIH2026.pdf -> deleted in e38e309 (still in git
+         - deleted:  an old reference PDF -> deleted in e38e309 (still in git
            history at commit fb41298 if ever needed)
   [x] 2. Confirm .env is ignored:        git status --ignored   (.env shows !!)
   [x] 3. Create a branch per phase:      git checkout -b phase-1-product
   [x] 4. Write a minimal README.md:      committed as b25f5d0
-         - what the project is (SIH 2026 PS 26204)
+         - what the project is
          - how to run it (cp .env.example .env, edit, ./start.sh)
          - how to set up the DB (schema.sql, seed.sql)
   [x] 5. Delete the two false trust badges: "SSL Secured", "PCI Compliant"
@@ -216,7 +216,7 @@ and there is no way to create a booking at all.
 ===============================================================================
 PHASE 2 - MAKE IT SHIP (free deployment)                    [2-3 days]
 ===============================================================================
-Goal: a live URL you can put in the SIH submission.
+Goal: a live URL you can share anywhere.
 
   [x] 1. Production server (2-3 h)                                  [h] DONE
          a. gunicorn + flask-compress added to backend/requirements.txt
@@ -235,7 +235,7 @@ Goal: a live URL you can put in the SIH submission.
          tokens are now 2x broken - step 2 fixes exactly that, and
          must land BEFORE any real deployment.
 
-  [ ] 2. Move in-memory state into Postgres (2-3 h)                 [h]
+  [x] 2. Move in-memory state into Postgres (2-3 h)                 [h]
          a. Table rate_limits(key TEXT, hits INT[], ...) or simply
             (key, timestamp) rows, pruned on write
          b. Table reset_tokens(token_hash PRIMARY KEY, email, exp,
@@ -309,7 +309,7 @@ Goal: stop the "fix everything" -> "break something" commit cycle.
 ===============================================================================
 PHASE 4 - DEMO THE PITCH (free data instead of paid APIs)   [2-3 days]
 ===============================================================================
-Goal: cover the SIH problem statement (itinerary, budget, hotels,
+Goal: cover the full travel flow (itinerary, budget, hotels,
 transport) without paying for a single travel API.
 
   [ ] 1. Day-wise itinerary (1-1 d)                                 [d]

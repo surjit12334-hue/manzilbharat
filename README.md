@@ -1,7 +1,5 @@
 # Manzil Bharat
 
-**Smart India Hackathon 2026 — Problem Statement #26204 (Travel & Tourism)**
-
 An AI-assisted travel planner for India: search any destination, get an AI
 travel card, explore it on a map with photos, and (once signed in) plan and
 save trips. Includes an admin panel for users, bookings and payments.
