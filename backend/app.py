@@ -87,7 +87,6 @@ ALLOWED_ORIGINS = [
 ]
 
 RESET_TOKEN_VALID_SECONDS = 1800
-used_reset_tokens = {}
 
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
@@ -171,28 +170,94 @@ def set_security_headers(response):
     return response
 
 
-rate_limit_store = {}
+# Per-worker timestamp of the last global prune of the rate_limits table. This
+# is only a scheduling hint (not correctness-critical): each worker prunes
+# fully-stale buckets at most once a minute so the table stays small without a
+# background job.
+_last_rate_prune = 0.0
+
+
+def _prune_rate_limits_if_due(now):
+    """Best-effort cleanup of buckets whose newest hit has aged out.
+
+    Uses the indexed last_seen column (not the hits array) so pruning is a
+    cheap index scan. Fails silently - pruning is hygiene, never on the
+    critical path of a request.
+    """
+    global _last_rate_prune
+    if now - _last_rate_prune <= 60:
+        return
+    _last_rate_prune = now
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cutoff = datetime.utcnow() - timedelta(seconds=600)
+        cur.execute("DELETE FROM rate_limits WHERE last_seen < %s", (cutoff,))
+        conn.commit()
+        cur.close()
+    except Exception:
+        app.logger.exception('Rate-limit prune failed')
+        if conn:
+            conn.rollback()
+    finally:
+        if conn:
+            conn.close()
+
+
+def _rate_limit_allowed(bucket, max_requests, window):
+    """Atomically record a hit for `bucket` and report whether it is allowed.
+
+    Lives in Postgres so the limit is SHARED across gunicorn workers - the old
+    in-memory dict was per-worker, so 2 workers silently doubled every limit.
+    A per-bucket advisory lock serialises concurrent hits for the same bucket so
+    the count-then-append cannot race; other buckets proceed in parallel.
+    Fails OPEN on a database error: a rate-limiter outage must not take the
+    whole site down (the endpoints it protects need the DB anyway).
+    """
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        # Serialise only this bucket; released at commit/rollback below.
+        cur.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))", (bucket,))
+        cur.execute("SELECT hits FROM rate_limits WHERE bucket = %s", (bucket,))
+        row = cur.fetchone()
+        cutoff = datetime.utcnow() - timedelta(seconds=window)
+        hits = [t for t in (row[0] if row else []) if t > cutoff]
+        if len(hits) >= max_requests:
+            conn.rollback()
+            cur.close()
+            return False
+        hits.append(datetime.utcnow())
+        cur.execute(
+            "INSERT INTO rate_limits (bucket, hits, last_seen) VALUES (%s, %s, %s) "
+            "ON CONFLICT (bucket) DO UPDATE SET hits = EXCLUDED.hits, "
+            "last_seen = EXCLUDED.last_seen",
+            (bucket, hits, hits[-1])
+        )
+        conn.commit()
+        cur.close()
+        return True
+    except Exception:
+        app.logger.exception('Rate-limit check failed for %s - allowing request', bucket)
+        if conn:
+            conn.rollback()
+        return True
+    finally:
+        if conn:
+            conn.close()
 
 
 def rate_limit(max_requests=30, window=60):
     def decorator(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
-            ip = request.remote_addr
-            key = f"{f.__name__}:{ip}"
-            now = time.time()
-            if key not in rate_limit_store:
-                rate_limit_store[key] = []
-            rate_limit_store[key] = [t for t in rate_limit_store[key] if now - t < window]
-            if len(rate_limit_store[key]) >= max_requests:
+            ip = request.remote_addr or 'unknown'
+            bucket = f"{f.__name__}:{ip}"
+            _prune_rate_limits_if_due(time.time())
+            if not _rate_limit_allowed(bucket, max_requests, window):
                 return jsonify({'error': 'Too many requests. Please try again later.'}), 429
-            rate_limit_store[key].append(now)
-            # Drop buckets for callers that have gone quiet, otherwise the dict
-            # grows one empty list per distinct IP/endpoint forever.
-            stale = [k for k, times in rate_limit_store.items()
-                     if k != key and not times]
-            for k in stale:
-                rate_limit_store.pop(k, None)
             return f(*args, **kwargs)
         return wrapper
     return decorator
@@ -233,13 +298,13 @@ def verify_token(token):
         return None
 
 
+def _hash_reset_token(token):
+    """SHA-256 of the reset token. Only this digest is persisted, so a database
+    leak cannot be replayed into an account takeover."""
+    return hashlib.sha256(token.encode('utf-8')).hexdigest()
+
+
 def create_reset_token(email):
-    # Prune here as well as in verify_reset_token: a server that only ever
-    # issues links (and never has one redeemed) would otherwise accumulate
-    # entries forever.
-    now = time.time()
-    for t in [t for t, exp in used_reset_tokens.items() if exp < now]:
-        used_reset_tokens.pop(t, None)
     payload = {
         'purpose': 'password-reset',
         'email': email,
@@ -247,17 +312,37 @@ def create_reset_token(email):
     }
     data = json.dumps(payload, sort_keys=True)
     sig = hmac.new(JWT_SECRET.encode(), data.encode(), hashlib.sha256).hexdigest()
-    return f"{base64url_encode(data.encode())}.{sig}"
+    token = f"{base64url_encode(data.encode())}.{sig}"
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        # Opportunistically drop expired rows so a server that only ever issues
+        # links (and never has one redeemed) does not accumulate them forever.
+        cur.execute("DELETE FROM reset_tokens WHERE exp < %s", (datetime.utcnow(),))
+        cur.execute(
+            "INSERT INTO reset_tokens (token_hash, email, exp) VALUES (%s, %s, %s)",
+            (_hash_reset_token(token), email,
+             datetime.utcnow() + timedelta(seconds=RESET_TOKEN_VALID_SECONDS))
+        )
+        conn.commit()
+        cur.close()
+    finally:
+        # A failure here must propagate: the caller (forgot-password) turns it
+        # into a 500 so the user is never emailed a link that cannot be redeemed.
+        if conn:
+            conn.close()
+    return token
 
 
 def verify_reset_token(token):
+    """Validate a reset token against the DB. Returns the payload or None.
+
+    The HMAC signature and expiry are checked first (cheap, no DB hit) to reject
+    garbage/tampered tokens; the DB row is the source of truth for issuance and
+    single-use redemption across workers and restarts.
+    """
     try:
-        now = time.time()
-        expired = [t for t, exp in used_reset_tokens.items() if exp < now]
-        for t in expired:
-            used_reset_tokens.pop(t, None)
-        if token in used_reset_tokens:
-            return None
         parts = token.split('.')
         if len(parts) != 2:
             return None
@@ -271,9 +356,31 @@ def verify_reset_token(token):
             return None
         if datetime.fromisoformat(payload['exp']) < datetime.utcnow():
             return None
-        return payload
     except Exception:
         return None
+
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT exp, used_at FROM reset_tokens WHERE token_hash = %s",
+            (_hash_reset_token(token),)
+        )
+        row = cur.fetchone()
+        cur.close()
+    finally:
+        if conn:
+            conn.close()
+    if not row:
+        # Never issued (or pruned after expiry) - refuse it.
+        return None
+    exp, used_at = row
+    if used_at is not None:
+        return None  # already redeemed - blocks reuse across workers/restarts
+    if exp < datetime.utcnow():
+        return None
+    return payload
 
 
 def send_reset_email(email, reset_url):
@@ -614,9 +721,13 @@ def reset_password():
 
         hashed = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         cur.execute("UPDATE users SET password = %s WHERE id = %s", (hashed, user[0]))
+        # Mark the token redeemed in the SAME transaction as the password change,
+        # so a crash can never leave a still-valid token behind. This is what
+        # blocks reuse across workers and restarts.
+        cur.execute("UPDATE reset_tokens SET used_at = %s WHERE token_hash = %s",
+                    (datetime.utcnow(), _hash_reset_token(token)))
         conn.commit()
         cur.close()
-        used_reset_tokens[token] = time.time() + RESET_TOKEN_VALID_SECONDS
         return jsonify({'message': 'Password updated successfully'}), 200
     except Exception:
         if conn:

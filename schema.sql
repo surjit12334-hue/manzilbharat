@@ -59,6 +59,30 @@ CREATE TABLE IF NOT EXISTS messages (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Rate-limit buckets, one row per (endpoint, client-ip). Lives in Postgres so
+-- the limit is SHARED across gunicorn workers - the old in-memory dict was
+-- per-worker, so 2 workers silently doubled every limit. hits holds the recent
+-- request timestamps; old ones are pruned on each write.
+CREATE TABLE IF NOT EXISTS rate_limits (
+    bucket    TEXT PRIMARY KEY,
+    hits      TIMESTAMP[] NOT NULL DEFAULT '{}',
+    -- Newest hit, maintained on every write. Pruning uses this column (indexed)
+    -- rather than scanning the hits array, so stale buckets are dropped cheaply.
+    last_seen TIMESTAMP NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS rate_limits_last_seen_idx ON rate_limits (last_seen);
+
+-- Password-reset tokens. ONLY the SHA-256 hash of the token is stored, so a
+-- database leak cannot be replayed into account takeovers. used_at is set when
+-- a token is redeemed, which blocks reuse across workers/restarts.
+CREATE TABLE IF NOT EXISTS reset_tokens (
+    token_hash TEXT PRIMARY KEY,
+    email      TEXT NOT NULL,
+    exp        TIMESTAMP NOT NULL,
+    used_at    TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS reset_tokens_exp_idx ON reset_tokens (exp);
+
 -- ============================================================================
 -- Existing DB fixes (run on the CURRENT live database only if migrating)
 -- ============================================================================
