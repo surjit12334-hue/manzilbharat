@@ -349,6 +349,16 @@ Goal: a live URL you can share anywhere.
 
   DONE WHEN: https://your-app.on-render.com loads in <3s on mobile
   throttling, and sign up + booking works on that URL.
+  -> PHASE 2 COMPLETE (all 6 steps) at https://manzilbharat.onrender.com
+     (note: NO hyphen - manzil-bharat.onrender.com is someone else's).
+     Measured after steps 4-5: a cold first visit (homepage + hero +
+     icon + the 3 local scripts) transfers ~221 KB, and the homepage
+     alone is 29,937 -> 7,188 bytes (br). Sign-up -> login -> booking
+     -> cancel -> "see it in My Trips" re-verified live end to end
+     (the live smoke run used for the final check is described in
+     step 5's notes). Neon was restored to its seeded state after
+     testing: 5 users, 5 bookings, 5 payments, 0 subscribers, 0
+     messages, 0 rate-limit buckets.
 
 
 ===============================================================================
