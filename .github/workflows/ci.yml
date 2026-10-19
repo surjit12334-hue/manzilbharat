@@ -1,0 +1,89 @@
+# Continuous integration: every push and pull request runs the test suite.
+#
+# Design notes (the "why" behind each choice):
+#
+# * Python 3.12 mirrors Dockerfile's `python:3.12-slim`, which is what Render
+#   actually builds. Testing only that version means "green here" and "runs in
+#   production" mean the same thing. (Local dev happens to be 3.14, which is
+#   exactly why the mismatch is worth pinning down here.)
+# * Postgres is a service container, not SQLite, because the app's SQL and
+#   `ON DELETE CASCADE` behaviour are part of what we are proving. It is
+#   created empty; tests/conftest.py applies schema.sql and truncates between
+#   tests, and it refuses to run against a database whose name lacks "test".
+# * No secrets are configured anywhere: conftest.py sets JWT_SECRET,
+#   ADMIN_EMAIL and ADMIN_PASSWORD itself, forces EMAIL_PROVIDER=disabled and
+#   blanks GEMINI_API_KEY, so a test can never mail anyone or spend the live
+#   AI quota. Nothing here needs a repository secret.
+# * The workflow runs on every branch, not just main, so a phase branch gets a
+#   verdict before anyone opens a pull request.
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+# A newer push to the same ref makes the older run's result irrelevant.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    name: pytest (Python 3.12)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: manzil_bharat_test
+        ports:
+          - 5432:5432
+        # Without a health check the first test can start before Postgres
+        # accepts connections and fail for reasons that have nothing to do
+        # with the code.
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # conftest.py uses this verbatim when it is set (falling back to
+      # DB_NAME + "_test" for local runs).
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/manzil_bharat_test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fail if .env is tracked
+        # The repository is public. The demo works without .env (Render injects
+        # the real secrets), so a committed one is always a mistake.
+        run: |
+          if git ls-files --error-unmatch .env >/dev/null 2>&1; then
+            echo "::error::.env is tracked by git - it must never be committed"
+            exit 1
+          fi
+          echo ".env is not tracked: good"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Run the test suite
+        run: python -m pytest -q
