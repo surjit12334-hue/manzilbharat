@@ -296,11 +296,37 @@ Goal: a live URL you can share anywhere.
          TOOLING NOTE: only ffmpeg was installed, no pngquant/cwebp/
          ImageMagick - Pillow from the existing venv did the job.
 
-  [ ] 5. Cache + compression headers (1 h)                          [h]
-         - after_request: Cache-Control: public, max-age=604800 for
-           static assets (keep no-store for /api/*)
-         - gzip via the host or Flask middleware (flask-compress,
-           free)
+  [x] 5. Cache + compression headers (1 h)                          [h] DONE
+         - flask-compress was already in requirements.txt but never
+           wired up; Compress(app) is now installed (optional import, so
+           dev still runs without it).
+         - Compression: measured on / with 2 gunicorn workers -
+           29,937 -> 7,188 bytes (br, -76%). gzip and deflate also
+           negotiate, and the decoded body is byte-identical to the
+           file. Two non-default settings were needed: file-backed
+           responses stream, and flask-compress's streaming algorithm
+           list excludes gzip by default (so gzip-only clients got
+           nothing), and it only re-evaluates If-None-Match for the
+           "static" endpoint, so the "/" homepage returned 200 + a full
+           re-download instead of 304. Both are configured in app.py.
+         - Cache-Control, set in the after_request hook:
+             images/fonts/pdf -> public, max-age=31536000, immutable
+               (safe because changed images are RENAMED, e.g.
+               homebackground.png -> .jpg, so a URL's bytes never change)
+             css/js/json      -> public, max-age=604800
+             HTML             -> no-cache (revalidate; Flask's ETag +
+               Last-Modified make an unchanged page a cheap 304, and the
+               markup that points at the cached assets is never stale)
+             /api/*           -> no-store (unchanged)
+           WHY HTML IS EXEMPT: with no hashed filenames, long-caching
+           HTML would serve stale pages after a deploy.
+         - Verified through the Flask test client and a real gunicorn
+           run: all 16 pages 200 + compressed + no-cache; hero/og images
+           200 + immutable + NOT compressed (already-compressed formats
+           are not in the compressible MIME list); /api/health no-store;
+           conditional GET -> 304 (also with the compressed ETag); Range
+           on the hero still 206. Signup -> login -> booking -> cancel
+           smoke test passes with compression on.
 
   [x] 6. OG + meta tags (1-2 h)                                     [h] DONE
          - There are 16 pages, not 17. 14 already had a real, unique

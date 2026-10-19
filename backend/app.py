@@ -132,6 +132,23 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 
 CORS(app, resources={r"/api/*": {"origins": ALLOWED_ORIGINS}})
 
+# gzip/br response bodies. Optional on purpose: the module is in
+# requirements.txt (production) but the app must still boot without it. Only
+# text MIME types are compressed, so JPEG/PNG bytes are never re-encoded.
+try:
+    from flask_compress import Compress
+    # Streaming (file-backed) responses default to br/deflate only; add gzip so
+    # a client that offers nothing else still gets a compressed body.
+    app.config['COMPRESS_ALGORITHM_STREAMING'] = [
+        'zstd', 'br', 'gzip', 'deflate']
+    # Re-check If-None-Match AFTER compression for the '/' homepage too (only
+    # the 'static' endpoint is listed by default), otherwise a browser holding
+    # the compressed body gets a 200 + full re-download instead of a 304.
+    app.config['COMPRESS_STREAMING_ENDPOINT_CONDITIONAL'] = ['static', 'index']
+    Compress(app)
+except ImportError:  # pragma: no cover - dev machines without the extra
+    print('NOTE: flask-compress not installed - responses are sent uncompressed')
+
 
 class ISODatetimeJSONProvider(DefaultJSONProvider):
     """JSON-encode date/datetime as ISO-8601.
@@ -155,6 +172,12 @@ STATIC_ALLOWED_EXTENSIONS = {
     '.html', '.js', '.css', '.json', '.png', '.jpg', '.jpeg', '.gif', '.svg',
     '.webp', '.ico', '.pdf', '.woff', '.woff2', '.ttf', '.eot'
 }
+
+# Cache lifetimes per asset kind, applied in set_security_headers(). See the
+# comment there for why HTML is deliberately absent (revalidated instead).
+_CACHE_IMMUTABLE = {'.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico',
+                    '.woff', '.woff2', '.ttf', '.eot', '.pdf'}
+_CACHE_ONE_WEEK = {'.css', '.js', '.json'}
 
 
 @app.before_request
@@ -199,6 +222,28 @@ def set_security_headers(response):
     # shared/browser cache.
     if request.path.startswith('/api/'):
         response.headers['Cache-Control'] = 'no-store'
+        return response
+
+    # Static assets are served straight off disk by Flask's static handler, so
+    # every response reaches this hook. Cache policy:
+    #   images/fonts/pdf -> a year, immutable. These are only ever REPLACED BY
+    #     A NEW FILENAME (homebackground.png -> homebackground.jpg), so a URL's
+    #     bytes never change and there is nothing to invalidate.
+    #   css/js/json      -> a week. No hashed filenames, so this is a tradeoff:
+    #     long enough to skip re-downloading on repeat visits, short enough
+    #     that an edit reaches returning browsers without a hard refresh.
+    #   everything else (HTML) -> no-cache, i.e. revalidate every time. Flask
+    #     sends ETag + Last-Modified, so an unchanged page costs a 304 and the
+    #     markup that points at those assets is never stale after a deploy.
+    if request.method in ('GET', 'HEAD'):
+        ext = os.path.splitext(request.path)[1].lower()
+        if ext in _CACHE_IMMUTABLE:
+            response.headers['Cache-Control'] = (
+                'public, max-age=31536000, immutable')
+        elif ext in _CACHE_ONE_WEEK:
+            response.headers['Cache-Control'] = 'public, max-age=604800'
+        else:
+            response.headers['Cache-Control'] = 'no-cache'
     return response
 
 
