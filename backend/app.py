@@ -10,6 +10,7 @@ import requests
 import re
 import os
 import time
+import ipaddress
 import hashlib
 import hmac
 import json
@@ -124,9 +125,9 @@ PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
 
 app = Flask(__name__, static_folder=PROJECT_ROOT, static_url_path='')
 
-# Trust one proxy hop so request.remote_addr (used by the rate limiter) is the
-# real client IP when running behind nginx / gunicorn. Without this every user
-# shares the proxy's IP and one visitor can exhaust the shared rate limit.
+# Trust one proxy hop so request.remote_addr / request.scheme reflect the real
+# visitor when running behind a reverse proxy. NOTE: this is NOT enough to key
+# the rate limiter on Render - see _client_ip() for why.
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 
 CORS(app, resources={r"/api/*": {"origins": ALLOWED_ORIGINS}})
@@ -280,11 +281,37 @@ def _rate_limit_allowed(bucket, max_requests, window):
             conn.close()
 
 
+def _client_ip():
+    """Best-effort real client IP behind the host's load balancer.
+
+    Render terminates TLS at a load balancer and forwards over HTTP, appending
+    its own internal address (10.x) to X-Forwarded-For. ProxyFix(x_for=1) only
+    trusts ONE hop, so request.remote_addr ended up being whatever internal
+    address that hop used - and it is not stable per visitor, so every request
+    landed in a different rate-limit bucket and NO limit ever fired in
+    production (found by probing live bucket keys).
+
+    Strategy: walk X-Forwarded-For right-to-left and take the first globally
+    routable address. Proxy hops are private/internal, so the rightmost public
+    entry is the visitor. Falls back to the socket peer when the header is
+    missing or holds nothing usable, which is also the local-dev path.
+    """
+    forwarded = request.headers.get('X-Forwarded-For', '')
+    for candidate in reversed([p.strip() for p in forwarded.split(',')]):
+        try:
+            ip = ipaddress.ip_address(candidate)
+        except ValueError:
+            continue  # not an address: ignore junk entries
+        if ip.is_global and not ip.is_multicast:
+            return candidate
+    return request.remote_addr or 'unknown'
+
+
 def rate_limit(max_requests=30, window=60):
     def decorator(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
-            ip = request.remote_addr or 'unknown'
+            ip = _client_ip()
             bucket = f"{f.__name__}:{ip}"
             _prune_rate_limits_if_due(time.time())
             if not _rate_limit_allowed(bucket, max_requests, window):
