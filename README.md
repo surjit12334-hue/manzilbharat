@@ -4,6 +4,9 @@ An AI-assisted travel planner for India: search any destination, get an AI
 travel card, explore it on a map with photos, and (once signed in) plan and
 save trips. Includes an admin panel for users, bookings and payments.
 
+**Live demo:** https://manzilbharat.onrender.com (free Render tier — the first
+request after ~15 idle minutes takes up to a minute to wake the instance).
+
 ---
 
 ## Tech stack

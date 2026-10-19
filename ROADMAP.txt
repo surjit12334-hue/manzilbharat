@@ -244,12 +244,36 @@ Goal: a live URL you can share anywhere.
          WHY: today a restart or a 2nd worker silently disables rate
          limits and allows reset token reuse.
 
-  [ ] 3. Free hosting + DB (half a day)                             [d/2]
-         - Host:  Render / Railway / Fly.io free tier (Flask, free)
-         - DB:    Neon / Supabase / Aiven free tier (Postgres, free)
-         - Apply schema.sql, then seed.sql on the hosted DB
-         - Set all env vars in the host's dashboard (never upload .env)
-         - Set API_BASE = '' (Phase 1 step 1) so it works on the host
+  [x] 3. Free hosting + DB (half a day)                       [d/2] DONE
+         - Host:  Render (free plan, Docker runtime)
+         - DB:    Neon free tier (pooled DSN, sslmode=require)
+         - Schema + seed applied to Neon as the owner; the FK
+           ON DELETE CASCADE fixes from schema.sql's commented block
+           were run too, otherwise admin "delete user" 500s
+         - All env vars set in the Render dashboard; .env never
+           uploaded (it is in .dockerignore)
+         - LIVE: https://manzilbharat.onrender.com  (no hyphen - the
+           hyphenated name belongs to someone else)
+         - Build Command: pip install -r backend/requirements.txt
+           Start Command: bash start-prod.sh
+           Health Check:  /api/health
+         - seed.sql FIXED on the way (commit 78a1218): it still treated
+           travel_date as text, so a FRESH database seeded zero
+           bookings/payments. Local dev never noticed because it had
+           been seeded before the DATE migration.
+         - FOUND + FIXED a real production-only bug (commit 8d01f7e):
+           ProxyFix(x_for=1) made request.remote_addr Render's internal
+           10.x address, which CHANGES per request - 11 requests from
+           one machine made 3 buckets, so NO rate limit ever fired
+           live. _client_ip() now takes the rightmost globally routable
+           X-Forwarded-For entry. Live re-test: buckets keyed on the
+           real client IP; /api/contact (5/min) returned 6x 429 in a
+           40-request burst. Remaining caveat: if Render forwards a
+           client-supplied header, the public entry is spoofable.
+         - e2e on the live URL: health 200 (db ok), signup 201 ->
+           /api/me 200 -> booking 201 -> mine 200 -> cancel 200 ->
+           idempotent cancel 200, signed-out 401, mytrips.html 200;
+           all test rows deleted afterwards.
 
   [ ] 4. Static asset performance (1 h)                             [h]
          a. Compress homebackground.png (2.4 MB -> target <200 KB):
