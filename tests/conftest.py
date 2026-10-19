@@ -26,6 +26,7 @@ from __future__ import annotations
 import os
 import pathlib
 import sys
+from datetime import date, timedelta
 from urllib.parse import quote
 
 import pytest
@@ -85,8 +86,11 @@ os.environ['ADMIN_PASSWORD'] = ADMIN_PASSWORD
 # '' and 'disabled' both mean "no provider"; anything outside
 # smtp/resend/brevo is treated as not configured by app.email_provider().
 os.environ['EMAIL_PROVIDER'] = 'disabled'
-# /api/ai-guide answers 503 without a key, which keeps the suite offline.
-os.environ.pop('GEMINI_API_KEY', None)
+# MUST be present-but-empty, not popped: app.py calls load_dotenv() at import
+# and python-dotenv only fills variables that are ABSENT, so deleting the key
+# here would let .env put a real one back and the suite would quietly spend
+# the live Gemini quota.
+os.environ['GEMINI_API_KEY'] = ''
 
 import psycopg2  # noqa: E402  (import after the env above is settled)
 
@@ -143,6 +147,28 @@ def flask_app():
 
     app.config.update(TESTING=True)
     return app
+
+
+@pytest.fixture()
+def sql():
+    """Run a statement against the test database.
+
+    Some invariants are cheaper to check (or to set up) in SQL than through
+    HTTP: 'was a row really inserted on validation failure', expiring a reset
+    token, forcing a booking to 'completed'.
+    """
+    def _sql(statement, params=None):
+        conn = _connect()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(statement, params)
+                rows = cur.fetchall() if cur.description else None
+            conn.commit()
+            return rows
+        finally:
+            conn.close()
+
+    return _sql
 
 
 @pytest.fixture()
@@ -226,3 +252,34 @@ def admin_headers(client):
         return {'x-admin-token': response.get_json()['token']}
 
     return _admin_headers
+
+
+@pytest.fixture()
+def password():
+    """The password that register/user/login use when a test does not pass one."""
+    return DEFAULT_PASSWORD
+
+
+@pytest.fixture()
+def admin_credentials():
+    """(email, password) of the admin account, for the tests about rejection."""
+    return ADMIN_EMAIL, ADMIN_PASSWORD
+
+
+@pytest.fixture()
+def booking_payload():
+    """A valid POST /api/bookings body, so a test only overrides what it means.
+
+    The travel date is in the future because the endpoint refuses the past.
+    """
+    def _payload(**overrides):
+        return {
+            'booking_type': 'cab',
+            'source': 'Delhi',
+            'destination': 'Jaipur',
+            'travel_date': (date.today() + timedelta(days=30)).isoformat(),
+            'amount': 2400,
+            **overrides,
+        }
+
+    return _payload

@@ -395,14 +395,51 @@ Goal: stop the "fix everything" -> "break something" commit cycle.
          NOTE: pytest surfaces DeprecationWarning for
          datetime.utcnow() in app.py - a Phase 5 tidy-up, not a failure.
 
-  [ ] 2. Core test suite (half a day)                              [d/2]
-         - signup: valid, duplicate email, weak password, bad pincode
-         - login: correct, wrong password, unknown email (same error)
-         - reset: token flow, expired token, reuse rejected
-         - admin: 401 without token, 403 with a user token
-         - bookings: create, list mine, delete other user's -> 403
-         - ai-guide: 429 after the rate limit (mock Gemini)
-         - /.env and /backend/app.py -> 404
+  [x] 2. Core test suite (half a day)                              [d/2] DONE
+         51 tests in 21s, grouped by area:
+         tests/test_signup.py     valid / duplicate email / case-insensitive
+                                  email / 4 weak-password shapes / bad
+                                  pincode / 7 more field rules / age 18-120.
+                                  Each failure case also asserts that no row
+                                  was written.
+         tests/test_login.py      right password, email case+spaces,
+                                  wrong-password vs unknown-email return the
+                                  SAME status and body (the anti-enumeration
+                                  rule), missing fields, a NULL-password
+                                  (Google-only) account, tampered token.
+         tests/test_reset_password.py
+                                  happy path + old password stops working +
+                                  single use, expired row, garbage token,
+                                  policy on the new password, deleted
+                                  account -> 404, forgot-password is an
+                                  honest 500 when no provider is configured.
+         tests/test_admin.py      401 with no token, 403 when a USER token is
+                                  put in x-admin-token (the sentinel check),
+                                  list users + stats, delete user, and the
+                                  ON DELETE CASCADE that takes the user's
+                                  bookings with it.
+         tests/test_bookings.py   create, no token -> 401, validation (past
+                                  date, bad type, 5 bad amounts, empty
+                                  source/destination), mine lists only your
+                                  own, cancel own + idempotent re-cancel,
+                                  cancel someone else's -> 403, completed ->
+                                  409, missing -> 404, hard DELETE is
+                                  admin-only.
+         tests/test_ai_guide.py   validation first, 503 without a key, mocked
+                                  Gemini 200/429/5xx/timeout/connection/
+                                  malformed/empty, and 16 requests -> 429.
+         /.env, /backend/app.py, /schema.sql, /seed.sql -> 404 (test_setup.py)
+         Extra fixtures: password, admin_credentials, booking_payload, sql()
+         (SQL is cheaper than HTTP for "no row was written" and for expiring
+         a token / forcing a booking to completed).
+         SAFETY FOUND AND FIXED: conftest had popped GEMINI_API_KEY, but
+         app.py's load_dotenv() puts back anything ABSENT from .env, so the
+         suite was really calling Gemini (and the key was live). It is now
+         set to the empty string, which python-dotenv will not overwrite -
+         proven by the runtime dropping 79s -> 21s and every un-mocked
+         ai-guide answer being 503.
+         VERIFIED: 51 passed twice; dev DB still 13 users / 7 bookings; the
+         test DB ends empty.
 
   [ ] 3. CI with GitHub Actions (1 h)                               [h]
          - .github/workflows/ci.yml: install deps, run pytest
