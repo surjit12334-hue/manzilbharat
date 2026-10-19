@@ -15,6 +15,7 @@ import hmac
 import json
 import base64
 import smtplib
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from email.mime.text import MIMEText
 from dotenv import load_dotenv
 from datetime import date, datetime, timedelta
@@ -71,11 +72,34 @@ SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
 SMTP_PORT = int(os.getenv('SMTP_PORT', 587))
 SMTP_USER = os.getenv('SMTP_USER')
 SMTP_PASSWORD = os.getenv('SMTP_PASSWORD')
-if not (SMTP_USER and SMTP_PASSWORD):
-    # Surfaced at boot: an empty SMTP_USER= in .env reads as '', which the
-    # old `is None` check let through and produced a bogus send failure.
-    print('NOTE: SMTP_USER / SMTP_PASSWORD not set - password-reset emails '
-          'are disabled until you fill them in .env')
+
+# Password-reset mail leaves the server in one of two ways:
+#   smtp          direct SMTP on port 587 - fine locally, but Render's FREE
+#                 plan blocks outbound 25/465/587, so it cannot work there
+#   resend/brevo  HTTPS JSON APIs on port 443 - allowed by every free host
+# EMAIL_PROVIDER picks one. When it is empty we infer a provider from whichever
+# credentials are present, so an existing .env behaves exactly as before.
+EMAIL_PROVIDER = (os.getenv('EMAIL_PROVIDER') or '').strip().lower()
+RESEND_API_KEY = (os.getenv('RESEND_API_KEY') or '').strip()
+BREVO_API_KEY = (os.getenv('BREVO_API_KEY') or '').strip()
+EMAIL_FROM = (os.getenv('EMAIL_FROM') or '').strip()
+
+if not EMAIL_PROVIDER:
+    if RESEND_API_KEY:
+        EMAIL_PROVIDER = 'resend'
+    elif BREVO_API_KEY:
+        EMAIL_PROVIDER = 'brevo'
+    elif SMTP_USER and SMTP_PASSWORD:
+        EMAIL_PROVIDER = 'smtp'
+
+if EMAIL_PROVIDER in ('resend', 'brevo') and not EMAIL_FROM:
+    # Both APIs reject an empty From. Fail loudly at boot rather than on a
+    # judge's forgot-password click.
+    print(f'NOTE: EMAIL_PROVIDER={EMAIL_PROVIDER} but EMAIL_FROM is empty - '
+          'password-reset emails will fail until you set it')
+elif EMAIL_PROVIDER not in ('smtp', 'resend', 'brevo'):
+    print('NOTE: no email provider configured (set EMAIL_PROVIDER and its '
+          'credentials) - password-reset emails are disabled')
 
 ALLOWED_ORIGINS = [
     "http://localhost:5000",
@@ -85,6 +109,13 @@ ALLOWED_ORIGINS = [
     "http://127.0.0.1:5000",
     "https://surjit12334-hue.github.io"
 ]
+# The live origin(s), comma separated, set in the host dashboard:
+#   APP_ORIGIN=https://manzil-bharat.onrender.com
+# Without this the deployed site falls outside the CORS allow-list and the
+# forgot-password handler refuses the page's own origin, silently rebuilding
+# reset links against whatever host the proxy forwarded.
+ALLOWED_ORIGINS += [o.strip() for o in (os.getenv('APP_ORIGIN') or '').split(',')
+                    if o.strip()]
 
 RESET_TOKEN_VALID_SECONDS = 1800
 
@@ -383,32 +414,173 @@ def verify_reset_token(token):
     return payload
 
 
-def send_reset_email(email, reset_url):
-    msg = MIMEText(
-        f'You requested to reset your Manzil Bharat password.\n\n'
-        f'Click the link below to set a new password. It is valid for 30 minutes:\n\n'
+def email_provider():
+    """The provider that would actually send right now, or '' if none is usable.
+
+    Kept separate from EMAIL_PROVIDER so a half-configured deploy (key set,
+    From missing) reads as 'not configured' instead of failing deep inside an
+    API client on a judge's click.
+    """
+    if EMAIL_PROVIDER == 'smtp':
+        return 'smtp' if (SMTP_USER and SMTP_PASSWORD) else ''
+    if EMAIL_PROVIDER == 'resend':
+        return 'resend' if (RESEND_API_KEY and EMAIL_FROM) else ''
+    if EMAIL_PROVIDER == 'brevo':
+        return 'brevo' if (BREVO_API_KEY and EMAIL_FROM) else ''
+    return ''
+
+
+_RESET_SUBJECT = 'Manzil Bharat - Password Reset'
+
+
+def _reset_email_parts(reset_url):
+    """Plain-text and HTML bodies for the reset mail."""
+    text = (
+        'You requested to reset your Manzil Bharat password.\n\n'
+        'Click the link below to set a new password. It is valid for 30 minutes:\n\n'
         f'{reset_url}\n\n'
-        f'If you did not request this, you can ignore this email.'
+        'If you did not request this, you can ignore this email.'
     )
-    msg['Subject'] = 'Manzil Bharat - Password Reset'
-    msg['From'] = SMTP_USER
-    msg['To'] = email
-    with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-        server.starttls()
-        server.login(SMTP_USER, SMTP_PASSWORD)
-        server.sendmail(SMTP_USER, [email], msg.as_string())
+    html = (
+        '<!doctype html><html><body style="font-family:Arial,sans-serif;'
+        'color:#111;line-height:1.5">'
+        '<p>You requested to reset your <strong>Manzil Bharat</strong> password.</p>'
+        '<p><a href="{url}" style="display:inline-block;padding:10px 18px;'
+        'background:#1d4ed8;color:#fff;text-decoration:none;border-radius:6px">'
+        'Set a new password</a></p>'
+        '<p style="font-size:13px;color:#555">This link is valid for 30 '
+        'minutes. If you did not request this, you can ignore this email.</p>'
+        '</body></html>'
+    ).format(url=reset_url)
+    return text, html
+
+
+def send_reset_email(email, reset_url):
+    """Send the reset link through the configured provider.
+
+    Raises on any failure: forgot_password() turns that into a 500 instead of
+    telling the user a link was sent that will never arrive.
+    """
+    provider = email_provider()
+    text, html = _reset_email_parts(reset_url)
+
+    # HTTPS APIs, port 443 - the only route that works on hosts which block
+    # outbound SMTP (Render's free plan blocks 25/465/587).
+    if provider == 'resend':
+        resp = requests.post(
+            'https://api.resend.com/emails',
+            headers={'Authorization': f'Bearer {RESEND_API_KEY}'},
+            json={'from': EMAIL_FROM, 'to': [email],
+                  'subject': _RESET_SUBJECT, 'text': text, 'html': html},
+            timeout=20
+        )
+        resp.raise_for_status()
+        return
+
+    if provider == 'brevo':
+        resp = requests.post(
+            'https://api.brevo.com/v3/smtp/email',
+            headers={'api-key': BREVO_API_KEY, 'Accept': 'application/json'},
+            json={'sender': {'email': EMAIL_FROM, 'name': 'Manzil Bharat'},
+                  'to': [{'email': email}], 'subject': _RESET_SUBJECT,
+                  'textContent': text, 'htmlContent': html},
+            timeout=20
+        )
+        resp.raise_for_status()
+        return
+
+    if provider == 'smtp':
+        msg = MIMEText(text)
+        msg['Subject'] = _RESET_SUBJECT
+        msg['From'] = SMTP_USER
+        msg['To'] = email
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.sendmail(SMTP_USER, [email], msg.as_string())
+        return
+
+    raise RuntimeError('no email provider configured')
+
+
+def _with_db_param(url, key, value):
+    """Set one keyword in a libpq URL, replacing any value already there."""
+    parts = urlsplit(url)
+    query = [kv for kv in parse_qsl(parts.query, keep_blank_values=True)
+             if kv[0] != key]
+    query.append((key, value))
+    return urlunsplit(parts._replace(query=urlencode(query)))
 
 
 def get_db():
-    conn = psycopg2.connect(
-        host=os.getenv('DB_HOST'),
-        port=os.getenv('DB_PORT'),
-        database=os.getenv('DB_NAME'),
-        user=os.getenv('DB_USER'),
-        password=os.getenv('DB_PASSWORD')
-    )
+    """Open a short-lived Postgres connection.
+
+    Hosted databases hand out a single DATABASE_URL that already carries the
+    host, credentials and sslmode (Neon and Render both set sslmode=require),
+    so that one variable wins when present. Plain DB_HOST/DB_PORT/DB_NAME/
+    DB_USER/DB_PASSWORD keep working for local dev, and DB_SSLMODE overrides
+    either side when you need to force it.
+
+    DB_CONNECT_TIMEOUT bounds the attempt: Neon scales compute to zero after
+    5 minutes, and a health check must fail fast rather than hang on a
+    sleeping instance.
+    """
+    url = (os.getenv('DATABASE_URL') or '').strip()
+    sslmode = (os.getenv('DB_SSLMODE') or '').strip()
+    timeout = (os.getenv('DB_CONNECT_TIMEOUT') or '').strip() or '5'
+    try:
+        timeout = str(max(1, int(timeout)))
+    except ValueError:
+        timeout = '5'
+
+    if url:
+        # Some consoles still print postgres://; psycopg2 only accepts
+        # postgresql:// and rejects the older scheme outright.
+        if url.startswith('postgres://'):
+            url = 'postgresql://' + url[len('postgres://'):]
+        if sslmode:
+            url = _with_db_param(url, 'sslmode', sslmode)
+        conn = psycopg2.connect(_with_db_param(url, 'connect_timeout', timeout))
+    else:
+        kwargs = dict(
+            host=os.getenv('DB_HOST'),
+            port=os.getenv('DB_PORT'),
+            database=os.getenv('DB_NAME'),
+            user=os.getenv('DB_USER'),
+            password=os.getenv('DB_PASSWORD'),
+            connect_timeout=int(timeout)
+        )
+        if sslmode:
+            kwargs['sslmode'] = sslmode
+        conn = psycopg2.connect(**kwargs)
     conn.autocommit = False
     return conn
+
+
+@app.route('/api/health')
+def health():
+    """Readiness probe: Render's healthCheckPath and the post-deploy smoke test.
+
+    Answers 503 when the database cannot be reached, so a deploy with a bad
+    DATABASE_URL fails visibly instead of serving 500s on every page. The probe
+    is a bare SELECT 1 bounded by DB_CONNECT_TIMEOUT, which keeps it inside the
+    health-check budget even while a Neon instance wakes from scale-to-zero.
+    Deliberately not rate-limited: the host polls it.
+    """
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute('SELECT 1')
+        cur.fetchone()
+        cur.close()
+        return jsonify({'status': 'ok', 'db': 'ok'}), 200
+    except Exception:
+        app.logger.exception('health check: database unreachable')
+        return jsonify({'status': 'degraded', 'db': 'error'}), 503
+    finally:
+        if conn:
+            conn.close()
 
 
 def verify_google_token(credential):
@@ -648,8 +820,9 @@ def forgot_password():
 
     # Truthiness, not `is None`: `SMTP_USER=` in .env yields an empty string,
     # which must count as "not configured" instead of attempting a login
-    # with no credentials and failing with a misleading send error.
-    if not SMTP_USER or not SMTP_PASSWORD:
+    # with no credentials and failing with a misleading send error. The same
+    # now covers a resend/brevo config missing its API key or From address.
+    if not email_provider():
         return jsonify({'error': 'Email service is not configured on the server'}), 500
 
     conn = None
