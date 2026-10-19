@@ -302,12 +302,24 @@ Goal: a live URL you can share anywhere.
          - gzip via the host or Flask middleware (flask-compress,
            free)
 
-  [ ] 6. OG + meta tags (1-2 h)                                     [h]
-         - <meta name="description"> on all 17 pages
-         - og:title, og:description, og:image, og:url, twitter:card
-         - use icon.png / a cropped hero as og:image (<=1 MB)
-         WHY: WhatsApp/X previews are your viral loop; 15 pages
-         currently share as plain text.
+  [x] 6. OG + meta tags (1-2 h)                                     [h] DONE
+         - There are 16 pages, not 17. 14 already had a real, unique
+           <meta name="description">; admin.html, map.html and
+           reset-password.html had none and got one written for them.
+         - NEW og-image.jpg: 1200x630, 98 KB, built from the compressed
+           hero + brand-navy scrim + orange accent bar (Pillow). Under
+           the 1 MB limit WhatsApp enforces.
+         - Every page now carries: canonical + og:site_name/type/title/
+           description/url/image(+width/height/alt) + twitter:card
+           (summary_large_image)/title/description/image. og:url and
+           og:image are ABSOLUTE - relative URLs are ignored by
+           WhatsApp/X, which was half of the original problem.
+         - index.html already had 3 partial og tags; they were replaced
+           (not duplicated) by the full block - verified: every tag
+           appears exactly once on every page.
+         - CAVEAT: the URLs are hardcoded to https://manzilbharat.
+           onrender.com. Moving to a custom domain means updating them
+           (or generating them from APP_ORIGIN).
 
   DONE WHEN: https://your-app.on-render.com loads in <3s on mobile
   throttling, and sign up + booking works on that URL.
