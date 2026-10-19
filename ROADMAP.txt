@@ -441,10 +441,40 @@ Goal: stop the "fix everything" -> "break something" commit cycle.
          VERIFIED: 51 passed twice; dev DB still 13 users / 7 bookings; the
          test DB ends empty.
 
-  [ ] 3. CI with GitHub Actions (1 h)                               [h]
-         - .github/workflows/ci.yml: install deps, run pytest
-         - Free for public repos
-         - Make it required: no green check, no merge
+  [ ] 3. CI with GitHub Actions (1 h)                               [h] CI RUNS GREEN;
+                                                                        branch protection
+                                                                        left (manual)
+         .github/workflows/ci.yml: one job, "pytest (Python 3.12)", on
+         ubuntu-latest with a postgres:16 service container. Reasons:
+           - Python 3.12 == Dockerfile's python:3.12-slim, the interpreter
+             Render builds, so "green here" == "works in production". (Dev is
+             3.14, which is why the mismatch was worth pinning down.)
+           - Postgres, not SQLite: the app's SQL and ON DELETE CASCADE are
+             part of what is being proven. conftest applies schema.sql and
+             truncates between tests; it refuses a DB name without "test".
+           - No repository secrets. conftest sets JWT_SECRET/ADMIN_EMAIL/
+             ADMIN_PASSWORD, forces EMAIL_PROVIDER=disabled and blanks
+             GEMINI_API_KEY, so CI cannot mail anyone or spend the live AI
+             quota - it could not even if a secret leaked into the config.
+           - Runs on every branch (not only main) so a phase branch gets a
+             verdict before a PR exists; concurrency cancels superseded runs;
+             a step fails the build if .env is ever tracked.
+         SIMULATED LOCAL RUN BEFORE PUSHING, both with and without .env
+         (CI has no .env): 51 passed each time.
+         FIRST REAL RUN: commit dd2b728 -> success, check name
+         "pytest (Python 3.12)"
+         https://github.com/surjit12334-hue/manzilbharat/actions/runs/39292913999
+         REMAINING (manual, in the GitHub UI): require that check on main.
+         GOTCHA: GitHub only lists a status check in the protection picker
+         once it has run on the DEFAULT branch, so phase-1-product must be
+         merged into main first - which we wanted anyway.
+         FOUND WHILE LOOKING: main also publishes a legacy GitHub Pages site
+         (Settings -> Pages, deploy from branch) at
+         https://surjit12334-hue.github.io/manzilbharat/ - live today. It
+         serves the same frontend, but API_BASE is '' (same-origin), so from
+         github.io every API call (login, bookings, AI) hits github.io and
+         404s: the static pages work, the features do not. Decide in Phase 6
+         whether to point it at the Render API or leave it alone.
 
   [ ] 4. Lint (30 m)                                                [m]
          - ruff (Python) + a JS formatter. One config file each.
