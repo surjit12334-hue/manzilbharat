@@ -441,9 +441,7 @@ Goal: stop the "fix everything" -> "break something" commit cycle.
          VERIFIED: 51 passed twice; dev DB still 13 users / 7 bookings; the
          test DB ends empty.
 
-  [ ] 3. CI with GitHub Actions (1 h)                               [h] CI RUNS GREEN;
-                                                                        branch protection
-                                                                        left (manual)
+  [x] 3. CI with GitHub Actions (1 h)                               [h] DONE
          .github/workflows/ci.yml: one job, "pytest (Python 3.12)", on
          ubuntu-latest with a postgres:16 service container. Reasons:
            - Python 3.12 == Dockerfile's python:3.12-slim, the interpreter
@@ -458,16 +456,28 @@ Goal: stop the "fix everything" -> "break something" commit cycle.
              quota - it could not even if a secret leaked into the config.
            - Runs on every branch (not only main) so a phase branch gets a
              verdict before a PR exists; concurrency cancels superseded runs;
-             a step fails the build if .env is ever tracked.
-         SIMULATED LOCAL RUN BEFORE PUSHING, both with and without .env
-         (CI has no .env): 51 passed each time.
-         FIRST REAL RUN: commit dd2b728 -> success, check name
-         "pytest (Python 3.12)"
+             a step fails the build if .env is ever tracked (public repo).
+         SIMULATED FIRST, with and without .env (CI has none): 51 passed
+         each time. First real run dd2b728 -> success.
          https://github.com/surjit12334-hue/manzilbharat/actions/runs/39292913999
-         REMAINING (manual, in the GitHub UI): require that check on main.
-         GOTCHA: GitHub only lists a status check in the protection picker
-         once it has run on the DEFAULT branch, so phase-1-product must be
-         merged into main first - which we wanted anyway.
+         MERGED: PR #1 "Phase 1 product" (phase-1-product -> main), merge
+         commit e791f53 - 28 commits, 50 files, +4224/-263 - and CI passed
+         on main for that push. Render deploys from phase-1-product, so the
+         live site was untouched by the merge.
+         PROTECTION (read back from the API after the final save):
+             ruleset "protect main", active, targets main, empty bypass list
+             rules: deletion, non_fast_forward,
+                    required_status_checks = ["pytest (Python 3.12)"],
+                    strict off
+         ONE WRONG TURN worth remembering: the first save enabled "Restrict
+         creations" + "Restrict updates" instead of the status check, with an
+         empty bypass list. That FROZE main - nobody, including us, could
+         push to it or merge a PR into it - while still looking "protected"
+         in the UI. Fixed by switching those two off and adding Require
+         status checks -> pytest (Python 3.12).
+         GOTCHA: GitHub only offers a status check in the protection picker
+         once it has run on the DEFAULT branch, so the merge to main had to
+         come before the protection rule.
          FOUND WHILE LOOKING: main also publishes a legacy GitHub Pages site
          (Settings -> Pages, deploy from branch) at
          https://surjit12334-hue.github.io/manzilbharat/ - live today. It
