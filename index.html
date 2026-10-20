@@ -1,432 +1,1151 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Manzil Bharat - Let's Travel Together</title>
-    <link rel="icon" type="image/png" href="icon.png">
+    <link rel="icon" type="image/png" href="icon.png" />
     <!-- The hero background is this page's LCP element (above the fold), so
          fetch it early and at high priority. Other pages use the same image
          only as a dimmed backdrop below the fold, so they don't preload it. -->
-    <link rel="preload" as="image" href="homebackground.jpg" fetchpriority="high">
-    <meta name="description" content="Manzil Bharat - Your trusted travel partner for cabs, bikes, flights, trains, buses, hotels, and more across India.">
-    <link rel="canonical" href="https://manzilbharat.onrender.com/">
+    <link rel="preload" as="image" href="homebackground.jpg" fetchpriority="high" />
+    <meta
+      name="description"
+      content="Manzil Bharat - Your trusted travel partner for cabs, bikes, flights, trains, buses, hotels, and more across India."
+    />
+    <link rel="canonical" href="https://manzilbharat.onrender.com/" />
     <!-- Social previews: absolute og:url/og:image are required, relative ones
          are ignored by WhatsApp/X. The card is a 1200x630 JPEG. -->
-    <meta property="og:site_name" content="Manzil Bharat">
-    <meta property="og:type" content="website">
-    <meta property="og:title" content="Manzil Bharat - Let's Travel Together">
-    <meta property="og:description" content="Manzil Bharat - Your trusted travel partner for cabs, bikes, flights, trains, buses, hotels, and more across India.">
-    <meta property="og:url" content="https://manzilbharat.onrender.com/">
-    <meta property="og:image" content="https://manzilbharat.onrender.com/og-image.jpg">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
-    <meta property="og:image:alt" content="Manzil Bharat - Let's Travel Together">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Manzil Bharat - Let's Travel Together">
-    <meta name="twitter:description" content="Manzil Bharat - Your trusted travel partner for cabs, bikes, flights, trains, buses, hotels, and more across India.">
-    <meta name="twitter:image" content="https://manzilbharat.onrender.com/og-image.jpg">
-    <meta name="keywords" content="travel, India, cabs, bikes, flights, trains, buses, hotels, booking, Manzil Bharat">
-    <meta name="author" content="Manzil Bharat">
+    <meta property="og:site_name" content="Manzil Bharat" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Manzil Bharat - Let's Travel Together" />
+    <meta
+      property="og:description"
+      content="Manzil Bharat - Your trusted travel partner for cabs, bikes, flights, trains, buses, hotels, and more across India."
+    />
+    <meta property="og:url" content="https://manzilbharat.onrender.com/" />
+    <meta property="og:image" content="https://manzilbharat.onrender.com/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Manzil Bharat - Let's Travel Together" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Manzil Bharat - Let's Travel Together" />
+    <meta
+      name="twitter:description"
+      content="Manzil Bharat - Your trusted travel partner for cabs, bikes, flights, trains, buses, hotels, and more across India."
+    />
+    <meta name="twitter:image" content="https://manzilbharat.onrender.com/og-image.jpg" />
+    <meta
+      name="keywords"
+      content="travel, India, cabs, bikes, flights, trains, buses, hotels, booking, Manzil Bharat"
+    />
+    <meta name="author" content="Manzil Bharat" />
 
-    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html { font-size: 16px; scroll-behavior: smooth; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; overflow-x: hidden; }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html {
+        font-size: 16px;
+        scroll-behavior: smooth;
+      }
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        overflow-x: hidden;
+      }
 
-        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        .hero { position: relative; min-height: 100vh; background: linear-gradient(135deg, rgba(26,35,126,0.7), rgba(255,107,53,0.5)), url('homebackground.jpg') center/cover no-repeat; display: flex; align-items: center; justify-content: center; text-align: center; color: white; padding: 5rem 5% 3rem; }
-
-        .auth-section { position: absolute; right: 30px; top: 30px; display: flex; align-items: center; gap: 1rem; z-index: 1000; flex-wrap: wrap; justify-content: flex-end; animation: fadeIn 0.8s ease-out; }
-        .auth-section a { text-decoration: none; color: white; font-weight: 500; padding: 0.6rem 1.2rem; border-radius: 25px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); white-space: nowrap; }
-        .auth-section .login-btn { border: 2px solid rgba(255,255,255,0.7); backdrop-filter: blur(4px); background: rgba(255,255,255,0.05); }
-        .auth-section .login-btn:hover { background: rgba(255,255,255,0.2); border-color: white; transform: translateY(-2px); box-shadow: 0 4px 15px rgba(255,255,255,0.15); }
-        .auth-section .signup-btn { background: linear-gradient(135deg, #FF6B35, #E65100); border: 2px solid transparent; box-shadow: 0 4px 15px rgba(255,107,53,0.3); }
-        .auth-section .signup-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(255,107,53,0.5); }
-        .auth-section .admin-btn { border: 2px solid rgba(255,255,255,0.5); backdrop-filter: blur(4px); background: rgba(255,255,255,0.08); padding: 0.6rem 0.9rem; }
-        .auth-section .admin-btn:hover { background: rgba(255,255,255,0.25); border-color: white; transform: translateY(-2px); box-shadow: 0 4px 15px rgba(255,255,255,0.15); }
-
-        .hero-content { max-width: 800px; width: 100%; animation: fadeInUp 1s ease-out; }
-        .hero-content h1 { font-size: clamp(2rem, 5vw, 3.5rem); margin-bottom: 1rem; text-shadow: 2px 2px 8px rgba(0,0,0,0.3); letter-spacing: -0.5px; }
-        .hero-content p { font-size: clamp(1rem, 2.5vw, 1.3rem); margin-bottom: 2rem; max-width: 600px; margin-left: auto; margin-right: auto; opacity: 0.9; }
-
-        .search-bar { background: white; padding: 0.5rem; border-radius: 50px; display: flex; gap: 0.5rem; margin-top: 2rem; box-shadow: 0 10px 40px rgba(0,0,0,0.2); max-width: 600px; margin-left: auto; margin-right: auto; animation: fadeInUp 1.2s ease-out; transition: box-shadow 0.3s ease; }
-        .search-bar:focus-within { box-shadow: 0 10px 50px rgba(0,0,0,0.3), 0 0 0 3px rgba(255,107,53,0.2); }
-        .search-bar input { flex: 1; border: none; padding: 0.8rem 1rem; font-size: 1rem; outline: none; min-width: 0; background: transparent; }
-        .search-bar button { background: linear-gradient(135deg, #FF6B35, #E65100); color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 25px; cursor: pointer; font-weight: 600; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); white-space: nowrap; }
-        .search-bar button:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(255,107,53,0.4); }
-        .search-bar button:active { transform: translateY(0); }
-
-        .search-wrap { position: relative; max-width: 600px; margin-left: auto; margin-right: auto; }
-
-        .ai-panel { background: white; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.25); max-width: 620px; margin: 12px auto 0; padding: 1.4rem 1.6rem; display: none; text-align: left; color: #333; animation: fadeInUp 0.4s ease-out; z-index: 600; position: relative; }
-        .ai-panel .ai-title { display: flex; align-items: center; gap: 0.7rem; font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; }
-        .ai-panel .ai-title i { color: #FF6B35; }
-        .ai-panel .ai-body { font-size: 0.95rem; line-height: 1.7; white-space: pre-wrap; }
-        .ai-panel .ai-body strong { color: #E65100; }
-        .ai-panel .ai-loading { display: flex; align-items: center; gap: 0.7rem; color: #5a6a8a; }
-        .ai-panel .ai-loading .spinner { width: 18px; height: 18px; border: 3px solid #ffe0d1; border-top-color: #FF6B35; border-radius: 50%; animation: spin 0.8s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .ai-panel .ai-err { color: #e74c3c; font-size: 0.9rem; }
-        .ai-panel .ai-hint { color: #5a6a8a; font-size: 0.8rem; margin-top: 0.8rem; }
-
-        .search-dropdown { position: absolute; top: 100%; left: 0; right: 0; margin-top: 8px; background: white; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.25); overflow: hidden; display: none; z-index: 700; text-align: left; }
-        .search-dropdown .sd-item { display: flex; align-items: flex-start; gap: 0.75rem; width: 100%; padding: 0.75rem 1rem; border: none; background: none; cursor: pointer; font-size: 0.92rem; color: #333; text-align: left; transition: background 0.2s ease; border-bottom: 1px solid #f0f2f6; }
-        .search-dropdown .sd-item:last-child { border-bottom: none; }
-        .search-dropdown .sd-item:hover { background: #fff4ee; }
-        .search-dropdown .sd-item i { color: #FF6B35; margin-top: 4px; }
-        .search-dropdown .sd-name { font-weight: 600; }
-        .search-dropdown .sd-region { color: #5a6a8a; font-size: 0.82rem; }
-        .search-dropdown .sd-empty { padding: 1rem; color: #5a6a8a; font-size: 0.9rem; text-align: center; }
-
-        footer { background: linear-gradient(180deg, #0a1628 0%, #0d1f3c 100%); color: white; padding: 0; position: relative; }
-        footer::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #FF6B35, #FFD700, #FF6B35); }
-        .footer-top { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1.5fr; gap: 3rem; max-width: 1400px; margin: 0 auto; padding: 4rem 5% 3rem; }
-        .footer-brand { padding-right: 2rem; }
-        .footer-logo { font-family: 'Pacifico', cursive; font-size: 2rem; color: #FF6B35; text-decoration: none; display: inline-block; margin-bottom: 1rem; }
-        .footer-tagline { color: #8892b0; font-size: 1rem; line-height: 1.8; margin-bottom: 1.5rem; }
-        .footer-social { display: flex; gap: 0.8rem; }
-        .footer-social a { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; background: rgba(255,107,53,0.1); border: 1px solid rgba(255,107,53,0.3); border-radius: 10px; color: #FF6B35; text-decoration: none; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .footer-social a:hover { background: #FF6B35; color: white; transform: translateY(-3px); box-shadow: 0 5px 20px rgba(255,107,53,0.4); }
-        .footer-col h4 { font-size: 1.1rem; font-weight: 600; margin-bottom: 1.5rem; color: white; position: relative; padding-bottom: 0.8rem; }
-        .footer-col h4::after { content: ''; position: absolute; bottom: 0; left: 0; width: 40px; height: 3px; background: #FF6B35; border-radius: 2px; }
-        .footer-col ul { list-style: none; }
-        .footer-col ul li { margin-bottom: 0.8rem; }
-        .footer-col ul li a { color: #8892b0; text-decoration: none; font-size: 0.95rem; transition: all 0.3s ease; }
-        .footer-col ul li a:hover { color: #FF6B35; padding-left: 5px; }
-        .footer-newsletter { background: rgba(255,107,53,0.05); border: 1px solid rgba(255,107,53,0.2); border-radius: 16px; padding: 1.5rem; }
-        .footer-newsletter h4 { margin-bottom: 0.8rem; position: relative; padding-bottom: 0.8rem; }
-        .footer-newsletter h4::after { content: ''; position: absolute; bottom: 0; left: 0; width: 40px; height: 3px; background: #FF6B35; border-radius: 2px; }
-        .footer-newsletter p { color: #8892b0; font-size: 0.9rem; margin-bottom: 1rem; }
-        .newsletter-form { display: flex; gap: 0.5rem; }
-        .newsletter-form input { flex: 1; padding: 0.8rem 1rem; border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; background: rgba(255,255,255,0.05); color: white; font-size: 0.9rem; outline: none; transition: all 0.3s ease; }
-        .newsletter-form input::placeholder { color: #5a6a8a; }
-        .newsletter-form input:focus { border-color: #FF6B35; background: rgba(255,255,255,0.08); box-shadow: 0 0 0 3px rgba(255,107,53,0.1); }
-        .newsletter-form button { background: linear-gradient(135deg, #FF6B35, #E65100); color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .newsletter-form button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255,107,53,0.4); }
-        .newsletter-form button:disabled { opacity: 0.6; cursor: wait; transform: none; }
-        .newsletter-status { min-height: 1.1rem; margin-top: 0.5rem; font-size: 0.82rem; }
-        .newsletter-status.ok { color: #27ae60; }
-        .newsletter-status.err { color: #e74c3c; }
-        .footer-apps { margin-top: 1.5rem; }
-        .footer-apps p { color: #8892b0; font-size: 0.85rem; margin-bottom: 0.8rem; }
-        .app-buttons { display: flex; gap: 0.8rem; }
-        .app-btn { display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 0.6rem 1rem; border-radius: 10px; color: white; text-decoration: none; font-size: 0.8rem; transition: all 0.3s ease; }
-        .app-btn:hover { background: rgba(255,107,53,0.1); border-color: #FF6B35; }
-        .app-btn i { font-size: 1.3rem; color: #FF6B35; }
-        .app-btn span { font-size: 0.65rem; color: #8892b0; }
-        .app-btn strong { display: block; font-size: 0.85rem; }
-        .footer-middle { background: rgba(255,255,255,0.02); border-top: 1px solid rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .footer-links-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2rem; max-width: 1400px; margin: 0 auto; padding: 3rem 5%; }
-        .footer-links-col h5 { font-size: 1rem; font-weight: 600; margin-bottom: 1.2rem; color: #FF6B35; position: relative; padding-bottom: 0.8rem; }
-        .footer-links-col h5::after { content: ''; position: absolute; bottom: 0; left: 0; width: 40px; height: 3px; background: #FF6B35; border-radius: 2px; }
-        .footer-links-col ul { list-style: none; }
-        .footer-links-col ul li { margin-bottom: 0.6rem; color: #6b7a99; font-size: 0.9rem; }
-        .footer-links-col ul li a { color: #6b7a99; text-decoration: none; font-size: 0.9rem; transition: color 0.3s ease; }
-        .footer-links-col ul li a:hover { color: #FF6B35; }
-        .footer-bottom { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem; max-width: 1400px; margin: 0 auto; padding: 2rem 5%; border-top: 1px solid rgba(255,255,255,0.05); }
-        .footer-copyright { color: #5a6a8a; font-size: 0.9rem; }
-        .footer-copyright a { color: #FF6B35; text-decoration: none; }
-        .footer-payments { display: flex; align-items: center; gap: 1rem; }
-        .footer-payments span { color: #5a6a8a; font-size: 0.85rem; }
-        .payment-icons { display: flex; gap: 0.5rem; }
-        .payment-icons i { font-size: 1.5rem; color: #6b7a99; transition: color 0.3s ease; }
-        .payment-icons i:hover { color: #FF6B35; }
-
-        @media (max-width: 480px) {
-            .auth-section { right: 2%; top: 10px; gap: 0.3rem; flex-wrap: nowrap; }
-            .auth-section a { padding: 0.3rem 0.6rem; font-size: 0.75rem; }
-            .footer-top { grid-template-columns: 1fr; }
-            .footer-brand { text-align: center; padding-right: 0; }
-            .footer-social { justify-content: center; }
-            .footer-col { text-align: center; }
-            .footer-col h4::after { left: 50%; transform: translateX(-50%); }
-            .footer-newsletter h4::after { left: 50%; transform: translateX(-50%); }
-            .footer-newsletter { text-align: center; }
-            .newsletter-form { flex-direction: column; }
-            .app-buttons { justify-content: center; }
-            .footer-links-grid { grid-template-columns: 1fr; }
-            .footer-links-col { text-align: center; }
-            .footer-bottom { flex-direction: column; text-align: center; }
-            .footer-payments { flex-wrap: wrap; justify-content: center; }
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
         }
-        @media (min-width: 481px) and (max-width: 768px) {
-            .footer-top { grid-template-columns: 1fr; }
-            .footer-brand { text-align: center; padding-right: 0; }
-            .footer-links-grid { grid-template-columns: repeat(2, 1fr); }
+        to {
+          opacity: 1;
+          transform: translateY(0);
         }
-        @media (min-width: 769px) and (max-width: 1199px) {
-            .footer-top { grid-template-columns: repeat(2, 1fr); }
-            .footer-brand { grid-column: span 2; text-align: center; padding-right: 0; }
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
         }
-        @media (max-height: 500px) and (orientation: landscape) {
-            .hero { min-height: auto; padding: 1.5rem 5%; }
-            .hero-content h1 { font-size: 1.5rem; }
-            .hero-content p { font-size: 0.9rem; margin-bottom: 1rem; }
+        to {
+          opacity: 1;
         }
-        @media print { .auth-section, .search-bar { display: none; } .hero { height: auto; background: none; color: black; } footer { background: none; color: black; } }
+      }
+
+      .hero {
+        position: relative;
+        min-height: 100vh;
+        background:
+          linear-gradient(135deg, rgba(26, 35, 126, 0.7), rgba(255, 107, 53, 0.5)),
+          url('homebackground.jpg') center/cover no-repeat;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        color: white;
+        padding: 5rem 5% 3rem;
+      }
+
+      .auth-section {
+        position: absolute;
+        right: 30px;
+        top: 30px;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        z-index: 1000;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        animation: fadeIn 0.8s ease-out;
+      }
+      .auth-section a {
+        text-decoration: none;
+        color: white;
+        font-weight: 500;
+        padding: 0.6rem 1.2rem;
+        border-radius: 25px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        white-space: nowrap;
+      }
+      .auth-section .login-btn {
+        border: 2px solid rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(4px);
+        background: rgba(255, 255, 255, 0.05);
+      }
+      .auth-section .login-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+        border-color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(255, 255, 255, 0.15);
+      }
+      .auth-section .signup-btn {
+        background: linear-gradient(135deg, #ff6b35, #e65100);
+        border: 2px solid transparent;
+        box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+      }
+      .auth-section .signup-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(255, 107, 53, 0.5);
+      }
+      .auth-section .admin-btn {
+        border: 2px solid rgba(255, 255, 255, 0.5);
+        backdrop-filter: blur(4px);
+        background: rgba(255, 255, 255, 0.08);
+        padding: 0.6rem 0.9rem;
+      }
+      .auth-section .admin-btn:hover {
+        background: rgba(255, 255, 255, 0.25);
+        border-color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(255, 255, 255, 0.15);
+      }
+
+      .hero-content {
+        max-width: 800px;
+        width: 100%;
+        animation: fadeInUp 1s ease-out;
+      }
+      .hero-content h1 {
+        font-size: clamp(2rem, 5vw, 3.5rem);
+        margin-bottom: 1rem;
+        text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+        letter-spacing: -0.5px;
+      }
+      .hero-content p {
+        font-size: clamp(1rem, 2.5vw, 1.3rem);
+        margin-bottom: 2rem;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+        opacity: 0.9;
+      }
+
+      .search-bar {
+        background: white;
+        padding: 0.5rem;
+        border-radius: 50px;
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 2rem;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+        animation: fadeInUp 1.2s ease-out;
+        transition: box-shadow 0.3s ease;
+      }
+      .search-bar:focus-within {
+        box-shadow:
+          0 10px 50px rgba(0, 0, 0, 0.3),
+          0 0 0 3px rgba(255, 107, 53, 0.2);
+      }
+      .search-bar input {
+        flex: 1;
+        border: none;
+        padding: 0.8rem 1rem;
+        font-size: 1rem;
+        outline: none;
+        min-width: 0;
+        background: transparent;
+      }
+      .search-bar button {
+        background: linear-gradient(135deg, #ff6b35, #e65100);
+        color: white;
+        border: none;
+        padding: 0.8rem 1.5rem;
+        border-radius: 25px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        white-space: nowrap;
+      }
+      .search-bar button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
+      }
+      .search-bar button:active {
+        transform: translateY(0);
+      }
+
+      .search-wrap {
+        position: relative;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .ai-panel {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+        max-width: 620px;
+        margin: 12px auto 0;
+        padding: 1.4rem 1.6rem;
+        display: none;
+        text-align: left;
+        color: #333;
+        animation: fadeInUp 0.4s ease-out;
+        z-index: 600;
+        position: relative;
+      }
+      .ai-panel .ai-title {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+      }
+      .ai-panel .ai-title i {
+        color: #ff6b35;
+      }
+      .ai-panel .ai-body {
+        font-size: 0.95rem;
+        line-height: 1.7;
+        white-space: pre-wrap;
+      }
+      .ai-panel .ai-body strong {
+        color: #e65100;
+      }
+      .ai-panel .ai-loading {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        color: #5a6a8a;
+      }
+      .ai-panel .ai-loading .spinner {
+        width: 18px;
+        height: 18px;
+        border: 3px solid #ffe0d1;
+        border-top-color: #ff6b35;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .ai-panel .ai-err {
+        color: #e74c3c;
+        font-size: 0.9rem;
+      }
+      .ai-panel .ai-hint {
+        color: #5a6a8a;
+        font-size: 0.8rem;
+        margin-top: 0.8rem;
+      }
+
+      .search-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        margin-top: 8px;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+        overflow: hidden;
+        display: none;
+        z-index: 700;
+        text-align: left;
+      }
+      .search-dropdown .sd-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: none;
+        background: none;
+        cursor: pointer;
+        font-size: 0.92rem;
+        color: #333;
+        text-align: left;
+        transition: background 0.2s ease;
+        border-bottom: 1px solid #f0f2f6;
+      }
+      .search-dropdown .sd-item:last-child {
+        border-bottom: none;
+      }
+      .search-dropdown .sd-item:hover {
+        background: #fff4ee;
+      }
+      .search-dropdown .sd-item i {
+        color: #ff6b35;
+        margin-top: 4px;
+      }
+      .search-dropdown .sd-name {
+        font-weight: 600;
+      }
+      .search-dropdown .sd-region {
+        color: #5a6a8a;
+        font-size: 0.82rem;
+      }
+      .search-dropdown .sd-empty {
+        padding: 1rem;
+        color: #5a6a8a;
+        font-size: 0.9rem;
+        text-align: center;
+      }
+
+      footer {
+        background: linear-gradient(180deg, #0a1628 0%, #0d1f3c 100%);
+        color: white;
+        padding: 0;
+        position: relative;
+      }
+      footer::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #ff6b35, #ffd700, #ff6b35);
+      }
+      .footer-top {
+        display: grid;
+        grid-template-columns: 1.5fr 1fr 1fr 1.5fr;
+        gap: 3rem;
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 4rem 5% 3rem;
+      }
+      .footer-brand {
+        padding-right: 2rem;
+      }
+      .footer-logo {
+        font-family: 'Pacifico', cursive;
+        font-size: 2rem;
+        color: #ff6b35;
+        text-decoration: none;
+        display: inline-block;
+        margin-bottom: 1rem;
+      }
+      .footer-tagline {
+        color: #8892b0;
+        font-size: 1rem;
+        line-height: 1.8;
+        margin-bottom: 1.5rem;
+      }
+      .footer-social {
+        display: flex;
+        gap: 0.8rem;
+      }
+      .footer-social a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 42px;
+        height: 42px;
+        background: rgba(255, 107, 53, 0.1);
+        border: 1px solid rgba(255, 107, 53, 0.3);
+        border-radius: 10px;
+        color: #ff6b35;
+        text-decoration: none;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .footer-social a:hover {
+        background: #ff6b35;
+        color: white;
+        transform: translateY(-3px);
+        box-shadow: 0 5px 20px rgba(255, 107, 53, 0.4);
+      }
+      .footer-col h4 {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        color: white;
+        position: relative;
+        padding-bottom: 0.8rem;
+      }
+      .footer-col h4::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 40px;
+        height: 3px;
+        background: #ff6b35;
+        border-radius: 2px;
+      }
+      .footer-col ul {
+        list-style: none;
+      }
+      .footer-col ul li {
+        margin-bottom: 0.8rem;
+      }
+      .footer-col ul li a {
+        color: #8892b0;
+        text-decoration: none;
+        font-size: 0.95rem;
+        transition: all 0.3s ease;
+      }
+      .footer-col ul li a:hover {
+        color: #ff6b35;
+        padding-left: 5px;
+      }
+      .footer-newsletter {
+        background: rgba(255, 107, 53, 0.05);
+        border: 1px solid rgba(255, 107, 53, 0.2);
+        border-radius: 16px;
+        padding: 1.5rem;
+      }
+      .footer-newsletter h4 {
+        margin-bottom: 0.8rem;
+        position: relative;
+        padding-bottom: 0.8rem;
+      }
+      .footer-newsletter h4::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 40px;
+        height: 3px;
+        background: #ff6b35;
+        border-radius: 2px;
+      }
+      .footer-newsletter p {
+        color: #8892b0;
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+      }
+      .newsletter-form {
+        display: flex;
+        gap: 0.5rem;
+      }
+      .newsletter-form input {
+        flex: 1;
+        padding: 0.8rem 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.05);
+        color: white;
+        font-size: 0.9rem;
+        outline: none;
+        transition: all 0.3s ease;
+      }
+      .newsletter-form input::placeholder {
+        color: #5a6a8a;
+      }
+      .newsletter-form input:focus {
+        border-color: #ff6b35;
+        background: rgba(255, 255, 255, 0.08);
+        box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+      }
+      .newsletter-form button {
+        background: linear-gradient(135deg, #ff6b35, #e65100);
+        color: white;
+        border: none;
+        padding: 0.8rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .newsletter-form button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(255, 107, 53, 0.4);
+      }
+      .newsletter-form button:disabled {
+        opacity: 0.6;
+        cursor: wait;
+        transform: none;
+      }
+      .newsletter-status {
+        min-height: 1.1rem;
+        margin-top: 0.5rem;
+        font-size: 0.82rem;
+      }
+      .newsletter-status.ok {
+        color: #27ae60;
+      }
+      .newsletter-status.err {
+        color: #e74c3c;
+      }
+      .footer-apps {
+        margin-top: 1.5rem;
+      }
+      .footer-apps p {
+        color: #8892b0;
+        font-size: 0.85rem;
+        margin-bottom: 0.8rem;
+      }
+      .app-buttons {
+        display: flex;
+        gap: 0.8rem;
+      }
+      .app-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 0.6rem 1rem;
+        border-radius: 10px;
+        color: white;
+        text-decoration: none;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+      }
+      .app-btn:hover {
+        background: rgba(255, 107, 53, 0.1);
+        border-color: #ff6b35;
+      }
+      .app-btn i {
+        font-size: 1.3rem;
+        color: #ff6b35;
+      }
+      .app-btn span {
+        font-size: 0.65rem;
+        color: #8892b0;
+      }
+      .app-btn strong {
+        display: block;
+        font-size: 0.85rem;
+      }
+      .footer-middle {
+        background: rgba(255, 255, 255, 0.02);
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      }
+      .footer-links-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 2rem;
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 3rem 5%;
+      }
+      .footer-links-col h5 {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 1.2rem;
+        color: #ff6b35;
+        position: relative;
+        padding-bottom: 0.8rem;
+      }
+      .footer-links-col h5::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 40px;
+        height: 3px;
+        background: #ff6b35;
+        border-radius: 2px;
+      }
+      .footer-links-col ul {
+        list-style: none;
+      }
+      .footer-links-col ul li {
+        margin-bottom: 0.6rem;
+        color: #6b7a99;
+        font-size: 0.9rem;
+      }
+      .footer-links-col ul li a {
+        color: #6b7a99;
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: color 0.3s ease;
+      }
+      .footer-links-col ul li a:hover {
+        color: #ff6b35;
+      }
+      .footer-bottom {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 2rem 5%;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+      }
+      .footer-copyright {
+        color: #5a6a8a;
+        font-size: 0.9rem;
+      }
+      .footer-copyright a {
+        color: #ff6b35;
+        text-decoration: none;
+      }
+      .footer-payments {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+      .footer-payments span {
+        color: #5a6a8a;
+        font-size: 0.85rem;
+      }
+      .payment-icons {
+        display: flex;
+        gap: 0.5rem;
+      }
+      .payment-icons i {
+        font-size: 1.5rem;
+        color: #6b7a99;
+        transition: color 0.3s ease;
+      }
+      .payment-icons i:hover {
+        color: #ff6b35;
+      }
+
+      @media (max-width: 480px) {
+        .auth-section {
+          right: 2%;
+          top: 10px;
+          gap: 0.3rem;
+          flex-wrap: nowrap;
+        }
+        .auth-section a {
+          padding: 0.3rem 0.6rem;
+          font-size: 0.75rem;
+        }
+        .footer-top {
+          grid-template-columns: 1fr;
+        }
+        .footer-brand {
+          text-align: center;
+          padding-right: 0;
+        }
+        .footer-social {
+          justify-content: center;
+        }
+        .footer-col {
+          text-align: center;
+        }
+        .footer-col h4::after {
+          left: 50%;
+          transform: translateX(-50%);
+        }
+        .footer-newsletter h4::after {
+          left: 50%;
+          transform: translateX(-50%);
+        }
+        .footer-newsletter {
+          text-align: center;
+        }
+        .newsletter-form {
+          flex-direction: column;
+        }
+        .app-buttons {
+          justify-content: center;
+        }
+        .footer-links-grid {
+          grid-template-columns: 1fr;
+        }
+        .footer-links-col {
+          text-align: center;
+        }
+        .footer-bottom {
+          flex-direction: column;
+          text-align: center;
+        }
+        .footer-payments {
+          flex-wrap: wrap;
+          justify-content: center;
+        }
+      }
+      @media (min-width: 481px) and (max-width: 768px) {
+        .footer-top {
+          grid-template-columns: 1fr;
+        }
+        .footer-brand {
+          text-align: center;
+          padding-right: 0;
+        }
+        .footer-links-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      @media (min-width: 769px) and (max-width: 1199px) {
+        .footer-top {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .footer-brand {
+          grid-column: span 2;
+          text-align: center;
+          padding-right: 0;
+        }
+      }
+      @media (max-height: 500px) and (orientation: landscape) {
+        .hero {
+          min-height: auto;
+          padding: 1.5rem 5%;
+        }
+        .hero-content h1 {
+          font-size: 1.5rem;
+        }
+        .hero-content p {
+          font-size: 0.9rem;
+          margin-bottom: 1rem;
+        }
+      }
+      @media print {
+        .auth-section,
+        .search-bar {
+          display: none;
+        }
+        .hero {
+          height: auto;
+          background: none;
+          color: black;
+        }
+        footer {
+          background: none;
+          color: black;
+        }
+      }
     </style>
-<script src="config.js"></script>
-<script src="auth.js"></script>
-<script src="nav-auth.js"></script>
-</head>
-<body>
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="nav-auth.js"></script>
+  </head>
+  <body>
     <header class="hero">
-        <div class="auth-section">
-            <a href="login.html" class="login-btn" data-mb-show="guest"><i class="fas fa-sign-in-alt"></i> Login</a>
-            <a href="createaccount.html" class="signup-btn" data-mb-show="guest"><i class="fas fa-user-plus"></i> Create Account</a>
-            <a href="mytrips.html" class="login-btn" data-mb-show="user" hidden><i class="fas fa-user-circle"></i> Hi, <span data-mb-name>traveller</span></a>
-            <a href="#" class="signup-btn" data-mb-show="user" data-mb-logout hidden><i class="fas fa-sign-out-alt"></i> Logout</a>
-            <a href="admin.html" class="admin-btn" aria-label="Admin Panel"><i class="fas fa-user-shield"></i></a>
+      <div class="auth-section">
+        <a href="login.html" class="login-btn" data-mb-show="guest"
+          ><i class="fas fa-sign-in-alt"></i> Login</a
+        >
+        <a href="createaccount.html" class="signup-btn" data-mb-show="guest"
+          ><i class="fas fa-user-plus"></i> Create Account</a
+        >
+        <a href="mytrips.html" class="login-btn" data-mb-show="user" hidden
+          ><i class="fas fa-user-circle"></i> Hi, <span data-mb-name>traveller</span></a
+        >
+        <a href="#" class="signup-btn" data-mb-show="user" data-mb-logout hidden
+          ><i class="fas fa-sign-out-alt"></i> Logout</a
+        >
+        <a href="admin.html" class="admin-btn" aria-label="Admin Panel"
+          ><i class="fas fa-user-shield"></i
+        ></a>
+      </div>
+      <div class="hero-content">
+        <h1>Let's travel in New India</h1>
+        <p>Explore the world with Bhartiya dil.</p>
+        <div class="search-wrap">
+          <form
+            class="search-bar"
+            role="search"
+            onsubmit="
+              event.preventDefault();
+              runSmartSearch();
+            "
+          >
+            <input
+              type="text"
+              id="destinationInput"
+              placeholder="Where do you want to go?"
+              aria-label="Search destination"
+              autocomplete="off"
+              oninput="onType(this.value)"
+            />
+            <button type="submit" aria-label="Search">
+              <i class="fas fa-search"></i> Let's go
+            </button>
+          </form>
+          <div class="search-dropdown" id="searchDropdown"></div>
+          <div class="ai-panel" id="aiPanel"></div>
         </div>
-        <div class="hero-content">
-            <h1>Let's travel in New India</h1>
-            <p>Explore the world with Bhartiya dil.</p>
-            <div class="search-wrap">
-                <form class="search-bar" role="search" onsubmit="event.preventDefault(); runSmartSearch();">
-                    <input type="text" id="destinationInput" placeholder="Where do you want to go?" aria-label="Search destination" autocomplete="off" oninput="onType(this.value)">
-                    <button type="submit" aria-label="Search"><i class="fas fa-search"></i> Let's go</button>
-                </form>
-                <div class="search-dropdown" id="searchDropdown"></div>
-                <div class="ai-panel" id="aiPanel"></div>
-            </div>
-        </div>
+      </div>
     </header>
 
     <footer>
-        <div class="footer-top">
-            <div class="footer-brand">
-                <a href="index.html" class="footer-logo">Manzil Bharat</a>
-                <p class="footer-tagline">Bharat ka bharosa. Your trusted travel partner for cabs, bikes, flights, trains, buses, hotels, and more across India.</p>
-                <div class="footer-social" aria-label="Social media links">
-                    <a href="https://www.facebook.com/surjit12334" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
-                    <a href="https://x.com/surjit12334" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
-                    <a href="https://instagram.com/manzilbharat" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
-                    <a href="https://www.youtube.com/@sstools-06" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
-                    <a href="https://www.linkedin.com/in/surjeet-singh-4b0b5a31a/" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
-                </div>
-            </div>
-            <div class="footer-col">
-                <h4>Quick Links</h4>
-                <ul>
-                    <li><a href="mytrips.html">My Trips</a></li>
-                    <li><a href="aboutus.html">About Us</a></li>
-                    <li><a href="contact.html">Contact Us</a></li>
-                    <li><a href="careers.html">Careers</a></li>
-                    <li><a href="blog.html">Blog</a></li>
-                    <li><a href="helpcenter.html">Help Center</a></li>
-                </ul>
-            </div>
-            <div class="footer-col">
-                <h4>Legal</h4>
-                <ul>
-                    <li><a href="terms-and-conditions.html">Terms &amp; Conditions</a></li>
-                    <li><a href="privacypolicy.html">Privacy Policy</a></li>
-                    <li><a href="refundpolicy.html">Refund Policy</a></li>
-                    <li><a href="cookiepolicy.html">Cookie Policy</a></li>
-                </ul>
-            </div>
-            <div class="footer-newsletter">
-                <h4>Stay Updated</h4>
-                <p>Subscribe to get exclusive offers, travel tips, and updates.</p>
-                <form class="newsletter-form" onsubmit="event.preventDefault(); subscribeNewsletter(this);">
-                    <input type="email" placeholder="Enter your email" aria-label="Email for newsletter" required>
-                    <button type="submit"><i class="fas fa-paper-plane"></i></button>
-                </form>
-                <div class="newsletter-status" id="newsletterStatus" role="status" aria-live="polite"></div>
-                <div class="footer-apps">
-                    <p>Download our app</p>
-                    <div class="app-buttons">
-                        <a href="#" class="app-btn"><i class="fab fa-apple"></i><div><span>Download on the</span><strong>App Store</strong></div></a>
-                        <a href="#" class="app-btn"><i class="fab fa-google-play"></i><div><span>Get it on</span><strong>Google Play</strong></div></a>
-                    </div>
-                </div>
-            </div>
+      <div class="footer-top">
+        <div class="footer-brand">
+          <a href="index.html" class="footer-logo">Manzil Bharat</a>
+          <p class="footer-tagline">
+            Bharat ka bharosa. Your trusted travel partner for cabs, bikes, flights, trains, buses,
+            hotels, and more across India.
+          </p>
+          <div class="footer-social" aria-label="Social media links">
+            <a href="https://www.facebook.com/surjit12334" aria-label="Facebook"
+              ><i class="fab fa-facebook-f"></i
+            ></a>
+            <a href="https://x.com/surjit12334" aria-label="Twitter"
+              ><i class="fab fa-twitter"></i
+            ></a>
+            <a href="https://instagram.com/manzilbharat" aria-label="Instagram"
+              ><i class="fab fa-instagram"></i
+            ></a>
+            <a href="https://www.youtube.com/@sstools-06" aria-label="YouTube"
+              ><i class="fab fa-youtube"></i
+            ></a>
+            <a href="https://www.linkedin.com/in/surjeet-singh-4b0b5a31a/" aria-label="LinkedIn"
+              ><i class="fab fa-linkedin-in"></i
+            ></a>
+          </div>
         </div>
-        <div class="footer-middle">
-            <div class="footer-links-grid">
-                <div class="footer-links-col"><h5>Transport</h5><ul><li><a href="#">Cabs</a></li><li><a href="#">Bikes</a></li><li><a href="#">Buses</a></li><li><a href="#">Trains</a></li><li><a href="#">Flights</a></li><li><a href="#">Cruise</a></li></ul></div>
-                <div class="footer-links-col"><h5>Services</h5><ul><li>Hotels</li><li>Restaurants</li><li>Dhabas</li><li>Medical Stores</li><li>Kirana Stores</li><li>Local Transport</li></ul></div>
-                <div class="footer-links-col"><h5>Top Routes</h5><ul><li>Delhi to Mumbai</li><li>Delhi to Bangalore</li><li>Mumbai to Chennai</li><li>Delhi to Kolkata</li><li>Manali to Leh</li><li>Goa Coastal Trip</li></ul></div>
-                <div class="footer-links-col"><h5>International</h5><ul><li>India to Nepal</li><li>India to Bhutan</li><li>India to Sri Lanka</li><li>India to Bangladesh</li><li>India to Myanmar</li><li>International Flights</li></ul></div>
-            </div>
+        <div class="footer-col">
+          <h4>Quick Links</h4>
+          <ul>
+            <li><a href="mytrips.html">My Trips</a></li>
+            <li><a href="aboutus.html">About Us</a></li>
+            <li><a href="contact.html">Contact Us</a></li>
+            <li><a href="careers.html">Careers</a></li>
+            <li><a href="blog.html">Blog</a></li>
+            <li><a href="helpcenter.html">Help Center</a></li>
+          </ul>
         </div>
-        <div class="footer-bottom">
-            <div class="footer-copyright">&copy; 2026 <a href="index.html">Manzil Bharat</a>. All rights reserved. Made with <i class="fas fa-heart" style="color: #FF6B35;"></i> in India</div>
-            <div class="footer-payments">
-                <span>We accept:</span>
-                <div class="payment-icons">
-                    <i class="fab fa-cc-visa"></i><i class="fab fa-cc-mastercard"></i><i class="fab fa-cc-amex"></i><i class="fab fa-google-pay"></i><i class="fab fa-apple-pay"></i><i class="fab fa-upi"></i>
-                </div>
-            </div>
+        <div class="footer-col">
+          <h4>Legal</h4>
+          <ul>
+            <li><a href="terms-and-conditions.html">Terms &amp; Conditions</a></li>
+            <li><a href="privacypolicy.html">Privacy Policy</a></li>
+            <li><a href="refundpolicy.html">Refund Policy</a></li>
+            <li><a href="cookiepolicy.html">Cookie Policy</a></li>
+          </ul>
         </div>
+        <div class="footer-newsletter">
+          <h4>Stay Updated</h4>
+          <p>Subscribe to get exclusive offers, travel tips, and updates.</p>
+          <form
+            class="newsletter-form"
+            onsubmit="
+              event.preventDefault();
+              subscribeNewsletter(this);
+            "
+          >
+            <input
+              type="email"
+              placeholder="Enter your email"
+              aria-label="Email for newsletter"
+              required
+            />
+            <button type="submit"><i class="fas fa-paper-plane"></i></button>
+          </form>
+          <div
+            class="newsletter-status"
+            id="newsletterStatus"
+            role="status"
+            aria-live="polite"
+          ></div>
+          <div class="footer-apps">
+            <p>Download our app</p>
+            <div class="app-buttons">
+              <a href="#" class="app-btn"
+                ><i class="fab fa-apple"></i>
+                <div><span>Download on the</span><strong>App Store</strong></div></a
+              >
+              <a href="#" class="app-btn"
+                ><i class="fab fa-google-play"></i>
+                <div><span>Get it on</span><strong>Google Play</strong></div></a
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="footer-middle">
+        <div class="footer-links-grid">
+          <div class="footer-links-col">
+            <h5>Transport</h5>
+            <ul>
+              <li><a href="#">Cabs</a></li>
+              <li><a href="#">Bikes</a></li>
+              <li><a href="#">Buses</a></li>
+              <li><a href="#">Trains</a></li>
+              <li><a href="#">Flights</a></li>
+              <li><a href="#">Cruise</a></li>
+            </ul>
+          </div>
+          <div class="footer-links-col">
+            <h5>Services</h5>
+            <ul>
+              <li>Hotels</li>
+              <li>Restaurants</li>
+              <li>Dhabas</li>
+              <li>Medical Stores</li>
+              <li>Kirana Stores</li>
+              <li>Local Transport</li>
+            </ul>
+          </div>
+          <div class="footer-links-col">
+            <h5>Top Routes</h5>
+            <ul>
+              <li>Delhi to Mumbai</li>
+              <li>Delhi to Bangalore</li>
+              <li>Mumbai to Chennai</li>
+              <li>Delhi to Kolkata</li>
+              <li>Manali to Leh</li>
+              <li>Goa Coastal Trip</li>
+            </ul>
+          </div>
+          <div class="footer-links-col">
+            <h5>International</h5>
+            <ul>
+              <li>India to Nepal</li>
+              <li>India to Bhutan</li>
+              <li>India to Sri Lanka</li>
+              <li>India to Bangladesh</li>
+              <li>India to Myanmar</li>
+              <li>International Flights</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div class="footer-copyright">
+          &copy; 2026 <a href="index.html">Manzil Bharat</a>. All rights reserved. Made with
+          <i class="fas fa-heart" style="color: #ff6b35"></i> in India
+        </div>
+        <div class="footer-payments">
+          <span>We accept:</span>
+          <div class="payment-icons">
+            <i class="fab fa-cc-visa"></i><i class="fab fa-cc-mastercard"></i
+            ><i class="fab fa-cc-amex"></i><i class="fab fa-google-pay"></i
+            ><i class="fab fa-apple-pay"></i><i class="fab fa-upi"></i>
+          </div>
+        </div>
+      </div>
     </footer>
 
     <script>
-        const input = document.getElementById('destinationInput');
-        const dropdown = document.getElementById('searchDropdown');
-        const panel = document.getElementById('aiPanel');
-        let selectedPlace = null;
-        let debounceTimer = null;
+      const input = document.getElementById('destinationInput');
+      const dropdown = document.getElementById('searchDropdown');
+      const panel = document.getElementById('aiPanel');
+      let selectedPlace = null;
+      let debounceTimer = null;
 
-        const prefill = new URLSearchParams(window.location.search).get('q');
-        if (prefill) { input.value = prefill.trim(); }
+      const prefill = new URLSearchParams(window.location.search).get('q');
+      if (prefill) {
+        input.value = prefill.trim();
+      }
 
-        // ---------- Newsletter (footer) ----------
-        // The old form faked a "Subscribed!" button; this stores the
-        // address server-side and shows the server's real answer.
-        async function subscribeNewsletter(form) {
-            const input = form.querySelector('input[type="email"]');
-            const btn = form.querySelector('button');
-            const status = document.getElementById('newsletterStatus');
-            status.textContent = '';
-            status.className = 'newsletter-status';
-            btn.disabled = true;
-            try {
-                const res = await fetch(API_BASE + '/api/newsletter', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: input.value.trim() })
-                });
-                const data = await res.json().catch(function () { return null; });
-                if (res.ok) {
-                    status.textContent = (data && data.message) || 'Subscribed!';
-                    status.className = 'newsletter-status ok';
-                    input.value = '';
-                } else {
-                    status.textContent = (data && data.errors && data.errors.email) || (data && data.error) || ('HTTP ' + res.status);
-                    status.className = 'newsletter-status err';
-                }
-            } catch (e) {
-                status.textContent = 'Cannot reach the server. Is it running?';
-                status.className = 'newsletter-status err';
-            } finally {
-                btn.disabled = false;
-            }
+      // ---------- Newsletter (footer) ----------
+      // The old form faked a "Subscribed!" button; this stores the
+      // address server-side and shows the server's real answer.
+      async function subscribeNewsletter(form) {
+        const input = form.querySelector('input[type="email"]');
+        const btn = form.querySelector('button');
+        const status = document.getElementById('newsletterStatus');
+        status.textContent = '';
+        status.className = 'newsletter-status';
+        btn.disabled = true;
+        try {
+          const res = await fetch(API_BASE + '/api/newsletter', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: input.value.trim() }),
+          });
+          const data = await res.json().catch(function () {
+            return null;
+          });
+          if (res.ok) {
+            status.textContent = (data && data.message) || 'Subscribed!';
+            status.className = 'newsletter-status ok';
+            input.value = '';
+          } else {
+            status.textContent =
+              (data && data.errors && data.errors.email) ||
+              (data && data.error) ||
+              'HTTP ' + res.status;
+            status.className = 'newsletter-status err';
+          }
+        } catch (e) {
+          status.textContent = 'Cannot reach the server. Is it running?';
+          status.className = 'newsletter-status err';
+        } finally {
+          btn.disabled = false;
         }
+      }
 
-        // ---------- Nominatim autocomplete ----------
-        async function onType(q) {
-            clearTimeout(debounceTimer);
-            const value = q.trim();
-            if (value.length < 3) { dropdown.style.display = 'none'; return; }
-            debounceTimer = setTimeout(async () => {
-                try {
-                    const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=5&addressdetails=1&q=' + encodeURIComponent(value);
-                    const res = await fetch(url);
-                    const results = await res.json();
-                    renderDropdown(results);
-                } catch (e) {
-                    dropdown.style.display = 'none';
-                }
-            }, 350);
+      // ---------- Nominatim autocomplete ----------
+      async function onType(q) {
+        clearTimeout(debounceTimer);
+        const value = q.trim();
+        if (value.length < 3) {
+          dropdown.style.display = 'none';
+          return;
         }
+        debounceTimer = setTimeout(async () => {
+          try {
+            const url =
+              'https://nominatim.openstreetmap.org/search?format=json&limit=5&addressdetails=1&q=' +
+              encodeURIComponent(value);
+            const res = await fetch(url);
+            const results = await res.json();
+            renderDropdown(results);
+          } catch (e) {
+            dropdown.style.display = 'none';
+          }
+        }, 350);
+      }
 
-        function renderDropdown(results) {
-            if (!results || !results.length) {
-                dropdown.innerHTML = '<div class="sd-empty">No places found. Try another query.</div>';
-                dropdown.style.display = 'block';
-                return;
-            }
-            let html = '';
-            results.forEach((r, i) => {
-                html += '<button type="button" class="sd-item" onmousedown="pickResult(' + i + ')">' +
-                    '<i class="fas fa-map-marker-alt"></i>' +
-                    '<span><span class="sd-name"></span><br><span class="sd-region"></span></span></button>';
-            });
-            dropdown.innerHTML = html;
-            dropdown.querySelectorAll('.sd-item').forEach((el, i) => {
-                el.querySelector('.sd-name').textContent = results[i].name || (results[i].display_name || '').split(', ')[0];
-                el.querySelector('.sd-region').textContent = (results[i].display_name || '').split(', ').slice(1).join(', ');
-            });
-            dropdown.style.display = 'block';
-            window._nomResults = results;
+      function renderDropdown(results) {
+        if (!results || !results.length) {
+          dropdown.innerHTML = '<div class="sd-empty">No places found. Try another query.</div>';
+          dropdown.style.display = 'block';
+          return;
         }
-
-        window.pickResult = function(i) {
-            const r = window._nomResults[i];
-            if (!r) return;
-            selectedPlace = r;
-            const shortName = r.name || (r.display_name || '').split(', ')[0];
-            if (r.lat && r.lon) {
-                openMap(r, shortName);
-            } else {
-                input.value = shortName;
-                dropdown.style.display = 'none';
-                askGemini('destination', shortName);
-            }
-        };
-
-        function openMap(r, shortName) {
-            const url = 'map.html?lat=' + encodeURIComponent(r.lat) +
-                '&lon=' + encodeURIComponent(r.lon) +
-                '&name=' + encodeURIComponent(shortName) +
-                '&display=' + encodeURIComponent(r.display_name || shortName);
-            window.location.href = url;
-        }
-
-        async function runSmartSearch() {
-            const q = input.value.trim();
-            if (!q) return;
-            showPanel('<div class="ai-loading"><div class="spinner"></div> Finding your place...</div>');
-            try {
-                const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(q);
-                const res = await fetch(url);
-                const results = await res.json();
-                if (results && results[0] && results[0].lat && results[0].lon) {
-                    openMap(results[0], results[0].name || q);
-                } else {
-                    askGemini('trip', q);
-                }
-            } catch (e) {
-                askGemini('trip', q);
-            }
-        }
-
-        document.addEventListener('click', function(e) {
-            if (!e.target.closest('.search-wrap')) dropdown.style.display = 'none';
+        let html = '';
+        results.forEach((r, i) => {
+          html +=
+            '<button type="button" class="sd-item" onmousedown="pickResult(' +
+            i +
+            ')">' +
+            '<i class="fas fa-map-marker-alt"></i>' +
+            '<span><span class="sd-name"></span><br><span class="sd-region"></span></span></button>';
         });
+        dropdown.innerHTML = html;
+        dropdown.querySelectorAll('.sd-item').forEach((el, i) => {
+          el.querySelector('.sd-name').textContent =
+            results[i].name || (results[i].display_name || '').split(', ')[0];
+          el.querySelector('.sd-region').textContent = (results[i].display_name || '')
+            .split(', ')
+            .slice(1)
+            .join(', ');
+        });
+        dropdown.style.display = 'block';
+        window._nomResults = results;
+      }
 
-        function showPanel(html) { panel.innerHTML = html; panel.style.display = 'block'; }
-
-        function escHtml(s) {
-            var d = document.createElement('div');
-            d.appendChild(document.createTextNode(String(s == null ? '' : s)));
-            return d.innerHTML;
+      window.pickResult = function (i) {
+        const r = window._nomResults[i];
+        if (!r) return;
+        selectedPlace = r;
+        const shortName = r.name || (r.display_name || '').split(', ')[0];
+        if (r.lat && r.lon) {
+          openMap(r, shortName);
+        } else {
+          input.value = shortName;
+          dropdown.style.display = 'none';
+          askGemini('destination', shortName);
         }
+      };
 
-        async function askGemini(kind, query) {
-            showPanel('<div class="ai-loading"><div class="spinner"></div> Thinking with AI...</div>');
-            try {
-                // Server-side proxy: the Gemini key lives in .env on the
-                // server, never in this page.
-                const res = await fetch(API_BASE + '/api/ai-guide', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ kind: kind, query: query })
-                });
-                const data = await res.json().catch(() => null);
-                if (!res.ok) throw new Error((data && data.error) || ('HTTP ' + res.status));
-                escBody(data.text || '');
-            } catch (err) {
-                showPanel('<div class="ai-err">' + escHtml(err.message || 'Error') + '</div>');
-            }
-        }
+      function openMap(r, shortName) {
+        const url =
+          'map.html?lat=' +
+          encodeURIComponent(r.lat) +
+          '&lon=' +
+          encodeURIComponent(r.lon) +
+          '&name=' +
+          encodeURIComponent(shortName) +
+          '&display=' +
+          encodeURIComponent(r.display_name || shortName);
+        window.location.href = url;
+      }
 
-        function escBody(text) {
-            const title = selectedPlace ? (selectedPlace.name || input.value.trim()) : input.value.trim();
-            showPanel(
-                '<div class="ai-title"><i class="fas fa-route"></i><span></span></div>' +
-                '<div class="ai-body"></div>' +
-                '<div class="ai-hint"><i class="fas fa-sparkles"></i> AI tips by Gemini</div>'
-            );
-            panel.querySelector('.ai-title span').textContent = title;
-            panel.querySelector('.ai-body').textContent = text;
+      async function runSmartSearch() {
+        const q = input.value.trim();
+        if (!q) return;
+        showPanel(
+          '<div class="ai-loading"><div class="spinner"></div> Finding your place...</div>',
+        );
+        try {
+          const url =
+            'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' +
+            encodeURIComponent(q);
+          const res = await fetch(url);
+          const results = await res.json();
+          if (results && results[0] && results[0].lat && results[0].lon) {
+            openMap(results[0], results[0].name || q);
+          } else {
+            askGemini('trip', q);
+          }
+        } catch (e) {
+          askGemini('trip', q);
         }
+      }
+
+      document.addEventListener('click', function (e) {
+        if (!e.target.closest('.search-wrap')) dropdown.style.display = 'none';
+      });
+
+      function showPanel(html) {
+        panel.innerHTML = html;
+        panel.style.display = 'block';
+      }
+
+      function escHtml(s) {
+        var d = document.createElement('div');
+        d.appendChild(document.createTextNode(String(s == null ? '' : s)));
+        return d.innerHTML;
+      }
+
+      async function askGemini(kind, query) {
+        showPanel('<div class="ai-loading"><div class="spinner"></div> Thinking with AI...</div>');
+        try {
+          // Server-side proxy: the Gemini key lives in .env on the
+          // server, never in this page.
+          const res = await fetch(API_BASE + '/api/ai-guide', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ kind: kind, query: query }),
+          });
+          const data = await res.json().catch(() => null);
+          if (!res.ok) throw new Error((data && data.error) || 'HTTP ' + res.status);
+          escBody(data.text || '');
+        } catch (err) {
+          showPanel('<div class="ai-err">' + escHtml(err.message || 'Error') + '</div>');
+        }
+      }
+
+      function escBody(text) {
+        const title = selectedPlace ? selectedPlace.name || input.value.trim() : input.value.trim();
+        showPanel(
+          '<div class="ai-title"><i class="fas fa-route"></i><span></span></div>' +
+            '<div class="ai-body"></div>' +
+            '<div class="ai-hint"><i class="fas fa-sparkles"></i> AI tips by Gemini</div>',
+        );
+        panel.querySelector('.ai-title span').textContent = title;
+        panel.querySelector('.ai-body').textContent = text;
+      }
     </script>
-</body>
+  </body>
 </html>

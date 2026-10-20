@@ -486,8 +486,65 @@ Goal: stop the "fix everything" -> "break something" commit cycle.
          404s: the static pages work, the features do not. Decide in Phase 6
          whether to point it at the Render API or leave it alone.
 
-  [ ] 4. Lint (30 m)                                                [m]
+  [x] 4. Lint (30 m)                                                [m] DONE
          - ruff (Python) + a JS formatter. One config file each.
+
+         FILES ADDED: ruff.toml (Python), .prettierrc.json (frontend),
+         .prettierignore, package.json + package-lock.json with Prettier
+         3.9.10 pinned EXACTLY, node_modules/ gitignored. Repo survey first:
+         there are no standalone .css or .json files at all - the CSS lives
+         in each page's <style> block and the JSON is generated at runtime -
+         so the agreed "JS + CSS + HTML + JSON, everything" scope is 19
+         source files: 16 pages + auth.js, config.js, nav-auth.js, plus the
+         two new JSON files. The HTML pass IS the CSS pass (Prettier formats
+         the <style> and <script> bodies inside each page).
+
+         ONE-TIME REFORMAT: every one of the 19 was non-conforming
+         (+10383/-4817 lines). Prettier's output was not taken on trust -
+         three checks proved the rewrite changed formatting only:
+           1. Character-level diff of the WHITESPACE-STRIPPED content of
+              each file, baseline vs formatted, so only real changes could
+              surface. Exactly these appear, nothing else: DOCTYPE ->
+              doctype (case-insensitive per HTML5), #FF6B35 -> #ff6b35 (hex
+              colours are case-insensitive), void elements <br> -> <br />,
+              trailing commas (ES2017 - the code already uses async/await),
+              the optional trailing ; on the last declaration of an inline
+              style="", precedence-preserving paren moves in JS, arrow-param
+              parens (f => -> (f) => ), quoted object keys unquoted, quote
+              style inside CSS/JS. Every item was opened and read in context;
+              each is semantics-neutral by spec.
+           2. The parsed structure of all 16 pages compared event by event -
+              tag, sorted attributes, visible text - against the pre-format
+              copies: identical, except 47 attribute VALUES that Prettier
+              reindents as CSS/JS (style="" and onsubmit="") holding the same
+              declarations and statements. Same tags, same text, same meta.
+           3. node --check passed on all three JS files, and Prettier's own
+              parser accepted every embedded <script>/<style> (it cannot
+              emit what it could not parse).
+         51 tests still pass after the reformat and after the lint fixes.
+
+         RUFF: first run of 0.17.1 reported 58 findings - its DEFAULT rule
+         set is far wider today than the classic E4/E7/E9/F (worth knowing:
+         do not assume ruff defaults are minimal). 26 fixed: import order,
+         return None -> return, .format() -> f-string, dict() -> {},
+         os.getenv('PORT', 5000) -> '5000' (the default must be a str for
+         int()), unused fixture halves renamed _email/_token. Two rules
+         disabled in ruff.toml, each with the reason inline where a reader
+         sees it: DTZ003 (naive utcnow() stays correct while Postgres holds
+         naive timestamps - flipping one call site would compare
+         offset-naive to offset-aware and raise; Phase 5 migrates both
+         together) and BLE001 (except Exception around DB work is the
+         pattern: rollback, then a JSON 500 - a narrower catch risks a
+         connection parked on a failed transaction). E402 is ENABLED so
+         conftest.py's "import after the env is settled" noqa is a live
+         directive instead of a dead comment. Result: `ruff check .` clean.
+
+         CI: second job "lint (ruff + prettier)", parallel to pytest, so a
+         style failure is distinguishable from a test failure at a glance.
+         ruff==0.17.1 and Prettier 3.9.10 are both pinned exactly for the
+         same reason Python is pinned to 3.12: a linter that turns red on
+         untouched code after an upstream release trains people to ignore
+         red jobs.
 
   DONE WHEN: you can refactor app.py with confidence and CI proves it.
 

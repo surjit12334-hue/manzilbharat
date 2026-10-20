@@ -56,7 +56,7 @@ def test_a_passwordless_account_cannot_log_in(client, register, sql):
 
 
 def test_a_tampered_or_missing_token_is_refused(client, user, auth):
-    email, token = user()
+    _email, token = user()
 
     assert client.get('/api/me', headers=auth(token)).status_code == 200
 

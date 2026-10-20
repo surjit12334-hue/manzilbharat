@@ -1,0 +1,13 @@
+{
+  "name": "manzil-bharat",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Formatting tooling for the static frontend. The application is Python - nothing in this package is deployed: Render and the Dockerfile only run pip (see backend/requirements.txt).",
+  "scripts": {
+    "format": "prettier --write \"**/*.{js,css,html,json}\"",
+    "format:check": "prettier --check \"**/*.{js,css,html,json}\""
+  },
+  "devDependencies": {
+    "prettier": "3.9.10"
+  }
+}

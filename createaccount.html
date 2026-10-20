@@ -1,434 +1,889 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Create Account - Manzil Bharat</title>
-    <link rel="icon" type="image/png" href="icon.png">
-    <meta name="description" content="Create your Manzil Bharat account and start exploring India.">
-    <link rel="canonical" href="https://manzilbharat.onrender.com/createaccount.html">
+    <link rel="icon" type="image/png" href="icon.png" />
+    <meta
+      name="description"
+      content="Create your Manzil Bharat account and start exploring India."
+    />
+    <link rel="canonical" href="https://manzilbharat.onrender.com/createaccount.html" />
     <!-- Social previews: absolute og:url/og:image are required, relative ones
          are ignored by WhatsApp/X. The card is a 1200x630 JPEG. -->
-    <meta property="og:site_name" content="Manzil Bharat">
-    <meta property="og:type" content="website">
-    <meta property="og:title" content="Create Account - Manzil Bharat">
-    <meta property="og:description" content="Create your Manzil Bharat account and start exploring India.">
-    <meta property="og:url" content="https://manzilbharat.onrender.com/createaccount.html">
-    <meta property="og:image" content="https://manzilbharat.onrender.com/og-image.jpg">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
-    <meta property="og:image:alt" content="Manzil Bharat - Let's Travel Together">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Create Account - Manzil Bharat">
-    <meta name="twitter:description" content="Create your Manzil Bharat account and start exploring India.">
-    <meta name="twitter:image" content="https://manzilbharat.onrender.com/og-image.jpg">
-    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <meta property="og:site_name" content="Manzil Bharat" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Create Account - Manzil Bharat" />
+    <meta
+      property="og:description"
+      content="Create your Manzil Bharat account and start exploring India."
+    />
+    <meta property="og:url" content="https://manzilbharat.onrender.com/createaccount.html" />
+    <meta property="og:image" content="https://manzilbharat.onrender.com/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Manzil Bharat - Let's Travel Together" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Create Account - Manzil Bharat" />
+    <meta
+      name="twitter:description"
+      content="Create your Manzil Bharat account and start exploring India."
+    />
+    <meta name="twitter:image" content="https://manzilbharat.onrender.com/og-image.jpg" />
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html { font-size: 16px; scroll-behavior: smooth; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; overflow-x: hidden; background: #f5f7fa; min-height: 100vh; display: flex; flex-direction: column; }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html {
+        font-size: 16px;
+        scroll-behavior: smooth;
+      }
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        overflow-x: hidden;
+        background: #f5f7fa;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
 
-        nav { position: fixed; top: 0; left: 0; right: 0; background: rgba(10, 22, 40, 0.95); backdrop-filter: blur(10px); padding: 1rem 5%; display: flex; align-items: center; justify-content: space-between; z-index: 1000; }
-        .logo { font-family: 'Pacifico', cursive; font-size: 1.5rem; color: #FF6B35; text-decoration: none; transition: opacity 0.3s; }
-        .logo:hover { opacity: 0.8; }
-        .nav-links { display: flex; list-style: none; gap: 2rem; }
-        .nav-links a { text-decoration: none; color: white; font-weight: 500; transition: color 0.3s; position: relative; }
-        .nav-links a::after { content: ''; position: absolute; bottom: -4px; left: 0; width: 0; height: 2px; background: #FF6B35; transition: width 0.3s; }
-        .nav-links a:hover { color: #FF6B35; }
-        .nav-links a:hover::after { width: 100%; }
-        .menu-toggle { display: none; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+      nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: rgba(10, 22, 40, 0.95);
+        backdrop-filter: blur(10px);
+        padding: 1rem 5%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        z-index: 1000;
+      }
+      .logo {
+        font-family: 'Pacifico', cursive;
+        font-size: 1.5rem;
+        color: #ff6b35;
+        text-decoration: none;
+        transition: opacity 0.3s;
+      }
+      .logo:hover {
+        opacity: 0.8;
+      }
+      .nav-links {
+        display: flex;
+        list-style: none;
+        gap: 2rem;
+      }
+      .nav-links a {
+        text-decoration: none;
+        color: white;
+        font-weight: 500;
+        transition: color 0.3s;
+        position: relative;
+      }
+      .nav-links a::after {
+        content: '';
+        position: absolute;
+        bottom: -4px;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background: #ff6b35;
+        transition: width 0.3s;
+      }
+      .nav-links a:hover {
+        color: #ff6b35;
+      }
+      .nav-links a:hover::after {
+        width: 100%;
+      }
+      .menu-toggle {
+        display: none;
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+      }
 
-        @keyframes cardSlideIn { from { opacity: 0; transform: translateY(20px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        .auth-wrapper { flex: 1; display: flex; align-items: center; justify-content: center; padding: 6rem 5% 3rem; background: linear-gradient(135deg, rgba(26,35,126,0.85), rgba(255,107,53,0.7)), url('homebackground.jpg') center/cover no-repeat; min-height: 100vh; }
-        .auth-card { background: white; border-radius: 20px; padding: 2.5rem; width: 100%; max-width: 450px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); animation: cardSlideIn 0.6s ease-out; }
-        .auth-card h1 { font-size: 1.8rem; color: #0a1628; text-align: center; margin-bottom: 0.5rem; }
-        .auth-card .subtitle { text-align: center; color: #888; margin-bottom: 2rem; font-size: 0.95rem; }
-
-        .form-group { margin-bottom: 1.2rem; position: relative; }
-        .form-group label { display: block; font-weight: 600; color: #333; margin-bottom: 0.4rem; font-size: 0.9rem; }
-        .form-group input, .form-group select { width: 100%; padding: 0.8rem 1rem; border: 2px solid #e0e5ec; border-radius: 12px; font-size: 1rem; outline: none; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .form-group input:focus, .form-group select:focus { border-color: #FF6B35; box-shadow: 0 0 0 3px rgba(255,107,53,0.1); }
-        .form-group input::placeholder { color: #aaa; }
-        .form-group input.error, .form-group select.error { border-color: #e74c3c; box-shadow: 0 0 0 3px rgba(231,76,60,0.1); }
-        .form-group input.success, .form-group select.success { border-color: #27ae60; box-shadow: 0 0 0 3px rgba(39,174,96,0.1); }
-        .error-msg { color: #e74c3c; font-size: 0.78rem; margin-top: 0.3rem; display: none; }
-        .error-msg.show { display: block; animation: fadeIn 0.3s ease-out; }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-
-        .btn-primary { width: 100%; padding: 0.9rem; background: linear-gradient(135deg, #FF6B35, #E65100); color: white; border: none; border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); margin-top: 0.5rem; }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(255,107,53,0.4); }
-        .btn-primary:active { transform: translateY(0); }
-
-        .divider { text-align: center; margin: 1.2rem 0; position: relative; color: #aaa; font-size: 0.85rem; }
-        .divider::before, .divider::after { content: ''; position: absolute; top: 50%; width: 40%; height: 1px; background: linear-gradient(90deg, transparent, #e0e5ec, transparent); }
-        .divider::before { left: 0; }
-        .divider::after { right: 0; }
-
-        .terms { text-align: center; font-size: 0.8rem; color: #888; margin-top: 1rem; line-height: 1.5; }
-        .terms a { color: #FF6B35; text-decoration: none; }
-        .terms a:hover { text-decoration: underline; }
-
-        .auth-footer { text-align: center; margin-top: 1.5rem; font-size: 0.9rem; color: #666; }
-        .auth-footer a { color: #FF6B35; text-decoration: none; font-weight: 600; transition: all 0.3s; }
-        .auth-footer a:hover { text-decoration: underline; }
-
-        footer { background: linear-gradient(180deg, #0a1628 0%, #0d1f3c 100%); color: white; padding: 2rem 5% 1rem; text-align: center; margin-top: auto; }
-        footer .footer-logo { font-family: 'Pacifico', cursive; font-size: 1.5rem; color: #FF6B35; text-decoration: none; display: inline-block; margin-bottom: 0.5rem; transition: opacity 0.3s; }
-        footer .footer-logo:hover { opacity: 0.8; }
-        footer p { color: #8892b0; font-size: 0.85rem; margin-bottom: 0.5rem; }
-        footer .footer-bottom { border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1rem; color: #5a6a8a; font-size: 0.8rem; }
-
-        @media (max-width: 768px) {
-            .nav-links { position: fixed; top: 60px; right: -100%; width: 70%; height: calc(100vh - 60px); background: rgba(10, 22, 40, 0.98); flex-direction: column; padding: 2rem; transition: right 0.3s; }
-            .nav-links.active { right: 0; }
-            .menu-toggle { display: block; }
+      @keyframes cardSlideIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px) scale(0.98);
         }
-        @media (max-width: 480px) { .auth-wrapper { padding: 5rem 4% 2rem; } .auth-card { padding: 1.5rem; } .form-row { grid-template-columns: 1fr; } }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
 
-        .g_id_signin { width: 100% !important; border-radius: 50px !important; overflow: hidden; }
-        .g_id_signin iframe { width: 100% !important; border-radius: 50px !important; }
+      .auth-wrapper {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6rem 5% 3rem;
+        background:
+          linear-gradient(135deg, rgba(26, 35, 126, 0.85), rgba(255, 107, 53, 0.7)),
+          url('homebackground.jpg') center/cover no-repeat;
+        min-height: 100vh;
+      }
+      .auth-card {
+        background: white;
+        border-radius: 20px;
+        padding: 2.5rem;
+        width: 100%;
+        max-width: 450px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        animation: cardSlideIn 0.6s ease-out;
+      }
+      .auth-card h1 {
+        font-size: 1.8rem;
+        color: #0a1628;
+        text-align: center;
+        margin-bottom: 0.5rem;
+      }
+      .auth-card .subtitle {
+        text-align: center;
+        color: #888;
+        margin-bottom: 2rem;
+        font-size: 0.95rem;
+      }
+
+      .form-group {
+        margin-bottom: 1.2rem;
+        position: relative;
+      }
+      .form-group label {
+        display: block;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 0.4rem;
+        font-size: 0.9rem;
+      }
+      .form-group input,
+      .form-group select {
+        width: 100%;
+        padding: 0.8rem 1rem;
+        border: 2px solid #e0e5ec;
+        border-radius: 12px;
+        font-size: 1rem;
+        outline: none;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .form-group input:focus,
+      .form-group select:focus {
+        border-color: #ff6b35;
+        box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+      }
+      .form-group input::placeholder {
+        color: #aaa;
+      }
+      .form-group input.error,
+      .form-group select.error {
+        border-color: #e74c3c;
+        box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
+      }
+      .form-group input.success,
+      .form-group select.success {
+        border-color: #27ae60;
+        box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.1);
+      }
+      .error-msg {
+        color: #e74c3c;
+        font-size: 0.78rem;
+        margin-top: 0.3rem;
+        display: none;
+      }
+      .error-msg.show {
+        display: block;
+        animation: fadeIn 0.3s ease-out;
+      }
+      .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+
+      .btn-primary {
+        width: 100%;
+        padding: 0.9rem;
+        background: linear-gradient(135deg, #ff6b35, #e65100);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        margin-top: 0.5rem;
+      }
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(255, 107, 53, 0.4);
+      }
+      .btn-primary:active {
+        transform: translateY(0);
+      }
+
+      .divider {
+        text-align: center;
+        margin: 1.2rem 0;
+        position: relative;
+        color: #aaa;
+        font-size: 0.85rem;
+      }
+      .divider::before,
+      .divider::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        width: 40%;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, #e0e5ec, transparent);
+      }
+      .divider::before {
+        left: 0;
+      }
+      .divider::after {
+        right: 0;
+      }
+
+      .terms {
+        text-align: center;
+        font-size: 0.8rem;
+        color: #888;
+        margin-top: 1rem;
+        line-height: 1.5;
+      }
+      .terms a {
+        color: #ff6b35;
+        text-decoration: none;
+      }
+      .terms a:hover {
+        text-decoration: underline;
+      }
+
+      .auth-footer {
+        text-align: center;
+        margin-top: 1.5rem;
+        font-size: 0.9rem;
+        color: #666;
+      }
+      .auth-footer a {
+        color: #ff6b35;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s;
+      }
+      .auth-footer a:hover {
+        text-decoration: underline;
+      }
+
+      footer {
+        background: linear-gradient(180deg, #0a1628 0%, #0d1f3c 100%);
+        color: white;
+        padding: 2rem 5% 1rem;
+        text-align: center;
+        margin-top: auto;
+      }
+      footer .footer-logo {
+        font-family: 'Pacifico', cursive;
+        font-size: 1.5rem;
+        color: #ff6b35;
+        text-decoration: none;
+        display: inline-block;
+        margin-bottom: 0.5rem;
+        transition: opacity 0.3s;
+      }
+      footer .footer-logo:hover {
+        opacity: 0.8;
+      }
+      footer p {
+        color: #8892b0;
+        font-size: 0.85rem;
+        margin-bottom: 0.5rem;
+      }
+      footer .footer-bottom {
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        padding-top: 1rem;
+        color: #5a6a8a;
+        font-size: 0.8rem;
+      }
+
+      @media (max-width: 768px) {
+        .nav-links {
+          position: fixed;
+          top: 60px;
+          right: -100%;
+          width: 70%;
+          height: calc(100vh - 60px);
+          background: rgba(10, 22, 40, 0.98);
+          flex-direction: column;
+          padding: 2rem;
+          transition: right 0.3s;
+        }
+        .nav-links.active {
+          right: 0;
+        }
+        .menu-toggle {
+          display: block;
+        }
+      }
+      @media (max-width: 480px) {
+        .auth-wrapper {
+          padding: 5rem 4% 2rem;
+        }
+        .auth-card {
+          padding: 1.5rem;
+        }
+        .form-row {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .g_id_signin {
+        width: 100% !important;
+        border-radius: 50px !important;
+        overflow: hidden;
+      }
+      .g_id_signin iframe {
+        width: 100% !important;
+        border-radius: 50px !important;
+      }
     </style>
-<script src="config.js"></script>
-<script src="auth.js"></script>
-</head>
-<body>
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+  </head>
+  <body>
     <nav>
-        <a href="index.html" class="logo">Manzil Bharat</a>
-        <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
-        <ul class="nav-links" id="navLinks">
-            <li><a href="index.html">Home</a></li>
-            <li><a href="mytrips.html">My Trips</a></li>
-            <li><a href="contact.html">Contact</a></li>
-            <li data-mb-show="guest"><a href="login.html">Login</a></li>
-            <li data-mb-show="user" hidden><a href="mytrips.html"><i class="fas fa-user-circle"></i> Hi, <span data-mb-name>traveller</span></a></li>
-            <li data-mb-show="user" hidden><a href="#" data-mb-logout>Logout</a></li>
-        </ul>
+      <a href="index.html" class="logo">Manzil Bharat</a>
+      <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+      <ul class="nav-links" id="navLinks">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="mytrips.html">My Trips</a></li>
+        <li><a href="contact.html">Contact</a></li>
+        <li data-mb-show="guest"><a href="login.html">Login</a></li>
+        <li data-mb-show="user" hidden>
+          <a href="mytrips.html"
+            ><i class="fas fa-user-circle"></i> Hi, <span data-mb-name>traveller</span></a
+          >
+        </li>
+        <li data-mb-show="user" hidden><a href="#" data-mb-logout>Logout</a></li>
+      </ul>
     </nav>
 
     <div class="auth-wrapper">
-        <div class="auth-card">
-            <h1>Create Account</h1>
-            <p class="subtitle">Join Manzil Bharat and explore India</p>
+      <div class="auth-card">
+        <h1>Create Account</h1>
+        <p class="subtitle">Join Manzil Bharat and explore India</p>
 
-            <div id="g_id_onload"
-                 data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
-                 data-callback="handleGoogleSignup"
-                 data-auto_prompt="false">
+        <div
+          id="g_id_onload"
+          data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
+          data-callback="handleGoogleSignup"
+          data-auto_prompt="false"
+        ></div>
+        <div
+          class="g_id_signin"
+          data-type="standard"
+          data-size="large"
+          data-theme="outline"
+          data-text="sign_up_with"
+          data-shape="pill"
+          data-logo_alignment="left"
+          style="width: 100%; margin-bottom: 0.5rem"
+        ></div>
+        <script>
+          (function () {
+            const cid =
+              window.GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+            const onload = document.getElementById('g_id_onload');
+            const signin = document.querySelector('.g_id_signin');
+            if (onload) onload.setAttribute('data-client_id', cid);
+            if (signin) signin.setAttribute('data-client_id', cid);
+          })();
+        </script>
+
+        <div class="divider">or sign up with email</div>
+
+        <form id="signupForm" novalidate>
+          <div class="form-group">
+            <label for="name">Full Name</label>
+            <input type="text" id="name" placeholder="Your full name" maxlength="25" required />
+            <div class="error-msg" id="nameError"></div>
+          </div>
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" placeholder="you@example.com" maxlength="50" required />
+            <div class="error-msg" id="emailError"></div>
+          </div>
+          <div class="form-group">
+            <label for="contact">Contact Number</label>
+            <input
+              type="tel"
+              id="contact"
+              placeholder="10-digit mobile number"
+              pattern="[0-9]{10}"
+              maxlength="10"
+              required
+            />
+            <div class="error-msg" id="contactError"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="gender">Gender</label>
+              <select id="gender" required>
+                <option value="">Select</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+              <div class="error-msg" id="genderError"></div>
             </div>
-            <div class="g_id_signin"
-                 data-type="standard"
-                 data-size="large"
-                 data-theme="outline"
-                 data-text="sign_up_with"
-                 data-shape="pill"
-                 data-logo_alignment="left"
-                 style="width:100%;margin-bottom:0.5rem;">
+            <div class="form-group">
+              <label for="dob">Date of Birth</label>
+              <input type="date" id="dob" required />
+              <div class="error-msg" id="dobError"></div>
             </div>
-            <script>
-                (function () {
-                    const cid = window.GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
-                    const onload = document.getElementById('g_id_onload');
-                    const signin = document.querySelector('.g_id_signin');
-                    if (onload) onload.setAttribute('data-client_id', cid);
-                    if (signin) signin.setAttribute('data-client_id', cid);
-                })();
-            </script>
+          </div>
+          <div class="form-group">
+            <label for="marital_status">Marital Status</label>
+            <select id="marital_status" required>
+              <option value="">Select</option>
+              <option value="Single">Single</option>
+              <option value="Married">Married</option>
+              <option value="Divorced">Divorced</option>
+              <option value="Widowed">Widowed</option>
+            </select>
+            <div class="error-msg" id="marital_statusError"></div>
+          </div>
+          <div class="form-group">
+            <label for="residential_address">Residential Address</label>
+            <input
+              type="text"
+              id="residential_address"
+              placeholder="Full address"
+              maxlength="255"
+              required
+            />
+            <div class="error-msg" id="residential_addressError"></div>
+          </div>
+          <div class="form-group">
+            <label for="pincode">Pincode</label>
+            <input
+              type="text"
+              id="pincode"
+              placeholder="6-digit pincode"
+              pattern="[0-9]{6}"
+              maxlength="6"
+              required
+            />
+            <div class="error-msg" id="pincodeError"></div>
+          </div>
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input
+              type="password"
+              id="password"
+              placeholder="Min 8 chars, uppercase, number & symbol"
+              minlength="8"
+              required
+            />
+            <div class="error-msg" id="passwordError"></div>
+          </div>
+          <div class="form-group">
+            <label for="confirmPassword">Confirm Password</label>
+            <input
+              type="password"
+              id="confirmPassword"
+              placeholder="Re-enter your password"
+              minlength="8"
+              required
+            />
+            <div class="error-msg" id="confirmPasswordError"></div>
+          </div>
+          <button type="submit" class="btn-primary" id="submitBtn">
+            <i class="fas fa-user-plus"></i> Create Account
+          </button>
+          <p
+            id="formMessage"
+            style="text-align: center; margin-top: 0.8rem; font-size: 0.9rem; display: none"
+          ></p>
+        </form>
 
-            <div class="divider">or sign up with email</div>
+        <p class="terms">
+          By signing up, you agree to our
+          <a href="terms-and-conditions.html">Terms & Conditions</a> and
+          <a href="privacypolicy.html">Privacy Policy</a>.
+        </p>
 
-            <form id="signupForm" novalidate>
-                <div class="form-group">
-                    <label for="name">Full Name</label>
-                    <input type="text" id="name" placeholder="Your full name" maxlength="25" required>
-                    <div class="error-msg" id="nameError"></div>
-                </div>
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" placeholder="you@example.com" maxlength="50" required>
-                    <div class="error-msg" id="emailError"></div>
-                </div>
-                <div class="form-group">
-                    <label for="contact">Contact Number</label>
-                    <input type="tel" id="contact" placeholder="10-digit mobile number" pattern="[0-9]{10}" maxlength="10" required>
-                    <div class="error-msg" id="contactError"></div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="gender">Gender</label>
-                        <select id="gender" required>
-                            <option value="">Select</option>
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
-                            <option value="Other">Other</option>
-                        </select>
-                        <div class="error-msg" id="genderError"></div>
-                    </div>
-                    <div class="form-group">
-                        <label for="dob">Date of Birth</label>
-                        <input type="date" id="dob" required>
-                        <div class="error-msg" id="dobError"></div>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="marital_status">Marital Status</label>
-                    <select id="marital_status" required>
-                        <option value="">Select</option>
-                        <option value="Single">Single</option>
-                        <option value="Married">Married</option>
-                        <option value="Divorced">Divorced</option>
-                        <option value="Widowed">Widowed</option>
-                    </select>
-                    <div class="error-msg" id="marital_statusError"></div>
-                </div>
-                <div class="form-group">
-                    <label for="residential_address">Residential Address</label>
-                    <input type="text" id="residential_address" placeholder="Full address" maxlength="255" required>
-                    <div class="error-msg" id="residential_addressError"></div>
-                </div>
-                <div class="form-group">
-                    <label for="pincode">Pincode</label>
-                    <input type="text" id="pincode" placeholder="6-digit pincode" pattern="[0-9]{6}" maxlength="6" required>
-                    <div class="error-msg" id="pincodeError"></div>
-                </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" placeholder="Min 8 chars, uppercase, number & symbol" minlength="8" required>
-                    <div class="error-msg" id="passwordError"></div>
-                </div>
-                <div class="form-group">
-                    <label for="confirmPassword">Confirm Password</label>
-                    <input type="password" id="confirmPassword" placeholder="Re-enter your password" minlength="8" required>
-                    <div class="error-msg" id="confirmPasswordError"></div>
-                </div>
-                <button type="submit" class="btn-primary" id="submitBtn"><i class="fas fa-user-plus"></i> Create Account</button>
-                <p id="formMessage" style="text-align:center;margin-top:0.8rem;font-size:0.9rem;display:none;"></p>
-            </form>
-
-            <p class="terms">By signing up, you agree to our <a href="terms-and-conditions.html">Terms & Conditions</a> and <a href="privacypolicy.html">Privacy Policy</a>.</p>
-
-            <div class="auth-footer">
-                Already have an account? <a href="login.html">Log in</a>
-            </div>
-        </div>
+        <div class="auth-footer">Already have an account? <a href="login.html">Log in</a></div>
+      </div>
     </div>
 
     <footer>
-        <a href="index.html" class="footer-logo">Manzil Bharat</a>
-        <p>Explore the world with Bhartiya dil.</p>
-        <div class="footer-bottom">&copy; 2026 Manzil Bharat. All rights reserved.</div>
+      <a href="index.html" class="footer-logo">Manzil Bharat</a>
+      <p>Explore the world with Bhartiya dil.</p>
+      <div class="footer-bottom">&copy; 2026 Manzil Bharat. All rights reserved.</div>
     </footer>
 
     <script>
-        // ======== MOBILE MENU TOGGLE ========
-        document.getElementById('menuToggle').addEventListener('click', function() {
-            document.getElementById('navLinks').classList.toggle('active');
+      // ======== MOBILE MENU TOGGLE ========
+      document.getElementById('menuToggle').addEventListener('click', function () {
+        document.getElementById('navLinks').classList.toggle('active');
+      });
+
+      // ======== GOOGLE SIGNUP (via Google Identity Services) ========
+      function handleGoogleSignup(response) {
+        const credential = response.credential;
+        if (!credential) {
+          alert('Google signup failed. Please try again.');
+          return;
+        }
+
+        try {
+          const parts = credential.split('.');
+          if (parts.length !== 3) throw new Error('Invalid token');
+          const payload = JSON.parse(
+            decodeURIComponent(escape(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))),
+          );
+          const name = payload.name || '';
+          const email = payload.email || '';
+
+          document.getElementById('name').value = name;
+          document.getElementById('email').value = email;
+          document.getElementById('name').classList.add('success');
+          document.getElementById('email').classList.add('success');
+
+          const msg = document.getElementById('formMessage');
+          msg.textContent = 'Google account connected! Please complete the remaining fields.';
+          msg.style.color = '#27ae60';
+          msg.style.display = 'block';
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } catch (err) {
+          alert('Failed to process Google account. Please try again.');
+        }
+      }
+
+      // ======== FORM VALIDATION ========
+      const fields = [
+        'name',
+        'email',
+        'contact',
+        'gender',
+        'dob',
+        'marital_status',
+        'residential_address',
+        'pincode',
+        'password',
+        'confirmPassword',
+      ];
+
+      function showError(id, msg) {
+        const el = document.getElementById(id);
+        const err = document.getElementById(id + 'Error');
+        if (el) el.classList.add('error');
+        if (el) el.classList.remove('success');
+        if (err) {
+          err.textContent = msg;
+          err.classList.add('show');
+        }
+      }
+
+      function clearError(id) {
+        const el = document.getElementById(id);
+        const err = document.getElementById(id + 'Error');
+        if (el) el.classList.remove('error');
+        if (err) {
+          err.textContent = '';
+          err.classList.remove('show');
+        }
+      }
+
+      function markSuccess(id) {
+        const el = document.getElementById(id);
+        if (el) {
+          el.classList.remove('error');
+          el.classList.add('success');
+        }
+      }
+
+      function validateName() {
+        const v = document.getElementById('name').value.trim();
+        if (!v) {
+          showError('name', 'Full name is required');
+          return false;
+        }
+        if (v.length < 2) {
+          showError('name', 'Name must be at least 2 characters');
+          return false;
+        }
+        if (!/^[A-Za-z\s]+$/.test(v)) {
+          showError('name', 'Name must contain only letters and spaces');
+          return false;
+        }
+        clearError('name');
+        markSuccess('name');
+        return true;
+      }
+
+      function validateEmail() {
+        const v = document.getElementById('email').value.trim();
+        if (!v) {
+          showError('email', 'Email is required');
+          return false;
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
+          showError('email', 'Enter a valid email address');
+          return false;
+        }
+        clearError('email');
+        markSuccess('email');
+        return true;
+      }
+
+      function validateContact() {
+        const v = document.getElementById('contact').value.trim();
+        if (!v) {
+          showError('contact', 'Contact number is required');
+          return false;
+        }
+        if (!/^[6-9]\d{9}$/.test(v)) {
+          showError('contact', 'Enter a valid 10-digit Indian mobile number');
+          return false;
+        }
+        clearError('contact');
+        markSuccess('contact');
+        return true;
+      }
+
+      function validateGender() {
+        const v = document.getElementById('gender').value;
+        if (!v) {
+          showError('gender', 'Please select your gender');
+          return false;
+        }
+        clearError('gender');
+        markSuccess('gender');
+        return true;
+      }
+
+      function validateDob() {
+        const v = document.getElementById('dob').value;
+        if (!v) {
+          showError('dob', 'Date of birth is required');
+          return false;
+        }
+        const dob = new Date(v);
+        const today = new Date();
+        let age = today.getFullYear() - dob.getFullYear();
+        const m = today.getMonth() - dob.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+        if (dob > today) {
+          showError('dob', 'Date of birth cannot be in the future');
+          return false;
+        }
+        if (age < 18) {
+          showError('dob', 'You must be at least 18 years old');
+          return false;
+        }
+        if (age > 120) {
+          showError('dob', 'Enter a valid date of birth');
+          return false;
+        }
+        clearError('dob');
+        markSuccess('dob');
+        return true;
+      }
+
+      function validateMaritalStatus() {
+        const v = document.getElementById('marital_status').value;
+        if (!v) {
+          showError('marital_status', 'Please select marital status');
+          return false;
+        }
+        clearError('marital_status');
+        markSuccess('marital_status');
+        return true;
+      }
+
+      function validateAddress() {
+        const v = document.getElementById('residential_address').value.trim();
+        if (!v) {
+          showError('residential_address', 'Residential address is required');
+          return false;
+        }
+        if (v.length < 10) {
+          showError('residential_address', 'Address must be at least 10 characters');
+          return false;
+        }
+        clearError('residential_address');
+        markSuccess('residential_address');
+        return true;
+      }
+
+      function validatePincode() {
+        const v = document.getElementById('pincode').value.trim();
+        if (!v) {
+          showError('pincode', 'Pincode is required');
+          return false;
+        }
+        if (!/^[1-9][0-9]{5}$/.test(v)) {
+          showError('pincode', 'Enter a valid 6-digit pincode');
+          return false;
+        }
+        clearError('pincode');
+        markSuccess('pincode');
+        return true;
+      }
+
+      function validatePassword() {
+        const v = document.getElementById('password').value;
+        if (!v) {
+          showError('password', 'Password is required');
+          return false;
+        }
+        if (v.length < 8) {
+          showError('password', 'Password must be at least 8 characters');
+          return false;
+        }
+        if (!/[A-Z]/.test(v)) {
+          showError('password', 'Password must contain at least one uppercase letter');
+          return false;
+        }
+        if (!/[0-9]/.test(v)) {
+          showError('password', 'Password must contain at least one number');
+          return false;
+        }
+        if (!/[^A-Za-z0-9]/.test(v)) {
+          showError('password', 'Password must contain at least one special character');
+          return false;
+        }
+        clearError('password');
+        markSuccess('password');
+        return true;
+      }
+
+      function validateConfirmPassword() {
+        const v = document.getElementById('confirmPassword').value;
+        const pw = document.getElementById('password').value;
+        if (!v) {
+          showError('confirmPassword', 'Please confirm your password');
+          return false;
+        }
+        if (v !== pw) {
+          showError('confirmPassword', 'Passwords do not match');
+          return false;
+        }
+        clearError('confirmPassword');
+        markSuccess('confirmPassword');
+        return true;
+      }
+
+      const validators = {
+        name: validateName,
+        email: validateEmail,
+        contact: validateContact,
+        gender: validateGender,
+        dob: validateDob,
+        marital_status: validateMaritalStatus,
+        residential_address: validateAddress,
+        pincode: validatePincode,
+        password: validatePassword,
+        confirmPassword: validateConfirmPassword,
+      };
+
+      fields.forEach((f) => {
+        const el = document.getElementById(f);
+        if (el) {
+          el.addEventListener('blur', validators[f]);
+          el.addEventListener('input', () => {
+            if (el.classList.contains('error')) validators[f]();
+          });
+        }
+      });
+
+      document.getElementById('signupForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msg = document.getElementById('formMessage');
+        msg.style.display = 'none';
+
+        let allValid = true;
+        fields.forEach((f) => {
+          if (!validators[f]()) allValid = false;
         });
+        if (!allValid) return;
 
-        // ======== GOOGLE SIGNUP (via Google Identity Services) ========
-        function handleGoogleSignup(response) {
-            const credential = response.credential;
-            if (!credential) { alert('Google signup failed. Please try again.'); return; }
-
-            try {
-                const parts = credential.split('.');
-                if (parts.length !== 3) throw new Error('Invalid token');
-                const payload = JSON.parse(decodeURIComponent(escape(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))));
-                const name = payload.name || '';
-                const email = payload.email || '';
-
-                document.getElementById('name').value = name;
-                document.getElementById('email').value = email;
-                document.getElementById('name').classList.add('success');
-                document.getElementById('email').classList.add('success');
-
-                const msg = document.getElementById('formMessage');
-                msg.textContent = 'Google account connected! Please complete the remaining fields.';
-                msg.style.color = '#27ae60';
-                msg.style.display = 'block';
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            } catch (err) {
-                alert('Failed to process Google account. Please try again.');
-            }
-        }
-
-        // ======== FORM VALIDATION ========
-        const fields = ['name', 'email', 'contact', 'gender', 'dob', 'marital_status', 'residential_address', 'pincode', 'password', 'confirmPassword'];
-
-        function showError(id, msg) {
-            const el = document.getElementById(id);
-            const err = document.getElementById(id + 'Error');
-            if (el) el.classList.add('error');
-            if (el) el.classList.remove('success');
-            if (err) { err.textContent = msg; err.classList.add('show'); }
-        }
-
-        function clearError(id) {
-            const el = document.getElementById(id);
-            const err = document.getElementById(id + 'Error');
-            if (el) el.classList.remove('error');
-            if (err) { err.textContent = ''; err.classList.remove('show'); }
-        }
-
-        function markSuccess(id) {
-            const el = document.getElementById(id);
-            if (el) { el.classList.remove('error'); el.classList.add('success'); }
-        }
-
-        function validateName() {
-            const v = document.getElementById('name').value.trim();
-            if (!v) { showError('name', 'Full name is required'); return false; }
-            if (v.length < 2) { showError('name', 'Name must be at least 2 characters'); return false; }
-            if (!/^[A-Za-z\s]+$/.test(v)) { showError('name', 'Name must contain only letters and spaces'); return false; }
-            clearError('name'); markSuccess('name'); return true;
-        }
-
-        function validateEmail() {
-            const v = document.getElementById('email').value.trim();
-            if (!v) { showError('email', 'Email is required'); return false; }
-            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) { showError('email', 'Enter a valid email address'); return false; }
-            clearError('email'); markSuccess('email'); return true;
-        }
-
-        function validateContact() {
-            const v = document.getElementById('contact').value.trim();
-            if (!v) { showError('contact', 'Contact number is required'); return false; }
-            if (!/^[6-9]\d{9}$/.test(v)) { showError('contact', 'Enter a valid 10-digit Indian mobile number'); return false; }
-            clearError('contact'); markSuccess('contact'); return true;
-        }
-
-        function validateGender() {
-            const v = document.getElementById('gender').value;
-            if (!v) { showError('gender', 'Please select your gender'); return false; }
-            clearError('gender'); markSuccess('gender'); return true;
-        }
-
-        function validateDob() {
-            const v = document.getElementById('dob').value;
-            if (!v) { showError('dob', 'Date of birth is required'); return false; }
-            const dob = new Date(v);
-            const today = new Date();
-            let age = today.getFullYear() - dob.getFullYear();
-            const m = today.getMonth() - dob.getMonth();
-            if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
-            if (dob > today) { showError('dob', 'Date of birth cannot be in the future'); return false; }
-            if (age < 18) { showError('dob', 'You must be at least 18 years old'); return false; }
-            if (age > 120) { showError('dob', 'Enter a valid date of birth'); return false; }
-            clearError('dob'); markSuccess('dob'); return true;
-        }
-
-        function validateMaritalStatus() {
-            const v = document.getElementById('marital_status').value;
-            if (!v) { showError('marital_status', 'Please select marital status'); return false; }
-            clearError('marital_status'); markSuccess('marital_status'); return true;
-        }
-
-        function validateAddress() {
-            const v = document.getElementById('residential_address').value.trim();
-            if (!v) { showError('residential_address', 'Residential address is required'); return false; }
-            if (v.length < 10) { showError('residential_address', 'Address must be at least 10 characters'); return false; }
-            clearError('residential_address'); markSuccess('residential_address'); return true;
-        }
-
-        function validatePincode() {
-            const v = document.getElementById('pincode').value.trim();
-            if (!v) { showError('pincode', 'Pincode is required'); return false; }
-            if (!/^[1-9][0-9]{5}$/.test(v)) { showError('pincode', 'Enter a valid 6-digit pincode'); return false; }
-            clearError('pincode'); markSuccess('pincode'); return true;
-        }
-
-        function validatePassword() {
-            const v = document.getElementById('password').value;
-            if (!v) { showError('password', 'Password is required'); return false; }
-            if (v.length < 8) { showError('password', 'Password must be at least 8 characters'); return false; }
-            if (!/[A-Z]/.test(v)) { showError('password', 'Password must contain at least one uppercase letter'); return false; }
-            if (!/[0-9]/.test(v)) { showError('password', 'Password must contain at least one number'); return false; }
-            if (!/[^A-Za-z0-9]/.test(v)) { showError('password', 'Password must contain at least one special character'); return false; }
-            clearError('password'); markSuccess('password'); return true;
-        }
-
-        function validateConfirmPassword() {
-            const v = document.getElementById('confirmPassword').value;
-            const pw = document.getElementById('password').value;
-            if (!v) { showError('confirmPassword', 'Please confirm your password'); return false; }
-            if (v !== pw) { showError('confirmPassword', 'Passwords do not match'); return false; }
-            clearError('confirmPassword'); markSuccess('confirmPassword'); return true;
-        }
-
-        const validators = {
-            name: validateName, email: validateEmail, contact: validateContact,
-            gender: validateGender, dob: validateDob, marital_status: validateMaritalStatus,
-            residential_address: validateAddress, pincode: validatePincode,
-            password: validatePassword, confirmPassword: validateConfirmPassword
+        const data = {
+          name: document.getElementById('name').value.trim(),
+          email: document.getElementById('email').value.trim(),
+          contact: document.getElementById('contact').value.trim(),
+          gender: document.getElementById('gender').value,
+          dob: document.getElementById('dob').value,
+          marital_status: document.getElementById('marital_status').value,
+          residential_address: document.getElementById('residential_address').value.trim(),
+          pincode: document.getElementById('pincode').value.trim(),
+          password: document.getElementById('password').value,
         };
 
-        fields.forEach(f => {
-            const el = document.getElementById(f);
-            if (el) {
-                el.addEventListener('blur', validators[f]);
-                el.addEventListener('input', () => { if (el.classList.contains('error')) validators[f](); });
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Account...';
+
+        try {
+          const res = await fetch(API_BASE + '/api/signup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+          });
+          const result = await res.json();
+          if (res.ok && result.token) {
+            MBAuth.setSession(result.token, result.user, false);
+            msg.textContent = 'Account created successfully! Redirecting...';
+            msg.style.color = '#27ae60';
+            msg.style.display = 'block';
+            setTimeout(() => {
+              window.location.href = 'index.html';
+            }, 1200);
+          } else {
+            if (result.errors) {
+              Object.keys(result.errors).forEach((f) => showError(f, result.errors[f]));
             }
-        });
-
-        document.getElementById('signupForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const msg = document.getElementById('formMessage');
-            msg.style.display = 'none';
-
-            let allValid = true;
-            fields.forEach(f => { if (!validators[f]()) allValid = false; });
-            if (!allValid) return;
-
-            const data = {
-                name: document.getElementById('name').value.trim(),
-                email: document.getElementById('email').value.trim(),
-                contact: document.getElementById('contact').value.trim(),
-                gender: document.getElementById('gender').value,
-                dob: document.getElementById('dob').value,
-                marital_status: document.getElementById('marital_status').value,
-                residential_address: document.getElementById('residential_address').value.trim(),
-                pincode: document.getElementById('pincode').value.trim(),
-                password: document.getElementById('password').value
-            };
-
-            const btn = document.getElementById('submitBtn');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Account...';
-
-            try {
-                const res = await fetch(API_BASE + '/api/signup', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                const result = await res.json();
-                if (res.ok && result.token) {
-                    MBAuth.setSession(result.token, result.user, false);
-                    msg.textContent = 'Account created successfully! Redirecting...';
-                    msg.style.color = '#27ae60';
-                    msg.style.display = 'block';
-                    setTimeout(() => { window.location.href = 'index.html'; }, 1200);
-                } else {
-                    if (result.errors) {
-                        Object.keys(result.errors).forEach(f => showError(f, result.errors[f]));
-                    }
-                    msg.textContent = result.error || 'Registration failed.';
-                    msg.style.color = '#e74c3c';
-                    msg.style.display = 'block';
-                }
-            } catch (err) {
-                msg.textContent = 'Cannot reach the server. Is it running? Start it with: ./start.sh';
-                msg.style.color = '#e74c3c';
-                msg.style.display = 'block';
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-user-plus"></i> Create Account';
-            }
-        });
+            msg.textContent = result.error || 'Registration failed.';
+            msg.style.color = '#e74c3c';
+            msg.style.display = 'block';
+          }
+        } catch (err) {
+          msg.textContent = 'Cannot reach the server. Is it running? Start it with: ./start.sh';
+          msg.style.color = '#e74c3c';
+          msg.style.display = 'block';
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fas fa-user-plus"></i> Create Account';
+        }
+      });
     </script>
     <script src="nav-auth.js"></script>
-</body>
+  </body>
 </html>

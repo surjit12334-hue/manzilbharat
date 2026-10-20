@@ -216,6 +216,31 @@ curl https://manzilbharat.onrender.com/api/health     # {"db":"ok","status":"ok"
 
 ---
 
+## Lint
+
+One config file per language: `ruff.toml` (Python) and `.prettierrc.json`
+(frontend). Prettier covers every `*.js`, `*.css`, `*.html` and `*.json` in the
+repo - the CSS lives inside each page's `<style>` block, so the HTML pass is
+the CSS pass, and Prettier formats the embedded `<script>` bodies too.
+
+```bash
+# Python
+venv/bin/ruff check .            # CI runs the same command
+venv/bin/ruff check . --fix      # apply the safe fixes
+
+# Frontend (needs Node; package.json pins Prettier exactly)
+npm ci                           # one-off: install from package-lock.json
+npm run format:check             # CI: fail if anything is unformatted
+npm run format                   # rewrite the files
+```
+
+Both run in CI as the `lint (ruff + prettier)` job, in parallel with the test
+suite. `ruff check` only - nothing runs `ruff format` over `backend/app.py`,
+because its layout is intentional and a reflow would bury a 1700-line file in
+whitespace churn.
+
+---
+
 ## Roadmap & status
 
 See [`ROADMAP.txt`](ROADMAP.txt) for the full phase-by-phase plan, including
