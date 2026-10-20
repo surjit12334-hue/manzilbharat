@@ -23,21 +23,26 @@ PHASE 0 - CLEAN THE SLATE                                    [~30 minutes]
 ===============================================================================
 Goal: start from a clean, trustworthy git state.
 
-  [ ] 1. Review the uncommitted changes and commit or discard them:
+  [x] 1. Review the uncommitted changes and commit or discard them:
          - modified: backend/requirements.txt, reset-password.html, schema.sql
-         - deleted:  SIH2026.pdf (keep it - move to docs/ instead?)
-         - untracked: .env.example (MUST be committed), ankit.jpeg
-  [ ] 2. Confirm .env is ignored:        git status --ignored
-  [ ] 3. Create a branch per phase:      git checkout -b phase-1-product
-  [ ] 4. Write a minimal README.md:
-         - what the project is (SIH 2026 PS 26204)
+           -> committed as 2bcb8c4
+         - untracked: .env.example, ankit.jpeg, ROADMAP.txt
+           -> committed as 4086ca1
+         - deleted:  an old reference PDF -> deleted in e38e309 (still in git
+           history at commit fb41298 if ever needed)
+  [x] 2. Confirm .env is ignored:        git status --ignored   (.env shows !!)
+  [x] 3. Create a branch per phase:      git checkout -b phase-1-product
+  [x] 4. Write a minimal README.md:      committed as b25f5d0
+         - what the project is
          - how to run it (cp .env.example .env, edit, ./start.sh)
          - how to set up the DB (schema.sql, seed.sql)
-  [ ] 5. Delete the two false trust badges: "SSL Secured", "PCI Compliant"
-         (index.html, footer-certifications) - re-add only after real
-         payments exist.
+  [x] 5. Delete the two false trust badges: "SSL Secured", "PCI Compliant"
+         (index.html, footer-certifications) - committed as b25f5d0
+         REMAINING: the "We accept: Visa/Mastercard/UPI" footer row is
+         equally unbacked -> remove it in Phase 5 step 2 (with Razorpay).
 
   DONE WHEN: git status is clean, README lets a stranger run the app.
+  -> DONE. git status is clean.
 
 
 ===============================================================================
@@ -46,91 +51,191 @@ PHASE 1 - MAKE IT REAL (the product is missing)            [3-4 days]
 Goal: a logged-in user can do something. Right now login leads nowhere
 and there is no way to create a booking at all.
 
-  [ ] 1. Fix config.js API_BASE (5 min)                             [m]
+  [x] 1. Fix config.js API_BASE (5 min)                             [m]
+         DONE -> commit 7230322
          Change: window.API_BASE = 'http://localhost:5000'
          To:     window.API_BASE = '';    // same-origin
          WHY: every login/signup/admin/reset call breaks on any real
          domain. Test by opening the site on a non-localhost host.
+         (Also updated the5 error messages that printed API_BASE /
+          told users to match a port in config.js.)
 
-  [ ] 2. Server-side AI proxy (2-3 h)                               [h]
-         a. Add to .env:  GEMINI_API_KEY=...
-         b. Add to .env.example (commented, no real key)
-         c. New route in backend/app.py:
-              POST /api/ai-guide   { "kind": "destination"|"trip",
-                                     "query": "..." }
-            - reuse the two prompt strings currently in index.html
-              and map.html
-            - call Gemini with the key from os.environ
-            - @rate_limit(max_requests=15, window=60)
-            - return { "text": "..." }
-         d. Replace the browser fetch in index.html:363 and
-            map.html:296 with a fetch to /api/ai-guide
-         e. Delete window.GEMINI_API_KEY from config.js
+  [x] 2. Server-side AI proxy (2-3 h)                               [h] DONE
+         a. GEMINI_API_KEY=... + GEMINI_MODEL=... in .env (real key
+            verified: gemini-3.6-flash answered HTTP 200)
+         b. both added to .env.example with a "never in a .js file" note
+         c. new route POST /api/ai-guide {kind, query}
+            - prompts moved out of index.html / map.html into AI_PROMPTS
+            - key read from env, requests.post(timeout=30)
+            - @rate_limit(15, 60); 400 validation; 502/504/429 mapping;
+              Google's body is logged server-side, never forwarded
+         d. index.html + map.html now fetch /api/ai-guide
+         e. window.GEMINI_API_KEY deleted from config.js
          WHY: a key in the browser is stolen and billed within days.
+         TESTED: destination card 200 (all 4 sections), trip 200,
+         bad kind/empty/long -> 400, request #16 -> 429, key matches
+         in served pages = 0, all pages 200, server log clean.
 
-  [ ] 3. User auth guard + /api/me (1-2 h)                          [h]
-         a. @require_user decorator (like require_admin but checks
-            any valid token from the Authorization: Bearer header)
-         b. GET /api/me -> { id, name, email, contact }
-         c. Read the token from localStorage 'manzilToken'
-            (login.html:172, createaccount.html:389)
-         d. sendToken() helper in a shared auth.js
+  [x] 3. User auth guard + /api/me (1-2 h)                          [h] DONE
+         a. @require_user decorator: checks Authorization: Bearer <token>,
+            stores the payload in flask g, and REFUSES admin tokens
+            (user_id 0) so an admin session cannot act as a user
+         b. GET /api/me -> {id, name, email, contact, created_at};
+            404 when the account was deleted so the client drops the
+            stale session
+         c. NEW auth.js: MBAuth.getToken/setSession/clearSession/
+            authHeaders/me/requireLogin/logout - reads BOTH storages
+            (remember-me tokens live in localStorage, others in
+            sessionStorage)
+         d. login.html + createaccount.html now save via MBAuth
          WHY: manzilToken is stored today but NEVER sent anywhere -
          login currently does nothing for users.
+         TESTED: valid 200; none/garbage/tampered 401; admin token 403;
+         deleted user with old token 404. Log clean.
 
-  [ ] 4. Booking API (half a day)                                   [d/2]
-         a. POST /api/bookings  (@require_user)
-            fields: booking_type, source, destination, travel_date,
-                    amount  -> validate all, travel_date as ISO date
-         b. GET  /api/bookings/mine (@require_user)
-         c. DELETE /api/bookings/<id> (@require_user, owner only)
-         d. Change schema: travel_date VARCHAR(20) -> DATE
-            (update schema.sql fresh-create AND add a commented
-            ALTER for the existing live DB, same style as before)
-         WHY: tables + admin UI exist but NOTHING can create a row.
+  [x] 4. Booking API (half a day)                                   [d/2] DONE
+         a. POST /api/bookings (@require_user): booking_type whitelist
+            (flight/bus/train/cab/hotel/package), source+destination,
+            travel_date must be ISO and not in the past, amount
+            0..1,000,000 (bool/NaN/inf rejected), status always
+            'pending' - the client cannot set it. 400 carries an
+            {errors:{field:message}} dict like signup does.
+         b. GET /api/bookings/mine (@require_user), owner rows only
+         c. POST /api/bookings/<id>/cancel (@require_user)
+            - 404 missing / 403 not yours / 409 completed /
+              200 idempotent when already cancelled
+            - DEVIATION from the original plan (owner DELETE): a user
+              cancelling keeps the row for the admin audit trail, and a
+              second DELETE route would collide with the admin route.
+              Admin keeps hard DELETE.
+         d. schema: travel_date VARCHAR(20) -> DATE
+            - fresh schema.sql updated; migration documented (comments)
+            - APPLIED to the dev DB as owner (postgres): backup taken
+              first at /tmp/opencode/backup_before_travel_date.sql,
+              5/5 rows preserved, column type now `date`
+         e. NEW ISODatetimeJSONProvider: psycopg2 returns date objects,
+            so every admin endpoint selecting travel_date would have
+            failed to jsonify; timestamps now serialize as ISO too.
+         TESTED (20 checks): create 201 + echo; 7 validation cases 400;
+         mine 200; cancel 200 / idempotent 200 / cross-user 403 /
+         missing 404 / completed 409; no-token 401 x3; admin list 200
+         with correct date + user_name join; recent 200; stats 200;
+         log clean.
+         WHY: the tables + admin UI existed but NOTHING could create a
+         booking - the product's core action did not exist.
 
-  [ ] 5. "My Trips" page (1 day)                                    [d]
-         - New mytrips.html: list of the user's bookings, status,
-           total spent, cancel button, "Plan a trip" CTA -> index.html
-         - Add link in the header/footer of every page
-         - Show a "Hi, <name>" state when logged in (uses /api/me),
-           "Login" when not
-         - Redirect to index.html if no token
+  [x] 5. "My Trips" page (1 day)                                    [d] DONE
+         - NEW mytrips.html: booking list with status badges, stats
+           (total/upcoming/cancelled/planned spend), cancel button
+           (confirm + idempotent), inline "new trip" form posting to
+           POST /api/bookings with per-field errors, empty state CTA,
+           redirects signed-out visitors to login.html?next=mytrips.html
+         - login.html honors ?next= but ONLY for plain local
+           /[a-z0-9_-]+.html pages, so a crafted link cannot bounce
+           users to another site
+         - NEW nav-auth.js: one shared header state for every page
+           (data-mb-show="guest|user", data-mb-name, data-mb-logout;
+           hides both states while /api/me confirms a token so signed-
+           in users never see a flash of "Login")
+         - "My Trips" link added to the nav of all 11 nav pages, the
+           map.html topbar (with mobile CSS fix) and the index.html
+           footer Quick Links; index hero now swaps Login/Create
+           Account for "Hi, <name>"/Logout when signed in
+         - admin.html + reset-password.html intentionally unchanged
+         TESTED (15 checks vs the running server): fresh signup 201 ->
+         /api/me 200 -> login 200 -> create booking 201 -> appears in
+         /mine -> cancel 200 -> idempotent cancel 200 -> signed-out
+         /mine 401; all 16 pages 200; config.js/auth.js/nav-auth.js
+         served; test user cleaned up; server log clean.
          WHY: gives login a purpose; this is the page judges will look
          for after the demo of signing up.
 
-  [ ] 6. Newsletter + contact endpoints (1-2 h)                     [h]
-         a. Table: subscribers(email UNIQUE, created_at)
-            Table: messages(id, name, email, subject, body, created_at)
-         b. POST /api/newsletter  (validate email, dedupe, 409/200)
-         c. POST /api/contact     (validate, store)
-         d. Wire index.html newsletter form (currently a fake
-            "Subscribed!" button) and contact.html form
-         e. Show messages in the admin panel (new tab - the tab
-            infrastructure already exists in admin.html)
+  [x] 6. Newsletter + contact endpoints (1-2 h)                     [h] DONE
+         a. Tables: subscribers(email UNIQUE, created_at) and
+            messages(id, name, email, subject, body, created_at) -
+            schema.sql updated AND applied to the dev DB as postgres,
+            with ALL grants + sequence USAGE granted to manzil_user
+            (the app user cannot CREATE TABLE - permission denied)
+         b. POST /api/newsletter @rate_limit(10,60): email validated,
+            ON CONFLICT (email) DO NOTHING -> 201 new / 200 already
+            subscribed (no subscriber list leaked), case-insensitive
+         c. POST /api/contact @rate_limit(5,60): 4-field validation
+            with {errors:{field:message}} like signup -> 201
+         d. index.html fake "Subscribed!" button replaced with a real
+            fetch + status line (ok/err); contact.html had NO form at
+            all -> new two-column contact form card (name/email/
+            subject/message, per-field errors, spinner, status line)
+         e. admin.html new "Messages" tab (sidebar + table + debounced
+            search + view modal); GET /api/admin/messages is
+            require_admin and returns the latest 500. NOTE: admin
+            routes read the x-admin-token header, not Authorization.
+         TESTED (23 checks): newsletter 201/200 dedupe/400 x2 + field
+         error; contact 201 stored/400 x2/4 field errors; messages
+         admin 200, user token 403, no token 401; fake handler gone;
+         all pages 200; inline JS node --check clean; log clean;
+         test rows deleted afterwards.
 
-  [ ] 7. Password change for logged-in users (1 h)                  [h]
-         PUT /api/me/password  (current + new, bcrypt check)
+  [x] 7. Password change for logged-in users (1 h)                  [h] DONE
+         PUT /api/me/password behind @require_user + @rate_limit(10,60)
+         (bcrypt-expensive + brute-force target). Body: current +
+         new. New password reuses signup's exact rules (8+, uppercase,
+         number, special) and must differ from the current one; errors
+         come back as {errors:{field:message}} like signup.
+         A WRONG current password answers 401 but its body carries
+         errors.current_password, so the client can tell it apart from
+         require_user's session-dead 401 (mytrips.html does exactly
+         that - wrong password shows a field error, dead session
+         redirects to login).
+         UI: "Security" button on mytrips.html opens a change-password
+         panel (current/new/confirm, client-side match check).
          WHY: DPDP + basic hygiene; reset email alone is not enough.
+         TESTED (13 checks): no token 401; empty/weak/same-as-current
+         400; wrong current 401 naming the field; change 200; old
+         password rejected on login; new password logs in; old token
+         still valid; inline JS node --check clean; log clean; test
+         user deleted.
+
+  [x] 8. Configure password-reset email (free, Gmail app password)  [x] DONE
+         - SMTP_USER (28 chars) + SMTP_PASSWORD (19 chars, grouped
+           format with spaces - Gmail accepts it as-is) in .env
+         - FIXED A BUG found on the way (commit 5247a15): an empty
+           SMTP_USER= read as '' slipped past the old `is None` guard,
+           so forgot-password returned a misleading 'could not send'
+           error; guard is now truthy, the send path logs the real
+           SMTP exception, and boot prints a NOTE when disabled
+         TESTED: direct SMTP self-send SENT OK; after restart the boot
+         NOTE is gone; POST /api/forgot-password -> 200 "link sent,
+         valid for 30 minutes"; no exceptions in the log.
 
   DONE WHEN: fresh browser -> sign up -> plan -> book -> see it in
   My Trips -> cancel it. All with the network tab open and no errors.
+  -> PHASE 1 COMPLETE. All 8 steps done and e2e-tested
+     (steps 5-7 alone: 15 + 23 + 13 checks, all green).
 
 
 ===============================================================================
 PHASE 2 - MAKE IT SHIP (free deployment)                    [2-3 days]
 ===============================================================================
-Goal: a live URL you can put in the SIH submission.
+Goal: a live URL you can share anywhere.
 
-  [ ] 1. Production server (2-3 h)                                  [h]
-         a. Add gunicorn to backend/requirements.txt
-         b. Add Procfile or start-prod.sh:
-              gunicorn -w 2 -b 0.0.0.0:$PORT backend.app:app
-         c. Dockerfile (optional but nice for judges)
-         NOTE: with 2 workers the in-memory rate limiter and reset
-         tokens break - see step 3 FIRST if you skip the DB move.
+  [x] 1. Production server (2-3 h)                                  [h] DONE
+         a. gunicorn + flask-compress added to backend/requirements.txt
+         b. NEW start-prod.sh: gunicorn -w ${WEB_CONCURRENCY:-2}
+            -b 0.0.0.0:$PORT backend.app:app, logs to stdout so the
+            host captures them. It parses .env itself instead of
+            `source .env`: Gmail app passwords contain SPACES
+            ("abcd efgh ijkl mnop") and sourcing tries to EXECUTE the
+            second word; host env (Render's $PORT) always wins.
+         c. NEW Dockerfile (python:3.12-slim) + .dockerignore that
+            keeps .env OUT of the image - secrets come from the host.
+         TESTED: PORT=5001 ./start-prod.sh -> 2 workers booted; all
+         pages 200; /api/me 401 without token; signup 201 -> me 200
+         -> booking 201 under gunicorn; test rows deleted; clean exit.
+         NOTE: with 2 workers the OLD in-memory rate limiter and reset
+         tokens are now 2x broken - step 2 fixes exactly that, and
+         must land BEFORE any real deployment.
 
-  [ ] 2. Move in-memory state into Postgres (2-3 h)                 [h]
+  [x] 2. Move in-memory state into Postgres (2-3 h)                 [h]
          a. Table rate_limits(key TEXT, hits INT[], ...) or simply
             (key, timestamp) rows, pruned on write
          b. Table reset_tokens(token_hash PRIMARY KEY, email, exp,
@@ -139,35 +244,121 @@ Goal: a live URL you can put in the SIH submission.
          WHY: today a restart or a 2nd worker silently disables rate
          limits and allows reset token reuse.
 
-  [ ] 3. Free hosting + DB (half a day)                             [d/2]
-         - Host:  Render / Railway / Fly.io free tier (Flask, free)
-         - DB:    Neon / Supabase / Aiven free tier (Postgres, free)
-         - Apply schema.sql, then seed.sql on the hosted DB
-         - Set all env vars in the host's dashboard (never upload .env)
-         - Set API_BASE = '' (Phase 1 step 1) so it works on the host
+  [x] 3. Free hosting + DB (half a day)                       [d/2] DONE
+         - Host:  Render (free plan, Docker runtime)
+         - DB:    Neon free tier (pooled DSN, sslmode=require)
+         - Schema + seed applied to Neon as the owner; the FK
+           ON DELETE CASCADE fixes from schema.sql's commented block
+           were run too, otherwise admin "delete user" 500s
+         - All env vars set in the Render dashboard; .env never
+           uploaded (it is in .dockerignore)
+         - LIVE: https://manzilbharat.onrender.com  (no hyphen - the
+           hyphenated name belongs to someone else)
+         - Build Command: pip install -r backend/requirements.txt
+           Start Command: bash start-prod.sh
+           Health Check:  /api/health
+         - seed.sql FIXED on the way (commit 78a1218): it still treated
+           travel_date as text, so a FRESH database seeded zero
+           bookings/payments. Local dev never noticed because it had
+           been seeded before the DATE migration.
+         - FOUND + FIXED a real production-only bug (commit 8d01f7e):
+           ProxyFix(x_for=1) made request.remote_addr Render's internal
+           10.x address, which CHANGES per request - 11 requests from
+           one machine made 3 buckets, so NO rate limit ever fired
+           live. _client_ip() now takes the rightmost globally routable
+           X-Forwarded-For entry. Live re-test: buckets keyed on the
+           real client IP; /api/contact (5/min) returned 6x 429 in a
+           40-request burst. Remaining caveat: if Render forwards a
+           client-supplied header, the public entry is spoofable.
+         - e2e on the live URL: health 200 (db ok), signup 201 ->
+           /api/me 200 -> booking 201 -> mine 200 -> cancel 200 ->
+           idempotent cancel 200, signed-out 401, mytrips.html 200;
+           all test rows deleted afterwards.
 
-  [ ] 4. Static asset performance (1 h)                             [h]
-         a. Compress homebackground.png (2.4 MB -> target <200 KB):
-            pngquant / cwebp / tinywebp, all free
-         b. Compress ankit.jpeg (620 KB), sonu.jpeg, sanya.jpeg
-         c. loading="lazy" on team photos and below-the-fold images
-         d. Verify size: du -h *.png *.jpeg after
+  [x] 4. Static asset performance (1 h)                             [h] DONE
+         a. homebackground.png 2.4 MB -> homebackground.jpg 195 KB
+            (89.8% smaller; PNG is the wrong format for a photo).
+            The .png is deleted and all 6 pages that used it as a CSS
+            background now point at the .jpg. PSNR 32.5 dB, and it sits
+            under a dark gradient overlay, so artifacts are invisible.
+         b. Team photos downscaled to a 400px long edge (they render at
+            180x180, 250px on one breakpoint): ankit 620->22 KB,
+            sanya 176->22 KB, sonu 156->28 KB, surjit 37->21 KB.
+            PSNR 33-39 dB.
+         c. loading="lazy" + decoding="async" + width/height on the 5
+            team photos (map.html's gallery and blog.html already lazy-
+            load); index.html now <link rel="preload" as="image"
+            fetchpriority="high"> for the hero, since it is the LCP
+            element there and a CSS background cannot be lazy-loaded.
+         d. Total image weight 2.9 MB -> 303 KB (302 KB saved).
+            /homebackground.png now 404s on purpose; no page referenced
+            the old name anywhere (checked repo-wide).
+         TOOLING NOTE: only ffmpeg was installed, no pngquant/cwebp/
+         ImageMagick - Pillow from the existing venv did the job.
 
-  [ ] 5. Cache + compression headers (1 h)                          [h]
-         - after_request: Cache-Control: public, max-age=604800 for
-           static assets (keep no-store for /api/*)
-         - gzip via the host or Flask middleware (flask-compress,
-           free)
+  [x] 5. Cache + compression headers (1 h)                          [h] DONE
+         - flask-compress was already in requirements.txt but never
+           wired up; Compress(app) is now installed (optional import, so
+           dev still runs without it).
+         - Compression: measured on / with 2 gunicorn workers -
+           29,937 -> 7,188 bytes (br, -76%). gzip and deflate also
+           negotiate, and the decoded body is byte-identical to the
+           file. Two non-default settings were needed: file-backed
+           responses stream, and flask-compress's streaming algorithm
+           list excludes gzip by default (so gzip-only clients got
+           nothing), and it only re-evaluates If-None-Match for the
+           "static" endpoint, so the "/" homepage returned 200 + a full
+           re-download instead of 304. Both are configured in app.py.
+         - Cache-Control, set in the after_request hook:
+             images/fonts/pdf -> public, max-age=31536000, immutable
+               (safe because changed images are RENAMED, e.g.
+               homebackground.png -> .jpg, so a URL's bytes never change)
+             css/js/json      -> public, max-age=604800
+             HTML             -> no-cache (revalidate; Flask's ETag +
+               Last-Modified make an unchanged page a cheap 304, and the
+               markup that points at the cached assets is never stale)
+             /api/*           -> no-store (unchanged)
+           WHY HTML IS EXEMPT: with no hashed filenames, long-caching
+           HTML would serve stale pages after a deploy.
+         - Verified through the Flask test client and a real gunicorn
+           run: all 16 pages 200 + compressed + no-cache; hero/og images
+           200 + immutable + NOT compressed (already-compressed formats
+           are not in the compressible MIME list); /api/health no-store;
+           conditional GET -> 304 (also with the compressed ETag); Range
+           on the hero still 206. Signup -> login -> booking -> cancel
+           smoke test passes with compression on.
 
-  [ ] 6. OG + meta tags (1-2 h)                                     [h]
-         - <meta name="description"> on all 17 pages
-         - og:title, og:description, og:image, og:url, twitter:card
-         - use icon.png / a cropped hero as og:image (<=1 MB)
-         WHY: WhatsApp/X previews are your viral loop; 15 pages
-         currently share as plain text.
+  [x] 6. OG + meta tags (1-2 h)                                     [h] DONE
+         - There are 16 pages, not 17. 14 already had a real, unique
+           <meta name="description">; admin.html, map.html and
+           reset-password.html had none and got one written for them.
+         - NEW og-image.jpg: 1200x630, 98 KB, built from the compressed
+           hero + brand-navy scrim + orange accent bar (Pillow). Under
+           the 1 MB limit WhatsApp enforces.
+         - Every page now carries: canonical + og:site_name/type/title/
+           description/url/image(+width/height/alt) + twitter:card
+           (summary_large_image)/title/description/image. og:url and
+           og:image are ABSOLUTE - relative URLs are ignored by
+           WhatsApp/X, which was half of the original problem.
+         - index.html already had 3 partial og tags; they were replaced
+           (not duplicated) by the full block - verified: every tag
+           appears exactly once on every page.
+         - CAVEAT: the URLs are hardcoded to https://manzilbharat.
+           onrender.com. Moving to a custom domain means updating them
+           (or generating them from APP_ORIGIN).
 
   DONE WHEN: https://your-app.on-render.com loads in <3s on mobile
   throttling, and sign up + booking works on that URL.
+  -> PHASE 2 COMPLETE (all 6 steps) at https://manzilbharat.onrender.com
+     (note: NO hyphen - manzil-bharat.onrender.com is someone else's).
+     Measured after steps 4-5: a cold first visit (homepage + hero +
+     icon + the 3 local scripts) transfers ~221 KB, and the homepage
+     alone is 29,937 -> 7,188 bytes (br). Sign-up -> login -> booking
+     -> cancel -> "see it in My Trips" re-verified live end to end
+     (the live smoke run used for the final check is described in
+     step 5's notes). Neon was restored to its seeded state after
+     testing: 5 users, 5 bookings, 5 payments, 0 subscribers, 0
+     messages, 0 rate-limit buckets.
 
 
 ===============================================================================
@@ -175,25 +366,115 @@ PHASE 3 - PROVE IT WORKS (tests + CI)                        [1-2 days]
 ===============================================================================
 Goal: stop the "fix everything" -> "break something" commit cycle.
 
-  [ ] 1. Test setup (2-3 h)                                         [h]
-         a. pytest + a throwaway Postgres DB (or pytest fixtures
-            that create/drop tables)
-         b. Flask test client - no server needed
-         c. conftest.py: register helper, login helper, admin helper
+  [x] 1. Test setup (2-3 h)                                         [h] DONE
+         a. requirements-dev.txt (pytest only - Render installs
+            backend/requirements.txt and nothing from here), pytest.ini.
+            Local test DB manzil_bharat_test was created with
+            `sudo -u postgres createdb -O manzil_user ...` because the
+            app's own DB user has neither CREATEDB nor CREATE in the dev
+            DB. conftest reads TEST_DATABASE_URL, or locally derives the
+            name from DB_* by appending "_test".
+         b. Flask test client - no server, no ports. Flask's testing mode
+            is on so an unexpected exception surfaces as a traceback.
+         c. tests/conftest.py: session fixture applies schema.sql once;
+            an autouse fixture TRUNCATEs every table (RESTART IDENTITY
+            CASCADE) before AND after each test, which also resets the
+            DB-backed rate limiter - otherwise one test's login attempts
+            would push the next into 429. Helpers: register, user,
+            login, auth, admin_headers.
+         SAFETY: conftest refuses to run if the resolved database name
+         does not contain "test", because every test truncates. It also
+         sets JWT_SECRET/ADMIN_EMAIL/ADMIN_PASSWORD itself (the app
+         refuses to boot without them), forces EMAIL_PROVIDER=disabled
+         and drops GEMINI_API_KEY, so the suite is offline.
+         tests/test_setup.py = 8 tests proving the harness (right DB,
+         tables built, per-test isolation, real HTTP round trip, the
+         /.env + /backend/app.py 404 guard).
+         VERIFIED: 8 passed; the development DB was untouched
+         (13 users before and after, test DB 0).
+         NOTE: pytest surfaces DeprecationWarning for
+         datetime.utcnow() in app.py - a Phase 5 tidy-up, not a failure.
 
-  [ ] 2. Core test suite (half a day)                              [d/2]
-         - signup: valid, duplicate email, weak password, bad pincode
-         - login: correct, wrong password, unknown email (same error)
-         - reset: token flow, expired token, reuse rejected
-         - admin: 401 without token, 403 with a user token
-         - bookings: create, list mine, delete other user's -> 403
-         - ai-guide: 429 after the rate limit (mock Gemini)
-         - /.env and /backend/app.py -> 404
+  [x] 2. Core test suite (half a day)                              [d/2] DONE
+         51 tests in 21s, grouped by area:
+         tests/test_signup.py     valid / duplicate email / case-insensitive
+                                  email / 4 weak-password shapes / bad
+                                  pincode / 7 more field rules / age 18-120.
+                                  Each failure case also asserts that no row
+                                  was written.
+         tests/test_login.py      right password, email case+spaces,
+                                  wrong-password vs unknown-email return the
+                                  SAME status and body (the anti-enumeration
+                                  rule), missing fields, a NULL-password
+                                  (Google-only) account, tampered token.
+         tests/test_reset_password.py
+                                  happy path + old password stops working +
+                                  single use, expired row, garbage token,
+                                  policy on the new password, deleted
+                                  account -> 404, forgot-password is an
+                                  honest 500 when no provider is configured.
+         tests/test_admin.py      401 with no token, 403 when a USER token is
+                                  put in x-admin-token (the sentinel check),
+                                  list users + stats, delete user, and the
+                                  ON DELETE CASCADE that takes the user's
+                                  bookings with it.
+         tests/test_bookings.py   create, no token -> 401, validation (past
+                                  date, bad type, 5 bad amounts, empty
+                                  source/destination), mine lists only your
+                                  own, cancel own + idempotent re-cancel,
+                                  cancel someone else's -> 403, completed ->
+                                  409, missing -> 404, hard DELETE is
+                                  admin-only.
+         tests/test_ai_guide.py   validation first, 503 without a key, mocked
+                                  Gemini 200/429/5xx/timeout/connection/
+                                  malformed/empty, and 16 requests -> 429.
+         /.env, /backend/app.py, /schema.sql, /seed.sql -> 404 (test_setup.py)
+         Extra fixtures: password, admin_credentials, booking_payload, sql()
+         (SQL is cheaper than HTTP for "no row was written" and for expiring
+         a token / forcing a booking to completed).
+         SAFETY FOUND AND FIXED: conftest had popped GEMINI_API_KEY, but
+         app.py's load_dotenv() puts back anything ABSENT from .env, so the
+         suite was really calling Gemini (and the key was live). It is now
+         set to the empty string, which python-dotenv will not overwrite -
+         proven by the runtime dropping 79s -> 21s and every un-mocked
+         ai-guide answer being 503.
+         VERIFIED: 51 passed twice; dev DB still 13 users / 7 bookings; the
+         test DB ends empty.
 
-  [ ] 3. CI with GitHub Actions (1 h)                               [h]
-         - .github/workflows/ci.yml: install deps, run pytest
-         - Free for public repos
-         - Make it required: no green check, no merge
+  [ ] 3. CI with GitHub Actions (1 h)                               [h] CI RUNS GREEN;
+                                                                        branch protection
+                                                                        left (manual)
+         .github/workflows/ci.yml: one job, "pytest (Python 3.12)", on
+         ubuntu-latest with a postgres:16 service container. Reasons:
+           - Python 3.12 == Dockerfile's python:3.12-slim, the interpreter
+             Render builds, so "green here" == "works in production". (Dev is
+             3.14, which is why the mismatch was worth pinning down.)
+           - Postgres, not SQLite: the app's SQL and ON DELETE CASCADE are
+             part of what is being proven. conftest applies schema.sql and
+             truncates between tests; it refuses a DB name without "test".
+           - No repository secrets. conftest sets JWT_SECRET/ADMIN_EMAIL/
+             ADMIN_PASSWORD, forces EMAIL_PROVIDER=disabled and blanks
+             GEMINI_API_KEY, so CI cannot mail anyone or spend the live AI
+             quota - it could not even if a secret leaked into the config.
+           - Runs on every branch (not only main) so a phase branch gets a
+             verdict before a PR exists; concurrency cancels superseded runs;
+             a step fails the build if .env is ever tracked.
+         SIMULATED LOCAL RUN BEFORE PUSHING, both with and without .env
+         (CI has no .env): 51 passed each time.
+         FIRST REAL RUN: commit dd2b728 -> success, check name
+         "pytest (Python 3.12)"
+         https://github.com/surjit12334-hue/manzilbharat/actions/runs/39292913999
+         REMAINING (manual, in the GitHub UI): require that check on main.
+         GOTCHA: GitHub only lists a status check in the protection picker
+         once it has run on the DEFAULT branch, so phase-1-product must be
+         merged into main first - which we wanted anyway.
+         FOUND WHILE LOOKING: main also publishes a legacy GitHub Pages site
+         (Settings -> Pages, deploy from branch) at
+         https://surjit12334-hue.github.io/manzilbharat/ - live today. It
+         serves the same frontend, but API_BASE is '' (same-origin), so from
+         github.io every API call (login, bookings, AI) hits github.io and
+         404s: the static pages work, the features do not. Decide in Phase 6
+         whether to point it at the Render API or leave it alone.
 
   [ ] 4. Lint (30 m)                                                [m]
          - ruff (Python) + a JS formatter. One config file each.
@@ -204,7 +485,7 @@ Goal: stop the "fix everything" -> "break something" commit cycle.
 ===============================================================================
 PHASE 4 - DEMO THE PITCH (free data instead of paid APIs)   [2-3 days]
 ===============================================================================
-Goal: cover the SIH problem statement (itinerary, budget, hotels,
+Goal: cover the full travel flow (itinerary, budget, hotels,
 transport) without paying for a single travel API.
 
   [ ] 1. Day-wise itinerary (1-1 d)                                 [d]

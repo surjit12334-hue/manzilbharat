@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS bookings (
     booking_type VARCHAR(50) NOT NULL,
     source       VARCHAR(255),
     destination  VARCHAR(255),
-    travel_date  VARCHAR(20),
+    travel_date  DATE,
     amount       NUMERIC(10,2) DEFAULT 0,
     status       VARCHAR(20) DEFAULT 'pending',
     created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -41,6 +41,48 @@ CREATE TABLE IF NOT EXISTS payments (
     created_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Newsletter signups. No user_id: subscribers are often signed out, and
+-- ON CONFLICT (email) makes a double-submit idempotent.
+CREATE TABLE IF NOT EXISTS subscribers (
+    id         SERIAL PRIMARY KEY,
+    email      VARCHAR(255) NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Contact-form messages, shown in the admin panel's Messages tab.
+CREATE TABLE IF NOT EXISTS messages (
+    id         SERIAL PRIMARY KEY,
+    name       VARCHAR(255) NOT NULL,
+    email      VARCHAR(255) NOT NULL,
+    subject    VARCHAR(255) NOT NULL,
+    body       TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Rate-limit buckets, one row per (endpoint, client-ip). Lives in Postgres so
+-- the limit is SHARED across gunicorn workers - the old in-memory dict was
+-- per-worker, so 2 workers silently doubled every limit. hits holds the recent
+-- request timestamps; old ones are pruned on each write.
+CREATE TABLE IF NOT EXISTS rate_limits (
+    bucket    TEXT PRIMARY KEY,
+    hits      TIMESTAMP[] NOT NULL DEFAULT '{}',
+    -- Newest hit, maintained on every write. Pruning uses this column (indexed)
+    -- rather than scanning the hits array, so stale buckets are dropped cheaply.
+    last_seen TIMESTAMP NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS rate_limits_last_seen_idx ON rate_limits (last_seen);
+
+-- Password-reset tokens. ONLY the SHA-256 hash of the token is stored, so a
+-- database leak cannot be replayed into account takeovers. used_at is set when
+-- a token is redeemed, which blocks reuse across workers/restarts.
+CREATE TABLE IF NOT EXISTS reset_tokens (
+    token_hash TEXT PRIMARY KEY,
+    email      TEXT NOT NULL,
+    exp        TIMESTAMP NOT NULL,
+    used_at    TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS reset_tokens_exp_idx ON reset_tokens (exp);
+
 -- ============================================================================
 -- Existing DB fixes (run on the CURRENT live database only if migrating)
 -- ============================================================================
@@ -55,3 +97,12 @@ CREATE TABLE IF NOT EXISTS payments (
 -- ALTER TABLE payments DROP CONSTRAINT IF EXISTS payments_user_id_fkey;
 -- ALTER TABLE payments ADD CONSTRAINT payments_user_id_fkey
 --     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+
+-- travel_date was VARCHAR(20); the booking API needs a real DATE (sorting,
+-- validation, "no past dates"). Run AS THE TABLE OWNER (postgres):
+--   sudo -u postgres psql -d manzil_bharat -c \
+--     "ALTER TABLE bookings ALTER COLUMN travel_date TYPE DATE
+--      USING NULLIF(travel_date,'')::date;"
+-- Values must all be YYYY-MM-DD before running this; check with:
+--   SELECT travel_date FROM bookings
+--      WHERE travel_date IS NOT NULL AND travel_date !~ '^\d{4}-\d{2}-\d{2}$';

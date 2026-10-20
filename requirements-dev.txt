@@ -1,0 +1,5 @@
+# Development and test only. Render installs backend/requirements.txt and
+# nothing from here, so the running app can never be affected by a test dep.
+-r backend/requirements.txt
+
+pytest>=8.0

@@ -5,12 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manzil Bharat - Let's Travel Together</title>
     <link rel="icon" type="image/png" href="icon.png">
+    <!-- The hero background is this page's LCP element (above the fold), so
+         fetch it early and at high priority. Other pages use the same image
+         only as a dimmed backdrop below the fold, so they don't preload it. -->
+    <link rel="preload" as="image" href="homebackground.jpg" fetchpriority="high">
     <meta name="description" content="Manzil Bharat - Your trusted travel partner for cabs, bikes, flights, trains, buses, hotels, and more across India.">
+    <link rel="canonical" href="https://manzilbharat.onrender.com/">
+    <!-- Social previews: absolute og:url/og:image are required, relative ones
+         are ignored by WhatsApp/X. The card is a 1200x630 JPEG. -->
+    <meta property="og:site_name" content="Manzil Bharat">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Manzil Bharat - Let's Travel Together">
+    <meta property="og:description" content="Manzil Bharat - Your trusted travel partner for cabs, bikes, flights, trains, buses, hotels, and more across India.">
+    <meta property="og:url" content="https://manzilbharat.onrender.com/">
+    <meta property="og:image" content="https://manzilbharat.onrender.com/og-image.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Manzil Bharat - Let's Travel Together">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Manzil Bharat - Let's Travel Together">
+    <meta name="twitter:description" content="Manzil Bharat - Your trusted travel partner for cabs, bikes, flights, trains, buses, hotels, and more across India.">
+    <meta name="twitter:image" content="https://manzilbharat.onrender.com/og-image.jpg">
     <meta name="keywords" content="travel, India, cabs, bikes, flights, trains, buses, hotels, booking, Manzil Bharat">
     <meta name="author" content="Manzil Bharat">
-    <meta property="og:title" content="Manzil Bharat - Let's Travel Together">
-    <meta property="og:description" content="Your trusted travel partner for cabs, bikes, flights, trains, buses, hotels, and more across India.">
-    <meta property="og:type" content="website">
+
     <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
@@ -21,7 +39,7 @@
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        .hero { position: relative; min-height: 100vh; background: linear-gradient(135deg, rgba(26,35,126,0.7), rgba(255,107,53,0.5)), url('homebackground.png') center/cover no-repeat; display: flex; align-items: center; justify-content: center; text-align: center; color: white; padding: 5rem 5% 3rem; }
+        .hero { position: relative; min-height: 100vh; background: linear-gradient(135deg, rgba(26,35,126,0.7), rgba(255,107,53,0.5)), url('homebackground.jpg') center/cover no-repeat; display: flex; align-items: center; justify-content: center; text-align: center; color: white; padding: 5rem 5% 3rem; }
 
         .auth-section { position: absolute; right: 30px; top: 30px; display: flex; align-items: center; gap: 1rem; z-index: 1000; flex-wrap: wrap; justify-content: flex-end; animation: fadeIn 0.8s ease-out; }
         .auth-section a { text-decoration: none; color: white; font-weight: 500; padding: 0.6rem 1.2rem; border-radius: 25px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); white-space: nowrap; }
@@ -90,6 +108,10 @@
         .newsletter-form input:focus { border-color: #FF6B35; background: rgba(255,255,255,0.08); box-shadow: 0 0 0 3px rgba(255,107,53,0.1); }
         .newsletter-form button { background: linear-gradient(135deg, #FF6B35, #E65100); color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .newsletter-form button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255,107,53,0.4); }
+        .newsletter-form button:disabled { opacity: 0.6; cursor: wait; transform: none; }
+        .newsletter-status { min-height: 1.1rem; margin-top: 0.5rem; font-size: 0.82rem; }
+        .newsletter-status.ok { color: #27ae60; }
+        .newsletter-status.err { color: #e74c3c; }
         .footer-apps { margin-top: 1.5rem; }
         .footer-apps p { color: #8892b0; font-size: 0.85rem; margin-bottom: 0.8rem; }
         .app-buttons { display: flex; gap: 0.8rem; }
@@ -114,9 +136,6 @@
         .payment-icons { display: flex; gap: 0.5rem; }
         .payment-icons i { font-size: 1.5rem; color: #6b7a99; transition: color 0.3s ease; }
         .payment-icons i:hover { color: #FF6B35; }
-        .footer-certifications { display: flex; align-items: center; gap: 1rem; }
-        .cert-badge { display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(255,255,255,0.05); padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.75rem; color: #6b7a99; border: 1px solid rgba(255,255,255,0.08); }
-        .cert-badge i { color: #4CAF50; }
 
         @media (max-width: 480px) {
             .auth-section { right: 2%; top: 10px; gap: 0.3rem; flex-wrap: nowrap; }
@@ -134,7 +153,6 @@
             .footer-links-col { text-align: center; }
             .footer-bottom { flex-direction: column; text-align: center; }
             .footer-payments { flex-wrap: wrap; justify-content: center; }
-            .footer-certifications { flex-wrap: wrap; justify-content: center; }
         }
         @media (min-width: 481px) and (max-width: 768px) {
             .footer-top { grid-template-columns: 1fr; }
@@ -153,12 +171,16 @@
         @media print { .auth-section, .search-bar { display: none; } .hero { height: auto; background: none; color: black; } footer { background: none; color: black; } }
     </style>
 <script src="config.js"></script>
+<script src="auth.js"></script>
+<script src="nav-auth.js"></script>
 </head>
 <body>
     <header class="hero">
         <div class="auth-section">
-            <a href="login.html" class="login-btn"><i class="fas fa-sign-in-alt"></i> Login</a>
-            <a href="createaccount.html" class="signup-btn"><i class="fas fa-user-plus"></i> Create Account</a>
+            <a href="login.html" class="login-btn" data-mb-show="guest"><i class="fas fa-sign-in-alt"></i> Login</a>
+            <a href="createaccount.html" class="signup-btn" data-mb-show="guest"><i class="fas fa-user-plus"></i> Create Account</a>
+            <a href="mytrips.html" class="login-btn" data-mb-show="user" hidden><i class="fas fa-user-circle"></i> Hi, <span data-mb-name>traveller</span></a>
+            <a href="#" class="signup-btn" data-mb-show="user" data-mb-logout hidden><i class="fas fa-sign-out-alt"></i> Logout</a>
             <a href="admin.html" class="admin-btn" aria-label="Admin Panel"><i class="fas fa-user-shield"></i></a>
         </div>
         <div class="hero-content">
@@ -191,6 +213,7 @@
             <div class="footer-col">
                 <h4>Quick Links</h4>
                 <ul>
+                    <li><a href="mytrips.html">My Trips</a></li>
                     <li><a href="aboutus.html">About Us</a></li>
                     <li><a href="contact.html">Contact Us</a></li>
                     <li><a href="careers.html">Careers</a></li>
@@ -210,10 +233,11 @@
             <div class="footer-newsletter">
                 <h4>Stay Updated</h4>
                 <p>Subscribe to get exclusive offers, travel tips, and updates.</p>
-                <form class="newsletter-form" onsubmit="event.preventDefault(); var btn = this.querySelector('button'); btn.textContent='Subscribed!'; this.querySelector('input').value=''; setTimeout(function(){btn.innerHTML='<i class=&quot;fas fa-paper-plane&quot;></i>';}, 2000);">
+                <form class="newsletter-form" onsubmit="event.preventDefault(); subscribeNewsletter(this);">
                     <input type="email" placeholder="Enter your email" aria-label="Email for newsletter" required>
                     <button type="submit"><i class="fas fa-paper-plane"></i></button>
                 </form>
+                <div class="newsletter-status" id="newsletterStatus" role="status" aria-live="polite"></div>
                 <div class="footer-apps">
                     <p>Download our app</p>
                     <div class="app-buttons">
@@ -239,18 +263,10 @@
                     <i class="fab fa-cc-visa"></i><i class="fab fa-cc-mastercard"></i><i class="fab fa-cc-amex"></i><i class="fab fa-google-pay"></i><i class="fab fa-apple-pay"></i><i class="fab fa-upi"></i>
                 </div>
             </div>
-            <div class="footer-certifications">
-                <div class="cert-badge"><i class="fas fa-shield-alt"></i> SSL Secured</div>
-                <div class="cert-badge"><i class="fas fa-lock"></i> PCI Compliant</div>
-            </div>
         </div>
     </footer>
 
     <script>
-        // ============ API KEY (GEMINI) ============
-        var GEMINI_API_KEY = window.GEMINI_API_KEY || '';
-        // ================================
-
         const input = document.getElementById('destinationInput');
         const dropdown = document.getElementById('searchDropdown');
         const panel = document.getElementById('aiPanel');
@@ -259,6 +275,39 @@
 
         const prefill = new URLSearchParams(window.location.search).get('q');
         if (prefill) { input.value = prefill.trim(); }
+
+        // ---------- Newsletter (footer) ----------
+        // The old form faked a "Subscribed!" button; this stores the
+        // address server-side and shows the server's real answer.
+        async function subscribeNewsletter(form) {
+            const input = form.querySelector('input[type="email"]');
+            const btn = form.querySelector('button');
+            const status = document.getElementById('newsletterStatus');
+            status.textContent = '';
+            status.className = 'newsletter-status';
+            btn.disabled = true;
+            try {
+                const res = await fetch(API_BASE + '/api/newsletter', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: input.value.trim() })
+                });
+                const data = await res.json().catch(function () { return null; });
+                if (res.ok) {
+                    status.textContent = (data && data.message) || 'Subscribed!';
+                    status.className = 'newsletter-status ok';
+                    input.value = '';
+                } else {
+                    status.textContent = (data && data.errors && data.errors.email) || (data && data.error) || ('HTTP ' + res.status);
+                    status.className = 'newsletter-status err';
+                }
+            } catch (e) {
+                status.textContent = 'Cannot reach the server. Is it running?';
+                status.className = 'newsletter-status err';
+            } finally {
+                btn.disabled = false;
+            }
+        }
 
         // ---------- Nominatim autocomplete ----------
         async function onType(q) {
@@ -351,29 +400,20 @@
         }
 
         async function askGemini(kind, query) {
-            if (!GEMINI_API_KEY) {
-                showPanel('<div class="ai-err">AI API key not set. Add your Gemini key in config.js.</div>');
-                return;
-            }
             showPanel('<div class="ai-loading"><div class="spinner"></div> Thinking with AI...</div>');
-            const prompt = kind === 'destination'
-                ? 'You are Manzil Bharat, a travel guide. Given the destination "' + query + '", respond as a compact travel card using these EXACT section headers on separate lines: "Why go", "Best time to visit", "Top things to do", "Travel tip". Keep it under 120 words, no markdown bold, plain text with each section on its own line starting with the header.'
-                : 'You are Manzil Bharat, a travel assistant for India travel. User query: "' + query + '". Reply as 3 suggested destinations, one per line, formatted as "PlaceName - one-line reason". Then on its own line start with "Travel tip:" give one general tip. Under 120 words. No markdown.';
             try {
-                const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=' + GEMINI_API_KEY, {
+                // Server-side proxy: the Gemini key lives in .env on the
+                // server, never in this page.
+                const res = await fetch(API_BASE + '/api/ai-guide', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                    body: JSON.stringify({ kind: kind, query: query })
                 });
-                if (!res.ok) {
-                    const e = await res.json().catch(() => null);
-                    throw new Error((e && e.error && e.error.message) || ('HTTP ' + res.status));
-                }
-                const data = await res.json();
-                const text = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts.map(p => p.text || '').join('')) || '';
-                escBody(text);
+                const data = await res.json().catch(() => null);
+                if (!res.ok) throw new Error((data && data.error) || ('HTTP ' + res.status));
+                escBody(data.text || '');
             } catch (err) {
-                showPanel('<div class="ai-err">AI request failed: ' + escHtml(err.message || 'Error') + '</div>');
+                showPanel('<div class="ai-err">' + escHtml(err.message || 'Error') + '</div>');
             }
         }
 

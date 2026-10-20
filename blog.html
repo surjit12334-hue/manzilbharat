@@ -6,6 +6,22 @@
     <title>Blog - Manzil Bharat</title>
     <link rel="icon" type="image/png" href="icon.png">
     <meta name="description" content="Travel stories, guides, and updates from Manzil Bharat.">
+    <link rel="canonical" href="https://manzilbharat.onrender.com/blog.html">
+    <!-- Social previews: absolute og:url/og:image are required, relative ones
+         are ignored by WhatsApp/X. The card is a 1200x630 JPEG. -->
+    <meta property="og:site_name" content="Manzil Bharat">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Blog - Manzil Bharat">
+    <meta property="og:description" content="Travel stories, guides, and updates from Manzil Bharat.">
+    <meta property="og:url" content="https://manzilbharat.onrender.com/blog.html">
+    <meta property="og:image" content="https://manzilbharat.onrender.com/og-image.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Manzil Bharat - Let's Travel Together">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Blog - Manzil Bharat">
+    <meta name="twitter:description" content="Travel stories, guides, and updates from Manzil Bharat.">
+    <meta name="twitter:image" content="https://manzilbharat.onrender.com/og-image.jpg">
     <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
@@ -72,7 +88,11 @@
         <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
         <ul class="nav-links" id="navLinks">
             <li><a href="index.html">Home</a></li>
+            <li><a href="mytrips.html">My Trips</a></li>
             <li><a href="contact.html">Contact</a></li>
+            <li data-mb-show="guest"><a href="login.html">Login</a></li>
+            <li data-mb-show="user" hidden><a href="mytrips.html"><i class="fas fa-user-circle"></i> Hi, <span data-mb-name>traveller</span></a></li>
+            <li data-mb-show="user" hidden><a href="#" data-mb-logout>Logout</a></li>
         </ul>
     </nav>
 
@@ -187,5 +207,8 @@
             }
         });
     </script>
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="nav-auth.js"></script>
 </body>
 </html>

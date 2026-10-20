@@ -6,6 +6,22 @@
     <title>About Us - Manzil Bharat</title>
     <link rel="icon" type="image/png" href="icon.png">
     <meta name="description" content="Learn about Manzil Bharat — the team building India's trusted travel platform.">
+    <link rel="canonical" href="https://manzilbharat.onrender.com/aboutus.html">
+    <!-- Social previews: absolute og:url/og:image are required, relative ones
+         are ignored by WhatsApp/X. The card is a 1200x630 JPEG. -->
+    <meta property="og:site_name" content="Manzil Bharat">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="About Us - Manzil Bharat">
+    <meta property="og:description" content="Learn about Manzil Bharat — the team building India's trusted travel platform.">
+    <meta property="og:url" content="https://manzilbharat.onrender.com/aboutus.html">
+    <meta property="og:image" content="https://manzilbharat.onrender.com/og-image.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Manzil Bharat - Let's Travel Together">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="About Us - Manzil Bharat">
+    <meta name="twitter:description" content="Learn about Manzil Bharat — the team building India's trusted travel platform.">
+    <meta name="twitter:image" content="https://manzilbharat.onrender.com/og-image.jpg">
     <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
@@ -75,7 +91,11 @@
         <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
         <ul class="nav-links" id="navLinks">
             <li><a href="index.html">Home</a></li>
+            <li><a href="mytrips.html">My Trips</a></li>
             <li><a href="contact.html">Contact</a></li>
+            <li data-mb-show="guest"><a href="login.html">Login</a></li>
+            <li data-mb-show="user" hidden><a href="mytrips.html"><i class="fas fa-user-circle"></i> Hi, <span data-mb-name>traveller</span></a></li>
+            <li data-mb-show="user" hidden><a href="#" data-mb-logout>Logout</a></li>
         </ul>
     </nav>
 
@@ -92,7 +112,7 @@
         <h2>Meet the Team</h2>
         <div class="team-grid">
             <div class="team-card">
-                <img src="surjit.jpeg" alt="Surjit Singh — Founder & Team Leader">
+                <img src="surjit.jpeg" alt="Surjit Singh — Founder & Team Leader" width="180" height="180" loading="lazy" decoding="async">
                 <div class="team-info">
                     <h3>Surjit Singh</h3>
                     <div class="team-role">Founder & Team Leader</div>
@@ -107,7 +127,7 @@
             </div>
 
             <div class="team-card">
-                <img src="anishka.jpeg" alt="Anishka Sharma — CEO">
+                <img src="anishka.jpeg" alt="Anishka Sharma — CEO" width="180" height="180" loading="lazy" decoding="async">
                 <div class="team-info">
                     <h3>Anishka Sharma</h3>
                     <div class="team-role">CEO</div>
@@ -117,7 +137,7 @@
                 </div>
             </div>
             <div class="team-card">
-                <img src="sanya.jpeg" alt="Sanya Paswan-marketing manager">
+                <img src="sanya.jpeg" alt="Sanya Paswan-marketing manager" width="180" height="180" loading="lazy" decoding="async">
                 <div class="team-info">
                     <h3>Sanya Paswan</h3>
                     <div class="team-role">marketing manager</div>
@@ -127,7 +147,7 @@
                 </div>
             </div>
             <div class="team-card">
-                <img src="sonu.jpeg" alt="Sonu Kumar-general manager">
+                <img src="sonu.jpeg" alt="Sonu Kumar-general manager" width="180" height="180" loading="lazy" decoding="async">
                 <div class="team-info">
                     <h3>Sonu Nigam</h3>
                     <div class="team-role">General manager</div>
@@ -137,7 +157,7 @@
                 </div>
             </div>
             <div class="team-card">
-                <img src="ankit.jpeg" alt="Ankit Kumar-technical head">
+                <img src="ankit.jpeg" alt="Ankit Kumar-technical head" width="180" height="180" loading="lazy" decoding="async">
                 <div class="team-info">
                     <h3>Ankit Kumar</h3>
                     <div class="team-role">Technical Head</div>
@@ -198,5 +218,8 @@
             }
         });
     </script>
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="nav-auth.js"></script>
 </body>
 </html>

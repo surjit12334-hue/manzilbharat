@@ -1,0 +1,77 @@
+# Manzil Bharat - Render blueprint (Render's "infrastructure as code").
+#
+# HOW TO USE
+#   1. Create the database first: https://neon.com -> Free plan -> new project
+#      -> copy the connection string (it already ends in sslmode=require).
+#   2. Render dashboard -> New -> Blueprint -> point it at this repo.
+#      Render reads this file, creates the web service, and PROMPTS for every
+#      `sync: false` secret below (it is never stored in the repo).
+#   3. After the first deploy, apply the schema from your own machine
+#      (free services have no shell and no one-off jobs):
+#        psql "$DATABASE_URL" -f schema.sql
+#        psql "$DATABASE_URL" -f seed.sql   # optional demo data
+#      DATABASE_URL is the value you pasted into the dashboard in step 2.
+#
+# ALTERNATIVE: skip the blueprint and click New -> Web Service, using this
+# file as the checklist (same fields, same env vars).
+#
+# WHY THESE SETTINGS
+#   - runtime: docker reuses the repo's Dockerfile, so local `docker build`
+#     and the host run the identical image. .dockerignore keeps .env out of
+#     the image: secrets come from the dashboard, never from git.
+#   - plan: free = 0.1 CPU / 512 MB, spins down after 15 idle minutes (~1 min
+#     cold start), 750 instance-hours a month. Good enough for judges; the
+#     limitations are in https://render.com/docs/free
+#   - Render injects PORT (default 10000); start-prod.sh binds $PORT, so no
+#     port setting is needed here.
+#   - WEB_CONCURRENCY=2: two sync workers inside 512 MB, so one request stuck
+#     in the 30s Gemini call cannot block everyone else. Safe at any N now
+#     that rate limits and reset tokens live in Postgres (commit d3633ac).
+services:
+  - type: web
+    name: manzil-bharat
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      - key: WEB_CONCURRENCY
+        value: "2"
+
+      # --- Database (Neon). sync: false => Render prompts for the value. ---
+      - key: DATABASE_URL
+        sync: false
+      # Optional overrides; leave unset unless Neon/local needs them.
+      - key: DB_SSLMODE
+        value: ""
+      - key: DB_CONNECT_TIMEOUT
+        value: "5"
+
+      # --- The live origin. MUST equal the onrender.com URL of THIS service;
+      # --- change it if you name the service something else. ---
+      - key: APP_ORIGIN
+        value: https://manzil-bharat.onrender.com
+
+      # --- Secrets (never committed, prompted by Render) ---
+      - key: JWT_SECRET
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+
+      # --- Plain config ---
+      - key: ADMIN_EMAIL
+        value: admin@manzilbharat.in
+      - key: GEMINI_MODEL
+        value: gemini-3.6-flash
+      # SMTP is NOT set: Render's free plan blocks outbound 25/465/587, so
+      # password-reset mail goes out over HTTPS instead (port 443).
+      - key: EMAIL_PROVIDER
+        value: resend
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false

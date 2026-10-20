@@ -6,6 +6,22 @@
     <title>Contact Us - Manzil Bharat</title>
     <link rel="icon" type="image/png" href="icon.png">
     <meta name="description" content="Get in touch with Manzil Bharat. We're here to help with your travel needs.">
+    <link rel="canonical" href="https://manzilbharat.onrender.com/contact.html">
+    <!-- Social previews: absolute og:url/og:image are required, relative ones
+         are ignored by WhatsApp/X. The card is a 1200x630 JPEG. -->
+    <meta property="og:site_name" content="Manzil Bharat">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Contact Us - Manzil Bharat">
+    <meta property="og:description" content="Get in touch with Manzil Bharat. We're here to help with your travel needs.">
+    <meta property="og:url" content="https://manzilbharat.onrender.com/contact.html">
+    <meta property="og:image" content="https://manzilbharat.onrender.com/og-image.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Manzil Bharat - Let's Travel Together">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Contact Us - Manzil Bharat">
+    <meta name="twitter:description" content="Get in touch with Manzil Bharat. We're here to help with your travel needs.">
+    <meta name="twitter:image" content="https://manzilbharat.onrender.com/og-image.jpg">
     <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
@@ -99,7 +115,75 @@
             max-width: 1200px;
             margin: 0 auto;
             padding: 4rem 5%;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+            align-items: start;
         }
+
+        .contact-form-card {
+            background: white;
+            color: #0a1628;
+            padding: 2.5rem;
+            border-radius: 20px;
+            width: 100%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            animation: fadeInUp 0.8s ease-out 0.35s backwards;
+        }
+
+        .contact-form-card h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: #FF6B35;
+        }
+
+        .contact-form-card label {
+            display: block;
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-bottom: 0.35rem;
+        }
+
+        .contact-form-card input,
+        .contact-form-card textarea {
+            width: 100%;
+            padding: 0.75rem 0.9rem;
+            border: 2px solid #e0e5ec;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.3s, box-shadow 0.3s;
+            background: white;
+        }
+
+        .contact-form-card input:focus,
+        .contact-form-card textarea:focus {
+            border-color: #FF6B35;
+            box-shadow: 0 0 0 3px rgba(255,107,53,0.1);
+        }
+
+        .contact-form-card .form-group { margin-bottom: 1rem; }
+        .contact-form-card .field-error { color: #e74c3c; font-size: 0.78rem; margin-top: 0.3rem; min-height: 1em; display: block; }
+
+        .contact-form-card .btn-send {
+            background: linear-gradient(135deg, #FF6B35, #E65100);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.6rem;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .contact-form-card .btn-send:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(255,107,53,0.4); }
+        .contact-form-card .btn-send:disabled { opacity: 0.6; cursor: wait; transform: none; }
+
+        .contact-form-card .form-status { margin-top: 0.9rem; font-size: 0.88rem; min-height: 1.2rem; }
+        .contact-form-card .form-status.ok { color: #27ae60; }
+        .contact-form-card .form-status.err { color: #e74c3c; }
 
         .contact-info {
             background: linear-gradient(135deg, #0a1628, #0d1f3c);
@@ -293,7 +377,11 @@
         </button>
         <ul class="nav-links" id="navLinks">
             <li><a href="index.html">Home</a></li>
+            <li><a href="mytrips.html">My Trips</a></li>
             <li><a href="contact.html">Contact</a></li>
+            <li data-mb-show="guest"><a href="login.html">Login</a></li>
+            <li data-mb-show="user" hidden><a href="mytrips.html"><i class="fas fa-user-circle"></i> Hi, <span data-mb-name>traveller</span></a></li>
+            <li data-mb-show="user" hidden><a href="#" data-mb-logout>Logout</a></li>
         </ul>
     </nav>
 
@@ -347,6 +435,34 @@
                     <a href="https://www.linkedin.com/in/surjeet-singh-4b0b5a31a/"><i class="fab fa-linkedin-in"></i></a>
                 </div>
             </div>
+
+        <div class="contact-form-card">
+            <h2>Send Us a Message</h2>
+            <form id="contactForm" novalidate>
+                <div class="form-group">
+                    <label for="cName">Name</label>
+                    <input type="text" id="cName" maxlength="255" autocomplete="name" required>
+                    <span class="field-error" id="cerr-name"></span>
+                </div>
+                <div class="form-group">
+                    <label for="cEmail">Email</label>
+                    <input type="email" id="cEmail" maxlength="255" autocomplete="email" required>
+                    <span class="field-error" id="cerr-email"></span>
+                </div>
+                <div class="form-group">
+                    <label for="cSubject">Subject</label>
+                    <input type="text" id="cSubject" maxlength="255" required>
+                    <span class="field-error" id="cerr-subject"></span>
+                </div>
+                <div class="form-group">
+                    <label for="cBody">Message</label>
+                    <textarea id="cBody" rows="5" maxlength="5000" required></textarea>
+                    <span class="field-error" id="cerr-body"></span>
+                </div>
+                <button type="submit" class="btn-send" id="cSubmit"><i class="fas fa-paper-plane"></i> Send message</button>
+                <div class="form-status" id="cStatus" role="status" aria-live="polite"></div>
+            </form>
+        </div>
     </section>
 
     <section class="map-section">
@@ -365,6 +481,67 @@
     </footer>
 
     <script>
+        // ----- contact form -> POST /api/contact -----
+        (function () {
+            'use strict';
+            var form = document.getElementById('contactForm');
+            if (!form) return;
+            var FIELDS = [
+                { id: 'cName', key: 'name' },
+                { id: 'cEmail', key: 'email' },
+                { id: 'cSubject', key: 'subject' },
+                { id: 'cBody', key: 'body' }
+            ];
+
+            function setStatus(text, ok) {
+                var s = document.getElementById('cStatus');
+                s.textContent = text || '';
+                s.className = 'form-status' + (text ? (ok ? ' ok' : ' err') : '');
+            }
+
+            function clearErrors() {
+                FIELDS.forEach(function (f) {
+                    document.getElementById('cerr-' + f.key).textContent = '';
+                });
+                setStatus('', true);
+            }
+
+            form.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                clearErrors();
+                var payload = {};
+                FIELDS.forEach(function (f) { payload[f.key] = document.getElementById(f.id).value.trim(); });
+
+                var btn = document.getElementById('cSubmit');
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+                try {
+                    var res = await fetch(API_BASE + '/api/contact', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    var data = await res.json().catch(function () { return null; });
+                    if (res.ok) {
+                        setStatus((data && data.message) || 'Message sent!', true);
+                        form.reset();
+                    } else if (data && data.errors) {
+                        FIELDS.forEach(function (f) {
+                            if (data.errors[f.key]) document.getElementById('cerr-' + f.key).textContent = data.errors[f.key];
+                        });
+                        setStatus(data.error || 'Please fix the highlighted fields.', false);
+                    } else {
+                        setStatus((data && data.error) || ('HTTP ' + res.status), false);
+                    }
+                } catch (err) {
+                    setStatus('Cannot reach the server. Is it running? Start it with: ./start.sh', false);
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send message';
+                }
+            });
+        })();
+
         var menuToggle = document.getElementById('menuToggle');
         var navLinks = document.getElementById('navLinks');
         menuToggle.addEventListener('click', function(e) {
@@ -382,5 +559,8 @@
             }
         });
     </script>
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="nav-auth.js"></script>
 </body>
 </html>

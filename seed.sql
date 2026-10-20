@@ -16,7 +16,7 @@ INSERT INTO users (name, email, contact, gender, dob, marital_status, residentia
 ON CONFLICT (email) DO NOTHING;
 
 INSERT INTO bookings (user_id, booking_type, source, destination, travel_date, amount, status, created_at)
-SELECT u.id, v.booking_type, v.source, v.destination, v.travel_date, v.amount, v.status, v.created_at
+SELECT u.id, v.booking_type, v.source, v.destination, v.travel_date::date, v.amount, v.status, v.created_at
 FROM (VALUES
     ('rahul.mehta@example.com',    'cab',    'Bengaluru', 'Goa',       '2026-10-08', 2450.00, 'confirmed', CURRENT_TIMESTAMP - INTERVAL '10 days'),
     ('priya.sharma@example.com',    'train',  'Mumbai',    'Delhi',     '2026-09-28', 1850.00, 'confirmed', CURRENT_TIMESTAMP - INTERVAL '8 days'),
@@ -31,7 +31,7 @@ WHERE NOT EXISTS (
       AND b.booking_type = v.booking_type
       AND b.source = v.source
       AND b.destination = v.destination
-      AND b.travel_date = v.travel_date
+      AND b.travel_date = v.travel_date::date
 );
 
 INSERT INTO payments (user_id, booking_id, amount, currency, razorpay_payment_id, razorpay_order_id, booking_type, status, created_at)
@@ -47,7 +47,7 @@ JOIN users u ON u.email = v.user_email
 JOIN bookings b ON b.user_id = u.id
               AND b.source = v.source
               AND b.destination = v.destination
-              AND b.travel_date = v.travel_date
+              AND b.travel_date = v.travel_date::date
               AND b.booking_type = v.booking_type
 WHERE NOT EXISTS (
     SELECT 1 FROM payments p WHERE p.razorpay_payment_id = v.razorpay_payment_id
