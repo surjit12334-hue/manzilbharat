@@ -1,4 +1,5 @@
-# Continuous integration: every push and pull request runs the test suite.
+# Continuous integration: every push and pull request runs the test suite and
+# the linters (ruff over Python, Prettier over the frontend).
 #
 # Design notes (the "why" behind each choice):
 #
@@ -87,3 +88,40 @@ jobs:
 
       - name: Run the test suite
         run: python -m pytest -q
+
+  lint:
+    # Phase 3's lint step: ruff over the Python, Prettier over the frontend,
+    # one config file each (ruff.toml and .prettierrc.json). It is a separate
+    # job so it runs in parallel with pytest and a style failure is
+    # distinguishable from a test failure at a glance.
+    name: lint (ruff + prettier)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install ruff
+        # Pinned exactly, matching requirements-dev.txt: see the comment there.
+        run: pip install ruff==0.17.1
+
+      - name: ruff check .
+        run: ruff check .
+
+      - uses: actions/setup-node@v4
+        with:
+          # npm needs only to run the pinned Prettier; the version is the
+          # current LTS and the lockfile pins Prettier itself.
+          node-version: '22'
+          cache: npm
+
+      - name: Install the frontend toolchain
+        # npm ci installs exactly what package-lock.json says - no ranges, no
+        # surprises. node_modules/ is gitignored.
+        run: npm ci
+
+      - name: Prettier check
+        run: npm run format:check

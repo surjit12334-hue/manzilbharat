@@ -1,28 +1,29 @@
-from flask import Flask, request, jsonify, send_from_directory, abort, g
-from flask.json.provider import DefaultJSONProvider
-from flask_cors import CORS
-from werkzeug.exceptions import HTTPException
-from werkzeug.middleware.proxy_fix import ProxyFix
-import psycopg2
-import psycopg2.extras
-import bcrypt
-import requests
-import re
-import os
-import time
-import ipaddress
+import base64
 import hashlib
 import hmac
+import ipaddress
 import json
-import base64
+import os
+import re
 import smtplib
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
-from email.mime.text import MIMEText
-from dotenv import load_dotenv
+import time
 from datetime import date, datetime, timedelta
+from email.mime.text import MIMEText
 from functools import wraps
-from google.oauth2 import id_token
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+
+import bcrypt
+import psycopg2
+import psycopg2.extras
+import requests
+from dotenv import load_dotenv
+from flask import Flask, abort, g, jsonify, request, send_from_directory
+from flask.json.provider import DefaultJSONProvider
+from flask_cors import CORS
 from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token
+from werkzeug.exceptions import HTTPException
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 
 def base64url_encode(data):
@@ -70,7 +71,7 @@ ADMIN_PASSWORD_HASH = bcrypt.hashpw(
 _DUMMY_ADMIN_HASH = bcrypt.hashpw(b'not-the-admin-password', bcrypt.gensalt())
 
 SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
-SMTP_PORT = int(os.getenv('SMTP_PORT', 587))
+SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))
 SMTP_USER = os.getenv('SMTP_USER')
 SMTP_PASSWORD = os.getenv('SMTP_PASSWORD')
 
@@ -189,15 +190,15 @@ def block_private_files():
     a dot-prefixed path segment) is refused.
     """
     if request.path.startswith('/api/'):
-        return None
+        return
     filename = request.path.lstrip('/')
     if not filename:
-        return None
+        return
     if any(segment.startswith('.') for segment in filename.split('/')):
         abort(404)
     if os.path.splitext(filename)[1].lower() not in STATIC_ALLOWED_EXTENSIONS:
         abort(404)
-    return None
+    return
 
 
 @app.errorhandler(HTTPException)
@@ -517,13 +518,13 @@ def _reset_email_parts(reset_url):
         '<!doctype html><html><body style="font-family:Arial,sans-serif;'
         'color:#111;line-height:1.5">'
         '<p>You requested to reset your <strong>Manzil Bharat</strong> password.</p>'
-        '<p><a href="{url}" style="display:inline-block;padding:10px 18px;'
+        f'<p><a href="{reset_url}" style="display:inline-block;padding:10px 18px;'
         'background:#1d4ed8;color:#fff;text-decoration:none;border-radius:6px">'
         'Set a new password</a></p>'
         '<p style="font-size:13px;color:#555">This link is valid for 30 '
         'minutes. If you did not request this, you can ignore this email.</p>'
         '</body></html>'
-    ).format(url=reset_url)
+    )
     return text, html
 
 
@@ -614,14 +615,14 @@ def get_db():
             url = _with_db_param(url, 'sslmode', sslmode)
         conn = psycopg2.connect(_with_db_param(url, 'connect_timeout', timeout))
     else:
-        kwargs = dict(
-            host=os.getenv('DB_HOST'),
-            port=os.getenv('DB_PORT'),
-            database=os.getenv('DB_NAME'),
-            user=os.getenv('DB_USER'),
-            password=os.getenv('DB_PASSWORD'),
-            connect_timeout=int(timeout)
-        )
+        kwargs = {
+            'host': os.getenv('DB_HOST'),
+            'port': os.getenv('DB_PORT'),
+            'database': os.getenv('DB_NAME'),
+            'user': os.getenv('DB_USER'),
+            'password': os.getenv('DB_PASSWORD'),
+            'connect_timeout': int(timeout)
+        }
         if sslmode:
             kwargs['sslmode'] = sslmode
         conn = psycopg2.connect(**kwargs)
@@ -1744,4 +1745,4 @@ def admin_get_messages():
 
 
 if __name__ == '__main__':
-    app.run(port=int(os.getenv('PORT', 5000)))
+    app.run(port=int(os.getenv('PORT', '5000')))

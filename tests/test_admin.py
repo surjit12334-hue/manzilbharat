@@ -25,7 +25,7 @@ def test_admin_routes_reject_a_missing_token(client):
 
 
 def test_a_user_token_in_the_admin_header_is_forbidden(client, user):
-    email, token = user()
+    _email, token = user()
 
     response = client.get('/api/users', headers={'x-admin-token': token})
 
@@ -33,7 +33,7 @@ def test_a_user_token_in_the_admin_header_is_forbidden(client, user):
 
 
 def test_admin_can_read_users_and_stats(client, user, admin_headers):
-    email, token = user()
+    email, _token = user()
 
     users = client.get('/api/users', headers=admin_headers())
     assert users.status_code == 200
@@ -47,7 +47,7 @@ def test_admin_can_read_users_and_stats(client, user, admin_headers):
 
 
 def test_admin_can_delete_a_user(client, user, admin_headers, sql):
-    email, token = user()
+    _email, _token = user()
     user_id = sql('SELECT id FROM users')[0][0]
 
     response = client.delete(f'/api/users/{user_id}', headers=admin_headers())
@@ -64,7 +64,7 @@ def test_deleting_a_user_takes_their_bookings_with_them(
         client, user, auth, admin_headers, booking_payload, sql):
     """ON DELETE CASCADE from schema.sql - without it this is a 409 and a user
     can never be removed."""
-    email, token = user()
+    _email, token = user()
     assert client.post('/api/bookings', json=booking_payload(),
                        headers=auth(token)).status_code == 201
     user_id = sql('SELECT id FROM users')[0][0]

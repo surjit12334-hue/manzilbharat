@@ -6,7 +6,7 @@ delete somebody else's booking.
 
 
 def test_create_booking(client, user, auth, booking_payload, sql):
-    email, token = user()
+    _email, token = user()
 
     response = client.post('/api/bookings', json=booking_payload(), headers=auth(token))
 
@@ -22,7 +22,7 @@ def test_create_booking_requires_a_token(client, booking_payload):
 
 
 def test_booking_validation(client, user, auth, booking_payload, sql):
-    email, token = user()
+    _email, token = user()
     headers = auth(token)
 
     past = client.post('/api/bookings', headers=headers,
@@ -51,8 +51,8 @@ def test_booking_validation(client, user, auth, booking_payload, sql):
 
 
 def test_mine_lists_only_your_own(client, user, auth, booking_payload):
-    email_a, token_a = user(email='a@example.com')
-    email_b, token_b = user(email='b@example.com')
+    _email_a, token_a = user(email='a@example.com')
+    _email_b, token_b = user(email='b@example.com')
 
     client.post('/api/bookings', headers=auth(token_a),
                 json=booking_payload(destination='Manali'))
@@ -68,7 +68,7 @@ def test_mine_lists_only_your_own(client, user, auth, booking_payload):
 
 
 def test_cancel_your_own_booking_is_idempotent(client, user, auth, booking_payload):
-    email, token = user()
+    _email, token = user()
     booking = client.post('/api/bookings', headers=auth(token),
                           json=booking_payload()).get_json()['booking']
 
@@ -82,8 +82,8 @@ def test_cancel_your_own_booking_is_idempotent(client, user, auth, booking_paylo
 
 
 def test_cannot_cancel_someone_elses_booking(client, user, auth, booking_payload, sql):
-    email_a, token_a = user(email='a@example.com')
-    email_b, token_b = user(email='b@example.com')
+    _email_a, token_a = user(email='a@example.com')
+    _email_b, token_b = user(email='b@example.com')
     booking = client.post('/api/bookings', headers=auth(token_a),
                           json=booking_payload()).get_json()['booking']
 
@@ -95,7 +95,7 @@ def test_cannot_cancel_someone_elses_booking(client, user, auth, booking_payload
 
 
 def test_a_completed_booking_cannot_be_cancelled(client, user, auth, booking_payload, sql):
-    email, token = user()
+    _email, token = user()
     booking = client.post('/api/bookings', headers=auth(token),
                           json=booking_payload()).get_json()['booking']
     sql("UPDATE bookings SET status = 'completed' WHERE id = %s", (booking['id'],))
@@ -106,7 +106,7 @@ def test_a_completed_booking_cannot_be_cancelled(client, user, auth, booking_pay
 
 
 def test_cancelling_a_missing_booking_is_404(client, user, auth):
-    email, token = user()
+    _email, token = user()
 
     assert client.post('/api/bookings/9999/cancel', headers=auth(token)).status_code == 404
 
@@ -114,7 +114,7 @@ def test_cancelling_a_missing_booking_is_404(client, user, auth):
 def test_hard_delete_is_admin_only(client, user, auth, booking_payload):
     """Users cancel (soft); only an admin deletes. A user session - even one
     presented in the admin header - must not get through."""
-    email, token = user()
+    _email, token = user()
     booking = client.post('/api/bookings', headers=auth(token),
                           json=booking_payload()).get_json()['booking']
 

@@ -1,305 +1,632 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Login - Manzil Bharat</title>
-    <link rel="icon" type="image/png" href="icon.png">
-    <meta name="description" content="Log in to your Manzil Bharat account.">
-    <link rel="canonical" href="https://manzilbharat.onrender.com/login.html">
+    <link rel="icon" type="image/png" href="icon.png" />
+    <meta name="description" content="Log in to your Manzil Bharat account." />
+    <link rel="canonical" href="https://manzilbharat.onrender.com/login.html" />
     <!-- Social previews: absolute og:url/og:image are required, relative ones
          are ignored by WhatsApp/X. The card is a 1200x630 JPEG. -->
-    <meta property="og:site_name" content="Manzil Bharat">
-    <meta property="og:type" content="website">
-    <meta property="og:title" content="Login - Manzil Bharat">
-    <meta property="og:description" content="Log in to your Manzil Bharat account.">
-    <meta property="og:url" content="https://manzilbharat.onrender.com/login.html">
-    <meta property="og:image" content="https://manzilbharat.onrender.com/og-image.jpg">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
-    <meta property="og:image:alt" content="Manzil Bharat - Let's Travel Together">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Login - Manzil Bharat">
-    <meta name="twitter:description" content="Log in to your Manzil Bharat account.">
-    <meta name="twitter:image" content="https://manzilbharat.onrender.com/og-image.jpg">
-    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <meta property="og:site_name" content="Manzil Bharat" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Login - Manzil Bharat" />
+    <meta property="og:description" content="Log in to your Manzil Bharat account." />
+    <meta property="og:url" content="https://manzilbharat.onrender.com/login.html" />
+    <meta property="og:image" content="https://manzilbharat.onrender.com/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Manzil Bharat - Let's Travel Together" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Login - Manzil Bharat" />
+    <meta name="twitter:description" content="Log in to your Manzil Bharat account." />
+    <meta name="twitter:image" content="https://manzilbharat.onrender.com/og-image.jpg" />
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html { font-size: 16px; scroll-behavior: smooth; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; overflow-x: hidden; background: #f5f7fa; min-height: 100vh; display: flex; flex-direction: column; }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html {
+        font-size: 16px;
+        scroll-behavior: smooth;
+      }
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        overflow-x: hidden;
+        background: #f5f7fa;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
 
-        nav { position: fixed; top: 0; left: 0; right: 0; background: rgba(10, 22, 40, 0.95); backdrop-filter: blur(10px); padding: 1rem 5%; display: flex; align-items: center; justify-content: space-between; z-index: 1000; }
-        .logo { font-family: 'Pacifico', cursive; font-size: 1.5rem; color: #FF6B35; text-decoration: none; transition: opacity 0.3s; }
-        .logo:hover { opacity: 0.8; }
-        .nav-links { display: flex; list-style: none; gap: 2rem; }
-        .nav-links a { text-decoration: none; color: white; font-weight: 500; transition: color 0.3s; position: relative; }
-        .nav-links a::after { content: ''; position: absolute; bottom: -4px; left: 0; width: 0; height: 2px; background: #FF6B35; transition: width 0.3s; }
-        .nav-links a:hover { color: #FF6B35; }
-        .nav-links a:hover::after { width: 100%; }
-        .menu-toggle { display: none; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+      nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: rgba(10, 22, 40, 0.95);
+        backdrop-filter: blur(10px);
+        padding: 1rem 5%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        z-index: 1000;
+      }
+      .logo {
+        font-family: 'Pacifico', cursive;
+        font-size: 1.5rem;
+        color: #ff6b35;
+        text-decoration: none;
+        transition: opacity 0.3s;
+      }
+      .logo:hover {
+        opacity: 0.8;
+      }
+      .nav-links {
+        display: flex;
+        list-style: none;
+        gap: 2rem;
+      }
+      .nav-links a {
+        text-decoration: none;
+        color: white;
+        font-weight: 500;
+        transition: color 0.3s;
+        position: relative;
+      }
+      .nav-links a::after {
+        content: '';
+        position: absolute;
+        bottom: -4px;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background: #ff6b35;
+        transition: width 0.3s;
+      }
+      .nav-links a:hover {
+        color: #ff6b35;
+      }
+      .nav-links a:hover::after {
+        width: 100%;
+      }
+      .menu-toggle {
+        display: none;
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+      }
 
-        @keyframes cardSlideIn { from { opacity: 0; transform: translateY(20px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
-
-        .auth-wrapper { flex: 1; display: flex; align-items: center; justify-content: center; padding: 6rem 5% 3rem; background: linear-gradient(135deg, rgba(26,35,126,0.85), rgba(255,107,53,0.7)), url('homebackground.jpg') center/cover no-repeat; min-height: 100vh; }
-        .auth-card { background: white; border-radius: 20px; padding: 2.5rem; width: 100%; max-width: 420px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); animation: cardSlideIn 0.6s ease-out; }
-        .auth-card h1 { font-size: 1.8rem; color: #0a1628; text-align: center; margin-bottom: 0.5rem; }
-        .auth-card .subtitle { text-align: center; color: #888; margin-bottom: 2rem; font-size: 0.95rem; }
-
-        .form-group { margin-bottom: 1.2rem; }
-        .form-group label { display: block; font-weight: 600; color: #333; margin-bottom: 0.4rem; font-size: 0.9rem; }
-        .form-group input { width: 100%; padding: 0.8rem 1rem; border: 2px solid #e0e5ec; border-radius: 12px; font-size: 1rem; outline: none; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .form-group input:focus { border-color: #FF6B35; box-shadow: 0 0 0 3px rgba(255,107,53,0.1); }
-        .form-group input::placeholder { color: #aaa; }
-
-        .form-options { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; font-size: 0.85rem; }
-        .form-options label { display: flex; align-items: center; gap: 0.4rem; color: #666; cursor: pointer; }
-        .form-options label input[type="checkbox"] { accent-color: #FF6B35; width: 16px; height: 16px; }
-        .form-options a { color: #FF6B35; text-decoration: none; font-weight: 500; transition: opacity 0.3s; }
-        .form-options a:hover { opacity: 0.8; text-decoration: underline; }
-
-        .btn-primary { width: 100%; padding: 0.9rem; background: linear-gradient(135deg, #FF6B35, #E65100); color: white; border: none; border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(255,107,53,0.4); }
-        .btn-primary:active { transform: translateY(0); }
-
-        .divider { text-align: center; margin: 1.2rem 0; position: relative; color: #aaa; font-size: 0.85rem; }
-        .divider::before, .divider::after { content: ''; position: absolute; top: 50%; width: 40%; height: 1px; background: linear-gradient(90deg, transparent, #e0e5ec, transparent); }
-        .divider::before { left: 0; }
-        .divider::after { right: 0; }
-
-        .auth-footer { text-align: center; margin-top: 1.5rem; font-size: 0.9rem; color: #666; }
-        .auth-footer a { color: #FF6B35; text-decoration: none; font-weight: 600; transition: all 0.3s; }
-        .auth-footer a:hover { text-decoration: underline; }
-
-        footer { background: linear-gradient(180deg, #0a1628 0%, #0d1f3c 100%); color: white; padding: 2rem 5% 1rem; text-align: center; margin-top: auto; }
-        footer .footer-logo { font-family: 'Pacifico', cursive; font-size: 1.5rem; color: #FF6B35; text-decoration: none; display: inline-block; margin-bottom: 0.5rem; transition: opacity 0.3s; }
-        footer .footer-logo:hover { opacity: 0.8; }
-        footer p { color: #8892b0; font-size: 0.85rem; margin-bottom: 0.5rem; }
-        footer .footer-bottom { border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1rem; color: #5a6a8a; font-size: 0.8rem; }
-
-        @media (max-width: 768px) {
-            .nav-links { position: fixed; top: 60px; right: -100%; width: 70%; height: calc(100vh - 60px); background: rgba(10, 22, 40, 0.98); flex-direction: column; padding: 2rem; transition: right 0.3s; }
-            .nav-links.active { right: 0; }
-            .menu-toggle { display: block; }
+      @keyframes cardSlideIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px) scale(0.98);
         }
-        @media (max-width: 480px) { .auth-wrapper { padding: 5rem 4% 2rem; } .auth-card { padding: 1.5rem; } }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
 
-        .g_id_signin { width: 100% !important; border-radius: 50px !important; overflow: hidden; }
-        .g_id_signin iframe { width: 100% !important; border-radius: 50px !important; }
+      .auth-wrapper {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6rem 5% 3rem;
+        background:
+          linear-gradient(135deg, rgba(26, 35, 126, 0.85), rgba(255, 107, 53, 0.7)),
+          url('homebackground.jpg') center/cover no-repeat;
+        min-height: 100vh;
+      }
+      .auth-card {
+        background: white;
+        border-radius: 20px;
+        padding: 2.5rem;
+        width: 100%;
+        max-width: 420px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        animation: cardSlideIn 0.6s ease-out;
+      }
+      .auth-card h1 {
+        font-size: 1.8rem;
+        color: #0a1628;
+        text-align: center;
+        margin-bottom: 0.5rem;
+      }
+      .auth-card .subtitle {
+        text-align: center;
+        color: #888;
+        margin-bottom: 2rem;
+        font-size: 0.95rem;
+      }
+
+      .form-group {
+        margin-bottom: 1.2rem;
+      }
+      .form-group label {
+        display: block;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 0.4rem;
+        font-size: 0.9rem;
+      }
+      .form-group input {
+        width: 100%;
+        padding: 0.8rem 1rem;
+        border: 2px solid #e0e5ec;
+        border-radius: 12px;
+        font-size: 1rem;
+        outline: none;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .form-group input:focus {
+        border-color: #ff6b35;
+        box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+      }
+      .form-group input::placeholder {
+        color: #aaa;
+      }
+
+      .form-options {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        font-size: 0.85rem;
+      }
+      .form-options label {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: #666;
+        cursor: pointer;
+      }
+      .form-options label input[type='checkbox'] {
+        accent-color: #ff6b35;
+        width: 16px;
+        height: 16px;
+      }
+      .form-options a {
+        color: #ff6b35;
+        text-decoration: none;
+        font-weight: 500;
+        transition: opacity 0.3s;
+      }
+      .form-options a:hover {
+        opacity: 0.8;
+        text-decoration: underline;
+      }
+
+      .btn-primary {
+        width: 100%;
+        padding: 0.9rem;
+        background: linear-gradient(135deg, #ff6b35, #e65100);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(255, 107, 53, 0.4);
+      }
+      .btn-primary:active {
+        transform: translateY(0);
+      }
+
+      .divider {
+        text-align: center;
+        margin: 1.2rem 0;
+        position: relative;
+        color: #aaa;
+        font-size: 0.85rem;
+      }
+      .divider::before,
+      .divider::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        width: 40%;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, #e0e5ec, transparent);
+      }
+      .divider::before {
+        left: 0;
+      }
+      .divider::after {
+        right: 0;
+      }
+
+      .auth-footer {
+        text-align: center;
+        margin-top: 1.5rem;
+        font-size: 0.9rem;
+        color: #666;
+      }
+      .auth-footer a {
+        color: #ff6b35;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s;
+      }
+      .auth-footer a:hover {
+        text-decoration: underline;
+      }
+
+      footer {
+        background: linear-gradient(180deg, #0a1628 0%, #0d1f3c 100%);
+        color: white;
+        padding: 2rem 5% 1rem;
+        text-align: center;
+        margin-top: auto;
+      }
+      footer .footer-logo {
+        font-family: 'Pacifico', cursive;
+        font-size: 1.5rem;
+        color: #ff6b35;
+        text-decoration: none;
+        display: inline-block;
+        margin-bottom: 0.5rem;
+        transition: opacity 0.3s;
+      }
+      footer .footer-logo:hover {
+        opacity: 0.8;
+      }
+      footer p {
+        color: #8892b0;
+        font-size: 0.85rem;
+        margin-bottom: 0.5rem;
+      }
+      footer .footer-bottom {
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        padding-top: 1rem;
+        color: #5a6a8a;
+        font-size: 0.8rem;
+      }
+
+      @media (max-width: 768px) {
+        .nav-links {
+          position: fixed;
+          top: 60px;
+          right: -100%;
+          width: 70%;
+          height: calc(100vh - 60px);
+          background: rgba(10, 22, 40, 0.98);
+          flex-direction: column;
+          padding: 2rem;
+          transition: right 0.3s;
+        }
+        .nav-links.active {
+          right: 0;
+        }
+        .menu-toggle {
+          display: block;
+        }
+      }
+      @media (max-width: 480px) {
+        .auth-wrapper {
+          padding: 5rem 4% 2rem;
+        }
+        .auth-card {
+          padding: 1.5rem;
+        }
+      }
+
+      .g_id_signin {
+        width: 100% !important;
+        border-radius: 50px !important;
+        overflow: hidden;
+      }
+      .g_id_signin iframe {
+        width: 100% !important;
+        border-radius: 50px !important;
+      }
     </style>
-<script src="config.js"></script>
-<script src="auth.js"></script>
-</head>
-<body>
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+  </head>
+  <body>
     <nav>
-        <a href="index.html" class="logo">Manzil Bharat</a>
-        <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
-        <ul class="nav-links" id="navLinks">
-            <li><a href="index.html">Home</a></li>
-            <li><a href="mytrips.html">My Trips</a></li>
-            <li><a href="contact.html">Contact</a></li>
-            <li data-mb-show="guest"><a href="login.html">Login</a></li>
-            <li data-mb-show="user" hidden><a href="mytrips.html"><i class="fas fa-user-circle"></i> Hi, <span data-mb-name>traveller</span></a></li>
-            <li data-mb-show="user" hidden><a href="#" data-mb-logout>Logout</a></li>
-        </ul>
+      <a href="index.html" class="logo">Manzil Bharat</a>
+      <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+      <ul class="nav-links" id="navLinks">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="mytrips.html">My Trips</a></li>
+        <li><a href="contact.html">Contact</a></li>
+        <li data-mb-show="guest"><a href="login.html">Login</a></li>
+        <li data-mb-show="user" hidden>
+          <a href="mytrips.html"
+            ><i class="fas fa-user-circle"></i> Hi, <span data-mb-name>traveller</span></a
+          >
+        </li>
+        <li data-mb-show="user" hidden><a href="#" data-mb-logout>Logout</a></li>
+      </ul>
     </nav>
 
     <div class="auth-wrapper">
-        <div class="auth-card">
-            <h1>Welcome Back</h1>
-            <p class="subtitle">Log in to your Manzil Bharat account</p>
+      <div class="auth-card">
+        <h1>Welcome Back</h1>
+        <p class="subtitle">Log in to your Manzil Bharat account</p>
 
-            <div id="g_id_onload"
-                 data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
-                 data-callback="handleGoogleLogin"
-                 data-auto_prompt="false">
-            </div>
-            <div class="g_id_signin"
-                 data-type="standard"
-                 data-size="large"
-                 data-theme="outline"
-                 data-text="sign_in_with"
-                 data-shape="pill"
-                 data-logo_alignment="left"
-                 style="width:100%;margin-bottom:0.5rem;">
-            </div>
-            <script>
-                (function () {
-                    const cid = window.GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
-                    const onload = document.getElementById('g_id_onload');
-                    const signin = document.querySelector('.g_id_signin');
-                    if (onload) onload.setAttribute('data-client_id', cid);
-                    if (signin) signin.setAttribute('data-client_id', cid);
-                })();
-            </script>
+        <div
+          id="g_id_onload"
+          data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
+          data-callback="handleGoogleLogin"
+          data-auto_prompt="false"
+        ></div>
+        <div
+          class="g_id_signin"
+          data-type="standard"
+          data-size="large"
+          data-theme="outline"
+          data-text="sign_in_with"
+          data-shape="pill"
+          data-logo_alignment="left"
+          style="width: 100%; margin-bottom: 0.5rem"
+        ></div>
+        <script>
+          (function () {
+            const cid =
+              window.GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+            const onload = document.getElementById('g_id_onload');
+            const signin = document.querySelector('.g_id_signin');
+            if (onload) onload.setAttribute('data-client_id', cid);
+            if (signin) signin.setAttribute('data-client_id', cid);
+          })();
+        </script>
 
-            <div class="divider">or log in with email</div>
+        <div class="divider">or log in with email</div>
 
-            <form id="loginForm">
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" placeholder="you@example.com" required>
-                </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" placeholder="Enter your password" required>
-                </div>
-                <div class="form-options">
-                    <label><input type="checkbox" id="remember"> Remember me</label>
-                    <a href="#" onclick="showForgotPassword()">Forgot password?</a>
-                </div>
-                <button type="submit" class="btn-primary"><i class="fas fa-sign-in-alt"></i> Log In</button>
-            </form>
+        <form id="loginForm">
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" placeholder="you@example.com" required />
+          </div>
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" placeholder="Enter your password" required />
+          </div>
+          <div class="form-options">
+            <label><input type="checkbox" id="remember" /> Remember me</label>
+            <a href="#" onclick="showForgotPassword()">Forgot password?</a>
+          </div>
+          <button type="submit" class="btn-primary">
+            <i class="fas fa-sign-in-alt"></i> Log In
+          </button>
+        </form>
 
-            <div class="auth-footer">
-                Don't have an account? <a href="createaccount.html">Create one</a>
-            </div>
+        <div class="auth-footer">
+          Don't have an account? <a href="createaccount.html">Create one</a>
         </div>
+      </div>
     </div>
 
     <!-- Forgot Password Modal -->
-    <div id="forgotModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:2000;align-items:center;justify-content:center;">
-        <div style="background:white;border-radius:16px;padding:2rem;width:90%;max-width:400px;">
-            <h2 style="font-size:1.2rem;color:#0a1628;margin-bottom:1rem;">Reset Password</h2>
-            <p style="font-size:0.85rem;color:#666;margin-bottom:1rem;">Enter your email and we'll send you a password reset link.</p>
-            <div style="margin-bottom:1rem;">
-                <input type="email" id="resetEmail" placeholder="Email address" style="width:100%;padding:0.8rem;border:2px solid #e0e5ec;border-radius:12px;font-size:1rem;outline:none;">
-            </div>
-            <p id="resetMessage" style="text-align:center;font-size:0.85rem;margin-bottom:0.5rem;display:none;"></p>
-            <button onclick="submitForgotPassword()" style="width:100%;padding:0.8rem;background:linear-gradient(135deg,#FF6B35,#E65100);color:white;border:none;border-radius:12px;font-size:1rem;font-weight:600;cursor:pointer;">Send Reset Link</button>
-            <button onclick="closeForgotPassword()" style="width:100%;padding:0.6rem;background:none;border:none;color:#888;margin-top:0.5rem;cursor:pointer;font-size:0.9rem;">Cancel</button>
+    <div
+      id="forgotModal"
+      style="
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 2000;
+        align-items: center;
+        justify-content: center;
+      "
+    >
+      <div
+        style="background: white; border-radius: 16px; padding: 2rem; width: 90%; max-width: 400px"
+      >
+        <h2 style="font-size: 1.2rem; color: #0a1628; margin-bottom: 1rem">Reset Password</h2>
+        <p style="font-size: 0.85rem; color: #666; margin-bottom: 1rem">
+          Enter your email and we'll send you a password reset link.
+        </p>
+        <div style="margin-bottom: 1rem">
+          <input
+            type="email"
+            id="resetEmail"
+            placeholder="Email address"
+            style="
+              width: 100%;
+              padding: 0.8rem;
+              border: 2px solid #e0e5ec;
+              border-radius: 12px;
+              font-size: 1rem;
+              outline: none;
+            "
+          />
         </div>
+        <p
+          id="resetMessage"
+          style="text-align: center; font-size: 0.85rem; margin-bottom: 0.5rem; display: none"
+        ></p>
+        <button
+          onclick="submitForgotPassword()"
+          style="
+            width: 100%;
+            padding: 0.8rem;
+            background: linear-gradient(135deg, #ff6b35, #e65100);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+          "
+        >
+          Send Reset Link
+        </button>
+        <button
+          onclick="closeForgotPassword()"
+          style="
+            width: 100%;
+            padding: 0.6rem;
+            background: none;
+            border: none;
+            color: #888;
+            margin-top: 0.5rem;
+            cursor: pointer;
+            font-size: 0.9rem;
+          "
+        >
+          Cancel
+        </button>
+      </div>
     </div>
 
     <footer>
-        <a href="index.html" class="footer-logo">Manzil Bharat</a>
-        <p>Explore the world with Bhartiya dil.</p>
-        <div class="footer-bottom">&copy; 2026 Manzil Bharat. All rights reserved.</div>
+      <a href="index.html" class="footer-logo">Manzil Bharat</a>
+      <p>Explore the world with Bhartiya dil.</p>
+      <div class="footer-bottom">&copy; 2026 Manzil Bharat. All rights reserved.</div>
     </footer>
 
     <script>
-        // ======== MOBILE MENU TOGGLE ========
-        document.getElementById('menuToggle').addEventListener('click', function() {
-            document.getElementById('navLinks').classList.toggle('active');
-        });
+      // ======== MOBILE MENU TOGGLE ========
+      document.getElementById('menuToggle').addEventListener('click', function () {
+        document.getElementById('navLinks').classList.toggle('active');
+      });
 
-        // ======== SESSION ========
-        // The API issues a signed token on login; MBAuth (auth.js) persists
-        // it so /api/me and the booking endpoints can send it back.
-        function saveSession(result) {
-            const remember = document.getElementById('remember').checked;
-            MBAuth.setSession(result.token, result.user, remember);
+      // ======== SESSION ========
+      // The API issues a signed token on login; MBAuth (auth.js) persists
+      // it so /api/me and the booking endpoints can send it back.
+      function saveSession(result) {
+        const remember = document.getElementById('remember').checked;
+        MBAuth.setSession(result.token, result.user, remember);
+      }
+
+      // Where to go after a successful login. ?next= is honoured only for
+      // plain local .html pages so a crafted link cannot bounce users to
+      // another site.
+      function afterLogin() {
+        const next = new URLSearchParams(window.location.search).get('next');
+        window.location.href = next && /^[a-z0-9_-]+\.html$/i.test(next) ? next : 'index.html';
+      }
+
+      // ======== FORGOT PASSWORD ========
+      function showForgotPassword() {
+        document.getElementById('forgotModal').style.display = 'flex';
+      }
+
+      function closeForgotPassword() {
+        document.getElementById('forgotModal').style.display = 'none';
+        document.getElementById('resetMessage').style.display = 'none';
+      }
+
+      async function submitForgotPassword() {
+        const email = document.getElementById('resetEmail').value.trim();
+        const msg = document.getElementById('resetMessage');
+
+        if (!email) {
+          msg.textContent = 'Please enter your email address';
+          msg.style.color = '#e74c3c';
+          msg.style.display = 'block';
+          return;
         }
 
-        // Where to go after a successful login. ?next= is honoured only for
-        // plain local .html pages so a crafted link cannot bounce users to
-        // another site.
-        function afterLogin() {
-            const next = new URLSearchParams(window.location.search).get('next');
-            window.location.href = (next && /^[a-z0-9_-]+\.html$/i.test(next)) ? next : 'index.html';
+        try {
+          const res = await fetch(API_BASE + '/api/forgot-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, origin: window.location.origin }),
+          });
+          const result = await res.json();
+          if (res.ok) {
+            msg.textContent = result.message || 'Reset link sent. Check your email.';
+            msg.style.color = '#27ae60';
+            msg.style.display = 'block';
+            setTimeout(closeForgotPassword, 3000);
+          } else {
+            msg.textContent = result.error || 'Failed to send reset link';
+            msg.style.color = '#e74c3c';
+            msg.style.display = 'block';
+          }
+        } catch (err) {
+          msg.textContent = 'Cannot reach the server. Is it running? Start it with: ./start.sh';
+          msg.style.color = '#e74c3c';
+          msg.style.display = 'block';
+        }
+      }
+
+      // ======== GOOGLE LOGIN (via Google Identity Services) ========
+      async function handleGoogleLogin(response) {
+        const credential = response.credential;
+        if (!credential) {
+          alert('Google login failed. Please try again.');
+          return;
         }
 
-        // ======== FORGOT PASSWORD ========
-        function showForgotPassword() {
-            document.getElementById('forgotModal').style.display = 'flex';
+        try {
+          const res = await fetch(API_BASE + '/api/google-login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ credential: credential }),
+          });
+          const result = await res.json();
+          if (res.ok && result.token) {
+            saveSession(result);
+            afterLogin();
+          } else {
+            alert(result.error || 'Login failed');
+          }
+        } catch (err) {
+          alert('Server error. Make sure app.py is running.');
+        }
+      }
+
+      // ======== EMAIL LOGIN ========
+      document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        if (!email || !password) {
+          alert('Please fill in all fields');
+          return;
         }
 
-        function closeForgotPassword() {
-            document.getElementById('forgotModal').style.display = 'none';
-            document.getElementById('resetMessage').style.display = 'none';
+        const btn = e.target.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+
+        try {
+          const res = await fetch(API_BASE + '/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+          });
+          const result = await res.json();
+          if (res.ok && result.token) {
+            saveSession(result);
+            afterLogin();
+          } else {
+            alert(result.error || 'Login failed');
+          }
+        } catch (err) {
+          alert('Server error. Make sure app.py is running.');
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Log In';
         }
-
-        async function submitForgotPassword() {
-            const email = document.getElementById('resetEmail').value.trim();
-            const msg = document.getElementById('resetMessage');
-
-            if (!email) {
-                msg.textContent = 'Please enter your email address';
-                msg.style.color = '#e74c3c';
-                msg.style.display = 'block';
-                return;
-            }
-
-            try {
-                const res = await fetch(API_BASE + '/api/forgot-password', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, origin: window.location.origin })
-                });
-                const result = await res.json();
-                if (res.ok) {
-                    msg.textContent = result.message || 'Reset link sent. Check your email.';
-                    msg.style.color = '#27ae60';
-                    msg.style.display = 'block';
-                    setTimeout(closeForgotPassword, 3000);
-                } else {
-                    msg.textContent = result.error || 'Failed to send reset link';
-                    msg.style.color = '#e74c3c';
-                    msg.style.display = 'block';
-                }
-            } catch (err) {
-                msg.textContent = 'Cannot reach the server. Is it running? Start it with: ./start.sh';
-                msg.style.color = '#e74c3c';
-                msg.style.display = 'block';
-            }
-        }
-
-        // ======== GOOGLE LOGIN (via Google Identity Services) ========
-        async function handleGoogleLogin(response) {
-            const credential = response.credential;
-            if (!credential) { alert('Google login failed. Please try again.'); return; }
-
-            try {
-                const res = await fetch(API_BASE + '/api/google-login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ credential: credential })
-                });
-                const result = await res.json();
-                if (res.ok && result.token) {
-                    saveSession(result);
-                    afterLogin();
-                } else {
-                    alert(result.error || 'Login failed');
-                }
-            } catch (err) {
-                alert('Server error. Make sure app.py is running.');
-            }
-        }
-
-        // ======== EMAIL LOGIN ========
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-            if (!email || !password) { alert('Please fill in all fields'); return; }
-
-            const btn = e.target.querySelector('button[type="submit"]');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
-
-            try {
-                const res = await fetch(API_BASE + '/api/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
-                });
-                const result = await res.json();
-                if (res.ok && result.token) {
-                    saveSession(result);
-                    afterLogin();
-                } else {
-                    alert(result.error || 'Login failed');
-                }
-            } catch (err) {
-                alert('Server error. Make sure app.py is running.');
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Log In';
-            }
-        });
+      });
     </script>
     <script src="nav-auth.js"></script>
-</body>
+  </body>
 </html>

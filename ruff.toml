@@ -1,0 +1,28 @@
+# Ruff - the Python half of Phase 3's lint step (.prettierrc.json is the other
+# half). This is `ruff check` only: no `ruff format` anywhere, because the
+# existing layout of backend/app.py is intentional and a reflow would bury a
+# 1700-line file in whitespace churn.
+line-length = 100
+
+[lint]
+# Ruff's defaults, plus E402 (module imports not at the top of the file).
+# Everything satisfies E402 except the one place it exists to document:
+# tests/conftest.py pins JWT_SECRET / EMAIL_PROVIDER / GEMINI_API_KEY BEFORE it
+# imports, so that import carries `# noqa: E402` with the reason attached.
+# Enabling E402 is what keeps that noqa from being dead (RUF100).
+extend-select = ["E402"]
+
+# Deliberate exceptions - each one is a choice, not an oversight:
+ignore = [
+    # naive datetime.utcnow(). Postgres holds naive UTC timestamps (TIMESTAMP
+    # columns, ISO strings in JWT payloads) and psycopg2 hands them back naive;
+    # switching these call sites to tz-aware datetimes one at a time would make
+    # `exp < utcnow()` compare offset-naive against offset-aware and raise.
+    # Phase 5 migrates the whole codebase to aware datetimes in one pass.
+    "DTZ003",
+    # `except Exception` around database work is the pattern: roll back the
+    # transaction, then answer 500 as JSON. Narrowing the catch would risk an
+    # uncaught exception leaving a connection parked on a failed transaction,
+    # which is worse than the blind catch.
+    "BLE001",
+]

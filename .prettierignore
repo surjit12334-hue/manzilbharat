@@ -1,0 +1,5 @@
+# Prettier runs on an explicit glob (**/*.{js,css,html,json}), so this file
+# only has to keep third-party and non-formatting directories out of the way.
+
+node_modules/
+venv/

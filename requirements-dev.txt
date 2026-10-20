@@ -3,3 +3,8 @@
 -r backend/requirements.txt
 
 pytest>=8.0
+
+# Linter. Pinned exactly for the same reason CI pins Python 3.12: a new ruff
+# release can turn on new default rules, and a lint job that goes red on code
+# nobody touched trains people to ignore red jobs. Upgrade on purpose.
+ruff==0.17.1
