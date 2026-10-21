@@ -143,7 +143,8 @@ manzilbharat/
 │   ├── conftest.py         # fixtures: throwaway DB, client, register/login/admin
 │   └── test_setup.py
 ├── data/
-│   └── city_costs.json     # Hand-written per-day cost model (budget breakdown)
+│   ├── city_costs.json     # Hand-written per-day cost model (budget breakdown)
+│   └── <city>.json         # Curated hotels/things-to-do/eateries for the 5 demo cities
 ├── requirements-dev.txt    # pytest - never installed by Render
 ├── pytest.ini
 ├── index.html              # Landing + destination search
@@ -175,6 +176,7 @@ Status column: `live` = implemented today, `todo` = Phase 1 of ROADMAP.txt.
 | Method | Endpoint | Auth | Status | Purpose |
 |--------|----------|------|--------|---------|
 | GET | `/health` | — | live | Readiness probe: 503 when the DB is unreachable |
+| GET | `/places?city=…` | — | live | Curated hotels/things-to-do/eateries for the demo cities (404 + available list for others) |
 | POST | `/signup` | — | live | Create account |
 | POST | `/login` | — | live | Email + password login |
 | POST | `/google-login` | — | live | Google Sign-In |

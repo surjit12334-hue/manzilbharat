@@ -656,6 +656,43 @@ def health():
             conn.close()
 
 
+@app.route('/api/places')
+@rate_limit(max_requests=60, window=60)
+def places():
+    """Curated hotels, things to do and eateries for a demo city.
+
+    Public and read-only, served from data/<city>.json. The response is the
+    contract a real provider (Google Places, Foursquare) would fill in later -
+    swapping the source means changing this handler, not the frontend. An
+    unknown city is an honest 404 with the list of cities that do exist, not
+    an empty 200 that looks like "found nothing".
+    """
+    city = (request.args.get('city') or '').strip()
+    if not city:
+        return jsonify({'error': 'city is required'}), 400
+
+    data = _places(city)
+    if data is None:
+        return jsonify({
+            'error': 'No curated places for that city yet',
+            'city': city,
+            'available': sorted(
+                os.path.splitext(name)[0] for name in os.listdir(PLACES_DIR)
+                if name.endswith('.json') and name != 'city_costs.json'
+            ),
+        }), 404
+
+    return jsonify({
+        'city': data.get('city', city.strip().lower()),
+        'label': data.get('label', city),
+        'tagline': data.get('tagline', ''),
+        'hotels': data.get('hotels', []),
+        'things_to_do': data.get('things_to_do', []),
+        'eateries': data.get('eateries', []),
+        'source': 'curated',
+    }), 200
+
+
 def verify_google_token(credential):
     try:
         idinfo = id_token.verify_oauth2_token(credential, google_requests.Request(), GOOGLE_CLIENT_ID)
@@ -1396,6 +1433,13 @@ CITY_COSTS_PATH = os.path.join(PROJECT_ROOT, 'data', 'city_costs.json')
 BUDGET_HEADS = ('stay', 'transport', 'food', 'activities')
 BUDGET_LEVELS = ('budget', 'mid-range', 'luxury')
 
+# Hand-written places for the demo cities (data/<city>.json): hotels, things to
+# do and eateries, chosen by a person and checkable against a map. This is the
+# provider-shaped stand-in the roadmap asks for - the API contract is the real
+# one, the data is curated until a paid provider's key exists.
+PLACES_DIR = os.path.join(PROJECT_ROOT, 'data')
+PLACES_CITY_RE = re.compile(r'^[a-z][a-z0-9-]{1,40}$')
+
 
 class _ItineraryError(Exception):
     """The model's reply could not be turned into a usable itinerary."""
@@ -1427,6 +1471,38 @@ def _city_costs():
         return None
     _city_costs._cache = (mtime, table)
     return table
+
+
+def _places(city):
+    """Curated places for one city, or None when there is no file for it.
+
+    The slug is validated against a strict pattern *before* it touches the
+    filesystem, so a request like ?city=../../etc/passwd cannot read anything:
+    the only reachable names are lowercase words under data/. Same mtime cache
+    trick as the price table - editing a city file applies without a restart.
+    """
+    slug = str(city or '').strip().lower()
+    if not PLACES_CITY_RE.match(slug):
+        return None
+    path = os.path.join(PLACES_DIR, slug + '.json')
+    try:
+        mtime = os.path.getmtime(path)
+    except OSError:
+        return None
+    cache = getattr(_places, '_cache', {})
+    if cache.get(slug, (None,))[0] == mtime:
+        return cache[slug][1]
+    try:
+        with open(path, encoding='utf-8') as handle:
+            data = json.load(handle)
+    except (OSError, ValueError):
+        app.logger.exception('city place file is unreadable: %s', path)
+        return None
+    if not isinstance(data, dict):
+        app.logger.warning('city place file has an unexpected shape: %s', path)
+        return None
+    _places._cache = {**cache, slug: (mtime, data)}
+    return data
 
 
 def _budget_level(value):

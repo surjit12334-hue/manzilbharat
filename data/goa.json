@@ -1,0 +1,118 @@
+{
+  "city": "goa",
+  "label": "Goa",
+  "tagline": "Beaches, Portuguese churches and seafood shacks.",
+  "hotels": [
+    {
+      "name": "Jungle Hostel Goa",
+      "area": "Anjuna, North Goa",
+      "category": "hostel",
+      "price_per_night": "₹600-1,400",
+      "note": "Backpacker hostel with a pool and garden; five minutes from Anjuna beach."
+    },
+    {
+      "name": "Cuba Retreat",
+      "area": "Vagator, North Goa",
+      "category": "budget",
+      "price_per_night": "₹1,800-3,500",
+      "note": "Simple huts and rooms on a quiet stretch with a good breakfast cafe."
+    },
+    {
+      "name": "The Fern Kadamba",
+      "area": "Kadamba Plateau, Panaji",
+      "category": "mid-range",
+      "price_per_night": "₹3,500-6,500",
+      "note": "Reliable chain hotel near Panaji; handy base if you plan to drive around."
+    },
+    {
+      "name": "Resort Rio",
+      "area": "Arpora, North Goa",
+      "category": "mid-range",
+      "price_per_night": "₹5,000-9,000",
+      "note": "Large resort with two pools and in-house water sports desk."
+    },
+    {
+      "name": "Taj Exotica Resort & Spa",
+      "area": "Benaulim, South Goa",
+      "category": "luxury",
+      "price_per_night": "₹18,000-35,000",
+      "note": "Sprawling beachfront resort with a spa and a nine-hole golf course."
+    },
+    {
+      "name": "W Goa",
+      "area": "Vagator, North Goa",
+      "category": "luxury",
+      "price_per_night": "₹25,000-55,000",
+      "note": "Cliffside designer hotel above Vagator beach with a lively bar scene."
+    },
+    {
+      "name": "Casa Britona",
+      "area": "Britona, Panaji",
+      "category": "mid-range",
+      "price_per_night": "₹4,500-7,500",
+      "note": "Restored riverside Portuguese villa, calm and full of character."
+    }
+  ],
+  "things_to_do": [
+    {
+      "name": "Basilica of Bom Jesus",
+      "area": "Old Goa",
+      "duration": "1 h",
+      "note": "UNESCO-listed 16th-century church holding the relics of St Francis Xavier."
+    },
+    {
+      "name": "Fort Aguada and lighthouse",
+      "area": "Candolim",
+      "duration": "1-2 h",
+      "note": "17th-century Portuguese fort with the best sweeping sea views in North Goa."
+    },
+    {
+      "name": "Palolem Beach",
+      "area": "Canacona, South Goa",
+      "duration": "Half day",
+      "note": "Crescent of calm water with kayaks and beach huts; go on a weekday."
+    },
+    {
+      "name": "Anjuna flea market",
+      "area": "Anjuna, North Goa",
+      "duration": "2-3 h",
+      "note": "Seasonal Wednesday market for clothes, jewellery and street food."
+    },
+    {
+      "name": "Dudhsagar Falls day trip",
+      "area": "Bhagwan Mahaveer Sanctuary",
+      "duration": "Full day",
+      "note": "Four-tier waterfall reached by forest jeep; book a slot before you go."
+    }
+  ],
+  "eateries": [
+    {
+      "name": "Fisherman's Wharf",
+      "area": "Cavelossim and Panaji",
+      "must_try": "Goan fish curry rice and prawn balchao",
+      "price_for_two": "₹1,200-2,000",
+      "note": "Riverside seafood restaurant with live music most evenings."
+    },
+    {
+      "name": "Gunpowder",
+      "area": "Assagao, North Goa",
+      "must_try": "Coastal curry and appam",
+      "price_for_two": "₹1,000-1,800",
+      "note": "South Indian and Goan menu in a leafy courtyard; booking helps."
+    },
+    {
+      "name": "Vinayak Family Restaurant",
+      "area": "Assagao, North Goa",
+      "must_try": "Fish thali and kingfish rava fry",
+      "price_for_two": "₹700-1,200",
+      "note": "Local favourite for an unfussy, very fresh fish thali."
+    },
+    {
+      "name": "Britto's",
+      "area": "Baga Beach",
+      "must_try": "Prawn curry rice with your feet in the sand",
+      "price_for_two": "₹1,500-2,500",
+      "note": "Long-standing beach shack; lively in season, quiet off it."
+    }
+  ]
+}

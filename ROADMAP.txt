@@ -654,12 +654,50 @@ transport) without paying for a single travel API.
            being relabelled with the fallback's "Elsewhere in India"
            instead of keeping the destination the visitor typed.
 
-  [ ] 3. Demo city data instead of paid APIs (half a day)           [d/2]
-         - data/<city>.json: 5-8 hotels, 5 things to do, 3 eateries
-           (hand-written, real places - judge-checkable)
-         - Serve with GET /api/places?city=...
-         - BE HONEST in the pitch: "integration layer ready,
-           provider keys pending - here is the contract"
+  [x] 3. Demo city data instead of paid APIs (half a day)           [d/2] DONE
+         - data/<city>.json for the same 5 demo cities as the price
+           sheet (jaipur, goa, delhi, manali, varanasi): 6-7 hotels
+           with a per-night rupee band and a category (hostel/budget/
+           mid-range/luxury), 5-6 things to do with an area and a
+           duration, 4 eateries with a must-try dish and a price for
+           two. All real, named, map-checkable places ("Amber Fort",
+           "Karim's", "Blue Lassi Shop") - not lorem ipsum.
+         - GET /api/places?city=... serves them. Public, read-only,
+           rate-limited 60/min. Returns {city, label, tagline, hotels,
+           things_to_do, eateries, source:"curated"} - the exact shape
+           a paid provider would fill in, so swapping the source later
+           is a change to this one handler, not the frontend.
+         - Honest about the edges: an unknown city is a 404 carrying
+           the list of cities that DO exist (and the page hides the
+           section), never an empty 200 that reads as "found nothing".
+           A missing ?city= is a 400.
+         - Path traversal is impossible: the slug is checked against
+           ^[a-z][a-z0-9-]{1,40}$ BEFORE it reaches the filesystem, so
+           ?city=../../.env, ?city=/etc/passwd, ?city=jaipur.json and
+           ?city=city_costs can never read anything - the only reachable
+           names are lowercase files under data/. A corrupt or
+           non-object city file is a 404, not a 500. (city_costs.json
+           is deliberately excluded so it is not addressable as a city.)
+         - trip.html renders the lists under the itinerary as three
+           cards (Where to stay / Things to do / Where to eat) with
+           price-or-duration chips. Loaded independently of the
+           itinerary fetch and best-effort, so a slow or missing places
+           list can neither hold up nor break the plan the visitor
+           already has. Also fixed a duplicate id="budget" (form select
+           vs budget panel) found while wiring this up.
+         - Tests: tests/test_places.py (34 cases) - every demo file
+           meets the roadmap's own counts and field shape; the price
+           sheet and place files cover the SAME five cities (they cannot
+           drift apart); case/space-insensitive lookup; honest 404 with
+           the available list; 400 on missing city; nine hostile slugs
+           all refused; corrupt/odd files are 404s; and an edited city
+           file is picked up without a restart (mtime cache).
+           VERIFIED: 134 passed in 31s; ruff + prettier clean. The
+           rendered section was checked by running the page's own
+           renderPlaces()/placeItem() in node against a real captured
+           API response: 3 groups, 7/6/4 entries, price chips
+           (₹500-1,200, 2-3 h, ₹200-400) and area/category meta lines;
+           an empty payload hides the section.
 
   [ ] 4. Transport cards (2-3 h)                                    [h]
          - Use the free Overpass API (OpenStreetMap) for nearby

@@ -1,0 +1,111 @@
+{
+  "city": "manali",
+  "label": "Manali, Himachal Pradesh",
+  "tagline": "Snow peaks, pine forests and the Beas river.",
+  "hotels": [
+    {
+      "name": "Zostel Manali",
+      "area": "Old Manali",
+      "category": "hostel",
+      "price_per_night": "₹500-1,300",
+      "note": "Mountain hostel above the river with a bonfire deck and dorm beds."
+    },
+    {
+      "name": "Himalayan Cottage",
+      "area": "Vashisht",
+      "category": "budget",
+      "price_per_night": "₹1,200-2,500",
+      "note": "Family-run rooms near the hot springs; simple home-cooked meals."
+    },
+    {
+      "name": "Sunshine Himalayan Resort",
+      "area": "Hadimba Road",
+      "category": "mid-range",
+      "price_per_night": "₹3,000-6,000",
+      "note": "Cottages with balconies facing the deodar forest; open lawn."
+    },
+    {
+      "name": "Manuallaya Resort & Spa",
+      "area": "Log Huts Area",
+      "category": "mid-range",
+      "price_per_night": "₹5,000-9,500",
+      "note": "Colonial-style resort set in apple orchards with a spa."
+    },
+    {
+      "name": "The Himalayan",
+      "area": "Hadimba Road",
+      "category": "luxury",
+      "price_per_night": "₹15,000-30,000",
+      "note": "Castle-style hotel with panoramic valley views and a famous coffee shop."
+    },
+    {
+      "name": "Span Resort & Spa",
+      "area": "Katrain, 20 km towards Kullu",
+      "category": "luxury",
+      "price_per_night": "₹12,000-24,000",
+      "note": "Riverside resort with trout fishing and cottages among the pines."
+    }
+  ],
+  "things_to_do": [
+    {
+      "name": "Hadimba Devi Temple",
+      "area": "Dhungri, Manali",
+      "duration": "1 h",
+      "note": "Cedar-wood temple from 1553 set in a grove of giant deodars."
+    },
+    {
+      "name": "Solang Valley",
+      "area": "13 km from town",
+      "duration": "Half day",
+      "note": "Paragliding and zorbing in summer; the nearest slopes for snow play."
+    },
+    {
+      "name": "Old Manali cafe walk",
+      "area": "Old Manali",
+      "duration": "2 h",
+      "note": "Lanes of cafes and craft shops above the Manalsu river."
+    },
+    {
+      "name": "Vashisht hot springs",
+      "area": "Vashisht village",
+      "duration": "1-2 h",
+      "note": "Natural sulphur springs with separate bathing areas; free to use."
+    },
+    {
+      "name": "Atal Tunnel to Sissu",
+      "area": "Towards Lahaul",
+      "duration": "Half day",
+      "note": "Drive the 9 km tunnel under the Rohtang pass to the cold desert beyond."
+    }
+  ],
+  "eateries": [
+    {
+      "name": "Johnson's Cafe",
+      "area": "Circular Road",
+      "must_try": "Trout, wood-fired pizza and apple crumble",
+      "price_for_two": "₹1,200-2,000",
+      "note": "Garden restaurant in a 1920s English cottage; a Manali institution."
+    },
+    {
+      "name": "Drifters' Cafe",
+      "area": "Old Manali",
+      "must_try": "Himachali thali and pancakes",
+      "price_for_two": "₹600-1,000",
+      "note": "Relaxed riverside terrace, popular for breakfast and live music."
+    },
+    {
+      "name": "Casa Bella Vista",
+      "area": "Old Manali",
+      "must_try": "Wood-fired pizza and pasta",
+      "price_for_two": "₹800-1,400",
+      "note": "Italian menu on a hanging terrace looking over the valley."
+    },
+    {
+      "name": "Chopsticks",
+      "area": "Mall Road",
+      "must_try": "Tibetan thukpa and momos",
+      "price_for_two": "₹600-1,100",
+      "note": "Long-running Tibetan and Chinese kitchen on the main road."
+    }
+  ]
+}

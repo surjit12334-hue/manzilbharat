@@ -1,0 +1,111 @@
+{
+  "city": "varanasi",
+  "label": "Varanasi, Uttar Pradesh",
+  "tagline": "Ghats, aartis and one of the world's oldest living cities.",
+  "hotels": [
+    {
+      "name": "Stops Hostel Varanasi",
+      "area": "Assi Ghat",
+      "category": "hostel",
+      "price_per_night": "₹400-1,100",
+      "note": "Hostel in a heritage building beside Assi Ghat; rooftop river views."
+    },
+    {
+      "name": "Hotel Alka",
+      "area": "Meer Ghat, near Dashashwamedh",
+      "category": "budget",
+      "price_per_night": "₹1,200-2,500",
+      "note": "Simple rooms right on the ghats with a terrace over the Ganga."
+    },
+    {
+      "name": "Suryauday Haveli",
+      "area": "Shivala Ghat",
+      "category": "mid-range",
+      "price_per_night": "₹5,000-9,000",
+      "note": "Restored 19th-century riverside haveli, calm and full of antiques."
+    },
+    {
+      "name": "Hotel Ganges Grand",
+      "area": "Dashashwamedh",
+      "category": "mid-range",
+      "price_per_night": "₹3,500-6,500",
+      "note": "Modern hotel a short walk from the main aarti ghat."
+    },
+    {
+      "name": "BrijRama Palace",
+      "area": "Darbhanga Ghat",
+      "category": "luxury",
+      "price_per_night": "₹14,000-30,000",
+      "note": "1812 palace on the water's edge, reached by boat; rooms face the river."
+    },
+    {
+      "name": "Taj Ganges",
+      "area": "Nadesar",
+      "category": "luxury",
+      "price_per_night": "₹12,000-25,000",
+      "note": "Colonial-style hotel in 40 acres of gardens with a large pool."
+    }
+  ],
+  "things_to_do": [
+    {
+      "name": "Ganga Aarti at Dashashwamedh Ghat",
+      "area": "Dashashwamedh",
+      "duration": "1 h",
+      "note": "The evening fire ceremony; arrive 45 minutes early for a good step."
+    },
+    {
+      "name": "Sunrise boat ride",
+      "area": "Assi to Manikarnika",
+      "duration": "1-2 h",
+      "note": "The classic rowed-boat trip past all the ghats; leave at first light."
+    },
+    {
+      "name": "Kashi Vishwanath Temple",
+      "area": "Vishwanath Gali",
+      "duration": "1-2 h",
+      "note": "One of the twelve Jyotirlingas; phones and bags are not allowed in."
+    },
+    {
+      "name": "Sarnath",
+      "area": "10 km north of the city",
+      "duration": "Half day",
+      "note": "Where Buddha gave his first sermon; stupa, museum and monastery ruins."
+    },
+    {
+      "name": "Banaras Hindu University and Bharat Kala Bhavan",
+      "area": "BHU campus",
+      "duration": "1-2 h",
+      "note": "Leafy 1,300-acre campus with a museum of miniatures and sculpture."
+    }
+  ],
+  "eateries": [
+    {
+      "name": "Kashi Chat Bhandar",
+      "area": "Godowlia",
+      "must_try": "Tamatar chaat and palak chaat",
+      "price_for_two": "₹150-300",
+      "note": "The tomato chaat everyone queues for; eat it standing."
+    },
+    {
+      "name": "Blue Lassi Shop",
+      "area": "Vishwanath Gali",
+      "must_try": "Malai lassi and fruit lassi",
+      "price_for_two": "₹150-300",
+      "note": "Tiny 1925 shop serving lassi in clay cups; walls covered in traveller notes."
+    },
+    {
+      "name": "Deena Chat Bhandar",
+      "area": "Dashashwamedh",
+      "must_try": "Aloo tikki and dahi vada",
+      "price_for_two": "₹150-300",
+      "note": "Bustling chaat corner near the main ghat."
+    },
+    {
+      "name": "Canton Royale",
+      "area": "Nadesar, near Cantt",
+      "must_try": "Banarasi thali and kebabs",
+      "price_for_two": "₹1,200-2,000",
+      "note": "Sit-down restaurant with a proper Banarasi menu, a rarity here."
+    }
+  ]
+}
