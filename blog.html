@@ -7,8 +7,6 @@
     <link rel="icon" type="image/png" href="icon.png" />
     <meta name="description" content="Travel stories, guides, and updates from Manzil Bharat." />
     <link rel="canonical" href="https://manzilbharat.onrender.com/blog.html" />
-    <!-- Social previews: absolute og:url/og:image are required, relative ones
-         are ignored by WhatsApp/X. The card is a 1200x630 JPEG. -->
     <meta property="og:site_name" content="Manzil Bharat" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Blog - Manzil Bharat" />
@@ -118,39 +116,40 @@
       .blog-section h2 {
         font-size: 1.4rem;
         color: #0a1628;
-        margin-bottom: 2rem;
+        margin-bottom: 1.8rem;
       }
-
       .blog-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-        gap: 2rem;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem;
       }
-
       .blog-card {
         background: white;
-        border-radius: 16px;
+        border-radius: 12px;
         overflow: hidden;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
         transition:
           transform 0.3s,
           box-shadow 0.3s;
+        display: flex;
+        flex-direction: column;
       }
       .blog-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+        transform: translateY(-4px);
+        box-shadow: 0 12px 40px rgba(26, 35, 126, 0.12);
       }
       .blog-card a {
-        text-decoration: none;
         color: inherit;
-        display: block;
+        text-decoration: none;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
       }
       .blog-thumb {
         position: relative;
         width: 100%;
         padding-top: 56.25%;
-        overflow: hidden;
-        background: #0a1628;
+        background: #eef1f8;
       }
       .blog-thumb img {
         position: absolute;
@@ -160,142 +159,105 @@
         height: 100%;
         object-fit: cover;
       }
-      .blog-thumb .play-icon {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 60px;
-        height: 60px;
-        background: rgba(255, 107, 53, 0.9);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 1.5rem;
-        opacity: 0;
-        transition: opacity 0.3s;
-      }
-      .blog-card:hover .play-icon {
-        opacity: 1;
-      }
       .blog-info {
-        padding: 1.5rem;
+        padding: 1.2rem 1.3rem 1.4rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.7rem;
       }
       .blog-info h3 {
-        font-size: 1.1rem;
         color: #0a1628;
-        margin-bottom: 0.5rem;
+        font-size: 1.1rem;
         line-height: 1.4;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
       }
       .blog-meta {
         display: flex;
-        gap: 1rem;
-        color: #888;
-        font-size: 0.85rem;
-        margin-bottom: 0.8rem;
+        flex-wrap: wrap;
+        gap: 0.9rem;
+        color: #7a8599;
+        font-size: 0.9rem;
       }
       .blog-meta span {
         display: flex;
         align-items: center;
-        gap: 0.3rem;
-      }
-      .blog-meta i {
-        color: #ff6b35;
+        gap: 0.4rem;
       }
       .blog-info p {
-        color: #555;
+        color: #4a5568;
         font-size: 0.95rem;
-        display: -webkit-box;
-        -webkit-line-clamp: 3;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
       }
-
       .loading {
         text-align: center;
-        padding: 4rem;
-        color: #888;
+        color: #7a8599;
+        padding: 2rem;
+        grid-column: 1 / -1;
       }
       .loading i {
-        font-size: 2rem;
-        color: #ff6b35;
+        font-size: 1.6rem;
+        margin-bottom: 0.6rem;
         animation: spin 1s linear infinite;
-        display: block;
-        margin-bottom: 1rem;
       }
       @keyframes spin {
-        100% {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
           transform: rotate(360deg);
         }
       }
-
       .error-msg {
-        background: #fff3f3;
-        border: 1px solid #ffcdd2;
-        border-radius: 12px;
-        padding: 2rem;
-        color: #c62828;
         text-align: center;
-        max-width: 600px;
-        margin: 2rem auto;
+        color: #d64545;
+        padding: 2rem;
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.6rem;
       }
 
       footer {
-        background: linear-gradient(180deg, #0a1628 0%, #0d1f3c 100%);
+        background: #0a1628;
         color: white;
-        padding: 3rem 5% 1.5rem;
         text-align: center;
+        padding: 3rem 5% 2rem;
       }
-      footer .footer-logo {
+      .footer-logo {
         font-family: 'Pacifico', cursive;
         font-size: 1.8rem;
         color: #ff6b35;
         text-decoration: none;
         display: inline-block;
-        margin-bottom: 1rem;
+        margin-bottom: 0.8rem;
       }
       footer p {
-        color: #8892b0;
+        opacity: 0.8;
         margin-bottom: 1.5rem;
       }
-      footer .footer-bottom {
-        border-top: 1px solid rgba(255, 255, 255, 0.05);
+      .footer-bottom {
         padding-top: 1.5rem;
-        color: #5a6a8a;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        opacity: 0.7;
         font-size: 0.9rem;
       }
 
       @media (max-width: 768px) {
+        .menu-toggle {
+          display: block;
+        }
         .nav-links {
-          display: none;
           position: absolute;
           top: 100%;
           left: 0;
           right: 0;
-          background: rgba(10, 22, 40, 0.98);
           flex-direction: column;
+          background: rgba(10, 22, 40, 0.98);
           padding: 1rem 5%;
           gap: 1rem;
+          display: none;
         }
         .nav-links.active {
           display: flex;
-        }
-        .menu-toggle {
-          display: block;
-        }
-        .blog-grid {
-          grid-template-columns: 1fr;
-        }
-      }
-      @media (max-width: 480px) {
-        .page-hero {
-          padding: 7rem 5% 3rem;
         }
         .blog-section {
           padding: 2rem 5%;
@@ -328,11 +290,11 @@
     </section>
 
     <section class="blog-section">
-      <h2>Latest from YouTube</h2>
+      <h2>Travel Stories</h2>
       <div id="blogGrid" class="blog-grid">
         <div class="loading">
           <i class="fas fa-spinner"></i>
-          <p>Loading videos...</p>
+          <p>Loading stories...</p>
         </div>
       </div>
     </section>
@@ -344,62 +306,58 @@
     </footer>
 
     <script>
-      const CHANNEL_ID = 'UCV-iDbj5zWPDSn5eRh2FZfw';
-      const RSS_URL = 'https://www.youtube.com/feeds/videos.xml?channel_id=' + CHANNEL_ID;
-      const RSS2JSON =
-        'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(RSS_URL);
-
       const blogGrid = document.getElementById('blogGrid');
 
-      fetch(RSS2JSON)
+      fetch('data/blog_posts.json')
         .then(function (res) {
+          if (!res.ok) throw new Error('HTTP ' + res.status);
           return res.json();
         })
-        .then(function (data) {
-          if (data.status !== 'ok' || !data.items || data.items.length === 0) {
+        .then(function (posts) {
+          if (!Array.isArray(posts) || posts.length === 0) {
             blogGrid.innerHTML =
-              '<div class="error-msg"><i class="fas fa-exclamation-triangle"></i> No videos found. Check back later.</div>';
+              '<div class="error-msg"><i class="fas fa-exclamation-triangle"></i> No stories found. Check back later.</div>';
             return;
           }
 
           var html = '';
-          data.items.forEach(function (item) {
-            var videoId = extractVideoId(item.link);
-            var thumb = videoId
-              ? 'https://i1.ytimg.com/vi/' + videoId + '/hqdefault.jpg'
-              : item.thumbnail || (item.enclosure && item.enclosure.link) || '';
-            var date = new Date(item.pubDate).toLocaleDateString('en-IN', {
-              day: 'numeric',
-              month: 'short',
-              year: 'numeric',
-            });
-            var desc = stripHtml(item.description || item.content || '').substring(0, 150);
-
+          posts.forEach(function (post) {
+            var date = post.date
+              ? new Date(post.date + 'T00:00:00').toLocaleDateString('en-IN', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                })
+              : '';
+            var excerpt = stripHtml(post.excerpt || '').substring(0, 160);
+            var href = post.slug ? 'blog-post.html?slug=' + encodeURIComponent(post.slug) : '#';
             html +=
               '<div class="blog-card">' +
               '<a href="' +
-              escAttr(item.link) +
-              '" target="_blank" rel="noopener">' +
+              escAttr(href) +
+              '">' +
               '<div class="blog-thumb">' +
-              (thumb
+              (post.image
                 ? '<img src="' +
-                  escAttr(thumb) +
+                  escAttr(post.image) +
                   '" alt="' +
-                  escHtml(item.title) +
+                  escHtml(post.title) +
                   '" loading="lazy">'
                 : '') +
-              (videoId ? '<div class="play-icon"><i class="fas fa-play"></i></div>' : '') +
               '</div>' +
               '<div class="blog-info">' +
               '<h3>' +
-              escHtml(item.title) +
+              escHtml(post.title) +
               '</h3>' +
               '<div class="blog-meta">' +
-              '<span><i class="fas fa-calendar"></i> ' +
-              date +
-              '</span>' +
+              (date ? '<span><i class="fas fa-calendar"></i> ' + escHtml(date) + '</span>' : '') +
+              (post.author
+                ? '<span><i class="fas fa-user"></i> ' + escHtml(post.author) + '</span>'
+                : '') +
               '</div>' +
-              (desc ? '<p>' + escHtml(desc) + (desc.length >= 150 ? '...' : '') + '</p>' : '') +
+              (excerpt
+                ? '<p>' + escHtml(excerpt) + (excerpt.length >= 160 ? '...' : '') + '</p>'
+                : '') +
               '</div>' +
               '</a>' +
               '</div>';
@@ -409,14 +367,9 @@
         })
         .catch(function (err) {
           blogGrid.innerHTML =
-            '<div class="error-msg"><i class="fas fa-exclamation-triangle"></i> Failed to load videos. Please try again later.</div>';
+            '<div class="error-msg"><i class="fas fa-exclamation-triangle"></i> Failed to load stories. Please try again later.</div>';
           console.error(err);
         });
-
-      function extractVideoId(url) {
-        var match = url.match(/(?:v=|youtu\.be\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/);
-        return match ? match[1] : null;
-      }
 
       function stripHtml(html) {
         var tmp = document.createElement('div');
@@ -431,8 +384,6 @@
         return div.innerHTML;
       }
 
-      // For values interpolated into an attribute: also neutralise quotes so a
-      // crafted feed value cannot break out of href="" / src="".
       function escAttr(str) {
         if (str == null) return '';
         return escHtml(String(str))

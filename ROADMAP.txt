@@ -721,10 +721,22 @@ transport) without paying for a single travel API.
            VERIFIED: 140 passed in 34s; ruff + prettier clean. Render
            checked in node: Delhi shows Metro/Rail/Airport (1/3/1).
 
-  [ ] 5. Replace rss2json.com blog (2-3 h)                          [h]
-         - 3-5 real posts as HTML/Markdown, served by Flask or
-           static files, listed on blog.html
-         - Free, no third party that can vanish mid-judging
+  [x] 5. Replace rss2json.com blog (2-3 h)                          [h] DONE
+         - data/blog_posts.json holds 5 real travel stories for the 5
+           demo cities (Jaipur, Goa, Delhi, Manali, Varanasi) with
+           titles, dates, authors, excerpts, cover images, tags and
+           full HTML content - hand-written, checkable, no lorem ipsum.
+         - blog.html fetches from data/blog_posts.json (no third-party
+           RSS proxy). Cards show cover image, title, date, author and
+           excerpt linking to blog-post.html?slug=....
+         - blog-post.html renders a full article page with hero image,
+           metadata, body content and tags. Slug lookup is case-safe
+           and falls back gracefully.
+         - The old YouTube/RSS2JSON integration was removed. The blog
+           now works fully offline-capable as static JSON served by
+           Flask - no external API that can vanish mid-judging.
+         - VERIFIED: 140 passed in 38s; ruff + prettier clean. The
+           blog loads the local JSON and renders the 5 story cards.
 
   [ ] 6. Save itineraries (2 h)                                     [h]
          - Table saved_trips(user_id, title, payload, created_at)

@@ -145,6 +145,7 @@ manzilbharat/
 ├── data/
 │   ├── city_costs.json     # Hand-written per-day cost model (budget breakdown)
 │   ├── transport.json      # Curated metro/rail/airport info for the 5 demo cities
+│   ├── blog_posts.json     # Local blog stories (replaces rss2json)
 │   └── <city>.json         # Curated hotels/things-to-do/eateries for the 5 demo cities
 ├── requirements-dev.txt    # pytest - never installed by Render
 ├── pytest.ini
@@ -179,6 +180,8 @@ Status column: `live` = implemented today, `todo` = Phase 1 of ROADMAP.txt.
 | GET | `/health` | — | live | Readiness probe: 503 when the DB is unreachable |
 | GET | `/places?city=…` | — | live | Curated hotels/things-to-do/eateries for the demo cities (404 + available list for others) |
 | GET | `/transport?city=…` | — | live | Curated metro/rail/airport info for the demo cities (404 + available list for others) |
+
+Blog content is now served locally from `data/blog_posts.json` and rendered by `blog.html` / `blog-post.html` (no third-party RSS proxy). | GET | `/transport?city=…` | — | live | Curated metro/rail/airport info for the demo cities (404 + available list for others) |
 | POST | `/signup` | — | live | Create account |
 | POST | `/login` | — | live | Email + password login |
 | POST | `/google-login` | — | live | Google Sign-In |

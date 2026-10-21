@@ -714,7 +714,8 @@ def places():
             'city': city,
             'available': sorted(
                 os.path.splitext(name)[0] for name in os.listdir(PLACES_DIR)
-                if name.endswith('.json') and name not in ('city_costs.json', 'transport.json')
+                if name.endswith('.json')
+                and name not in ('city_costs.json', 'transport.json', 'blog_posts.json')
             ),
         }), 404
 
