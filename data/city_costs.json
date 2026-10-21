@@ -1,0 +1,35 @@
+{
+  "_comment": "Hand-written per-day cost model for the demo cities. Rupees, per traveller, per day, mid-range baseline. Edit these numbers freely - nothing else needs to change. 'split' is how a day's spend divides across the four budget heads and must sum to 1.0. Cities not listed here fall back to 'default'.",
+  "default": {
+    "label": "Elsewhere in India",
+    "per_day": { "budget": 1800, "mid-range": 3200, "luxury": 7500 },
+    "split": { "stay": 0.4, "transport": 0.2, "food": 0.25, "activities": 0.15 }
+  },
+  "cities": {
+    "jaipur": {
+      "label": "Jaipur, Rajasthan",
+      "per_day": { "budget": 1500, "mid-range": 3000, "luxury": 7000 },
+      "split": { "stay": 0.38, "transport": 0.18, "food": 0.26, "activities": 0.18 }
+    },
+    "goa": {
+      "label": "Goa",
+      "per_day": { "budget": 1800, "mid-range": 3800, "luxury": 9500 },
+      "split": { "stay": 0.45, "transport": 0.2, "food": 0.22, "activities": 0.13 }
+    },
+    "delhi": {
+      "label": "Delhi NCR",
+      "per_day": { "budget": 1400, "mid-range": 2800, "luxury": 6500 },
+      "split": { "stay": 0.37, "transport": 0.22, "food": 0.24, "activities": 0.17 }
+    },
+    "manali": {
+      "label": "Manali, Himachal Pradesh",
+      "per_day": { "budget": 1600, "mid-range": 3400, "luxury": 8000 },
+      "split": { "stay": 0.42, "transport": 0.24, "food": 0.21, "activities": 0.13 }
+    },
+    "varanasi": {
+      "label": "Varanasi, Uttar Pradesh",
+      "per_day": { "budget": 1200, "mid-range": 2400, "luxury": 5500 },
+      "split": { "stay": 0.35, "transport": 0.2, "food": 0.24, "activities": 0.21 }
+    }
+  }
+}

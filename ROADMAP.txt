@@ -607,11 +607,52 @@ transport) without paying for a single travel API.
            the app role on a self-hosted DB). Until then the feature
            works but logs a cache miss on every request.
 
-  [ ] 2. Budget estimate (2-3 h)                                    [h]
-         - From the same itinerary JSON: sum cost per day
-         - Breakdown: stay / transport / food / activities
-         - Static price table in JSON (free, editable): a small
-           city->cost-per-day dataset for your 5 demo cities
+  [x] 2. Budget estimate (2-3 h)                                    [h] DONE
+         - Same itinerary JSON: _budget_estimate() sums the day costs the
+           visitor actually received (trip_total + per_day), so the total
+           is never a separate model guess.
+         - Breakdown stay/transport/food/activities comes from
+           data/city_costs.json: per-day rupee rates for budget /
+           mid-range / luxury plus a split that is a fixed share per
+           head. The heads are integer rupees and the last one absorbs
+           the rounding remainder, so breakdown always sums to
+           trip_total (clocked by tests over awkward totals like [999,1]).
+         - data/city_costs.json is hand-written and editable: the 5 demo
+           cities (Jaipur, Goa, Delhi, Manali, Varanasi) + a "default"
+           row. A city that is not in the file still answers - it uses
+           the default rate and returns matched=false, which the page
+           states plainly ("no price sheet for this destination yet")
+           instead of pretending. A missing or corrupt file, a split
+           that does not add up, or a non-numeric rate all degrade to
+           averages; none of them can 500 the request.
+         - The budget rides on the itinerary response for BOTH paths
+           (fresh + cache hit) and is deliberately NOT part of the
+           cached blob, so it is recomputed from the plan on every call
+           and edits to the price sheet take effect immediately. The
+           table is cached on file mtime, so editing it on a running
+           server needs no restart.
+         - trip.html renders a budget panel above the day cards: total,
+           per-day figure and four proportional bars, with a footnote
+           naming the price sheet and the baseline rate used. The panel
+           hides itself if the server sends no estimate.
+         - Tests: tests/test_budget.py (23 cases) - the table ships the
+           5 cities + default and every split sums to 1.0; the breakdown
+           always reconciles with the total; the split follows the city
+           table (Goa's exact numbers); unmatched cities fall back and
+           report matched=false; the budget wording is normalised
+           ("cheap and cheerful" -> budget, "upscale" -> luxury,
+           "something else" -> mid-range); case-insensitive city match;
+           broken/missing table degrades; and the two endpoint paths
+           (fresh + cached).
+           VERIFIED: 100 passed in 27s; ruff + prettier clean. The
+           rendered panel was checked by running the page's own
+           renderBudget() in node against a real captured API response:
+           ₹8,300 total, ₹2,766/day, four bars (Stay 3154 / Food 2158 /
+           Transport 1494 / Activities 1494 = 8300), the matched-city
+           note, the fallback note for Shillong, and null -> panel
+           hidden. A test also caught a real bug: an unmatched city was
+           being relabelled with the fallback's "Elsewhere in India"
+           instead of keeping the destination the visitor typed.
 
   [ ] 3. Demo city data instead of paid APIs (half a day)           [d/2]
          - data/<city>.json: 5-8 hotels, 5 things to do, 3 eateries

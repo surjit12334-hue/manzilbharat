@@ -1356,7 +1356,8 @@ def cancel_booking(booking_id):
 # Two kinds answer with prose ('destination', 'trip'). A third, 'itinerary',
 # answers with STRUCTURED day cards: Gemini is asked for JSON, the reply is
 # parsed and validated here, and the result is cached in itinerary_cache so
-# the same request does not spend Gemini quota twice.
+# the same request does not spend Gemini quota twice. Itinerary responses also
+# carry a budget estimate (data/city_costs.json) for the same days.
 # ---------------------------------------------------------------------------
 
 AI_PROMPTS = {
@@ -1385,9 +1386,121 @@ ITINERARY_MAX_SLOT_CHARS = 500
 ITINERARY_MAX_DAY_COST = 1_000_000  # rupees; anything above is an artefact
 ITINERARY_CACHE_PRUNE_DAYS = 30
 
+# Hand-written per-day cost model for the demo cities (data/city_costs.json).
+# The AI is good at *what to do* and unreliable at arithmetic, so it supplies
+# the day plan while these numbers supply the price shape: the breakdown is a
+# fixed split of the trip total, which is why it is a file a human edits
+# rather than another model call. Missing/invalid file = no breakdown, and
+# the itinerary still renders.
+CITY_COSTS_PATH = os.path.join(PROJECT_ROOT, 'data', 'city_costs.json')
+BUDGET_HEADS = ('stay', 'transport', 'food', 'activities')
+BUDGET_LEVELS = ('budget', 'mid-range', 'luxury')
+
 
 class _ItineraryError(Exception):
     """The model's reply could not be turned into a usable itinerary."""
+
+
+def _city_costs():
+    """The price model, read fresh but cheaply.
+
+    Cached on the file's mtime so editing data/city_costs.json on a running
+    server takes effect without a restart, while a warm server does not hit
+    the disk on every request.
+    """
+    try:
+        mtime = os.path.getmtime(CITY_COSTS_PATH)
+    except OSError:
+        app.logger.warning('city cost table is missing: %s', CITY_COSTS_PATH)
+        return None
+    cached = getattr(_city_costs, '_cache', None)
+    if cached and cached[0] == mtime:
+        return cached[1]
+    try:
+        with open(CITY_COSTS_PATH, encoding='utf-8') as handle:
+            table = json.load(handle)
+    except (OSError, ValueError):
+        app.logger.exception('city cost table is unreadable: %s', CITY_COSTS_PATH)
+        return None
+    if not isinstance(table, dict) or not isinstance(table.get('cities'), dict):
+        app.logger.warning('city cost table has an unexpected shape')
+        return None
+    _city_costs._cache = (mtime, table)
+    return table
+
+
+def _budget_level(value):
+    """Map whatever the visitor typed onto a table key ('Upscale' -> luxury)."""
+    text = str(value or '').strip().lower()
+    if text in BUDGET_LEVELS:
+        return text
+    if any(word in text for word in ('luxury', 'lux', 'premium', 'upscale', 'high')):
+        return 'luxury'
+    if any(word in text for word in ('cheap', 'budget', 'backpack', 'low', 'economy')):
+        return 'budget'
+    return 'mid-range'
+
+
+def _budget_estimate(plan, days):
+    """Total, per-day and the four-head breakdown for a plan.
+
+    Every figure is derived from the itinerary the visitor actually got: the
+    total is the sum of the AI's day costs, and the heads are fixed
+    percentages of that total, so the parts always add up to the whole
+    (integers, with the rounding remainder given to the last head). Cities
+    outside data/city_costs.json answer with the fallback rate and
+    matched=false, which the page states plainly instead of pretending.
+    """
+    total = sum(day['cost'] for day in days)
+    level = _budget_level(plan['budget'])
+    table = _city_costs()
+
+    city = None
+    matched = False
+    if table:
+        cities = table['cities']
+        city = cities.get(plan['destination'].strip().lower())
+        matched = city is not None
+        if not matched:
+            city = table.get('default')
+    if not isinstance(city, dict):
+        city = {}
+
+    per_day = city.get('per_day') if isinstance(city.get('per_day'), dict) else {}
+    split = city.get('split') if isinstance(city.get('split'), dict) else {}
+    reference = per_day.get(level)
+    if not isinstance(reference, (int, float)) or reference <= 0:
+        reference = 0
+
+    # A split that does not add up (hand-edited file) would quietly invent or
+    # lose money, so fall back to an even one.
+    weights = [split.get(head) for head in BUDGET_HEADS]
+    if any(not isinstance(w, (int, float)) or w < 0 for w in weights) or sum(weights) <= 0:
+        weights = None
+    if weights is None:
+        weights = [1 / len(BUDGET_HEADS)] * len(BUDGET_HEADS)
+
+    breakdown = {}
+    allocated = 0
+    for head, weight in zip(BUDGET_HEADS, weights):
+        amount = round(total * weight)
+        breakdown[head] = amount
+        allocated += amount
+    breakdown[BUDGET_HEADS[-1]] += total - allocated
+
+    label = city.get('label')
+    return {
+        'trip_total': total,
+        'per_day': total // len(days),
+        'breakdown': breakdown,
+        'level': level,
+        'baseline_per_day': int(reference),
+        # Only a matched city may rename the trip; for anywhere else the
+        # visitor's own words are the better label.
+        'city': label.strip() if matched and isinstance(label, str) and label.strip()
+        else plan['destination'],
+        'matched': matched,
+    }
 
 
 def _gemini_text(prompt, json_mode=False):
@@ -1629,7 +1742,11 @@ def _itinerary_guide(data):
     query_hash = _itinerary_cache_key(plan)
     cached = _cached_itinerary(query_hash)
     if cached is not None:
-        return jsonify({'days': cached, 'cached': True}), 200
+        return jsonify({
+            'days': cached,
+            'budget': _budget_estimate(plan, cached),
+            'cached': True,
+        }), 200
 
     # The cache is checked first so a warm itinerary still works if the key is
     # later removed; everything else needs the key.
@@ -1647,7 +1764,11 @@ def _itinerary_guide(data):
         return jsonify({'error': 'The AI returned an unusable itinerary. Please try again.'}), 502
 
     _store_itinerary(query_hash, days)
-    return jsonify({'days': days, 'cached': False}), 200
+    return jsonify({
+        'days': days,
+        'budget': _budget_estimate(plan, days),
+        'cached': False,
+    }), 200
 
 
 @app.route('/api/ai-guide', methods=['POST'])

@@ -142,6 +142,8 @@ manzilbharat/
 ├── tests/                  # pytest suite (conftest points at <DB_NAME>_test)
 │   ├── conftest.py         # fixtures: throwaway DB, client, register/login/admin
 │   └── test_setup.py
+├── data/
+│   └── city_costs.json     # Hand-written per-day cost model (budget breakdown)
 ├── requirements-dev.txt    # pytest - never installed by Render
 ├── pytest.ini
 ├── index.html              # Landing + destination search
@@ -178,7 +180,7 @@ Status column: `live` = implemented today, `todo` = Phase 1 of ROADMAP.txt.
 | POST | `/google-login` | — | live | Google Sign-In |
 | POST | `/forgot-password` | — | live | Emails a signed 30-minute reset link |
 | POST | `/reset-password` | — | live | Redeem reset link |
-| POST | `/ai-guide` | — | live | Server-side Gemini proxy (rate-limited); `kind='itinerary'` returns cached day cards |
+| POST | `/ai-guide` | — | live | Server-side Gemini proxy (rate-limited); `kind='itinerary'` returns cached day cards + a budget estimate |
 | GET | `/me` | user | live | Current user profile |
 | POST | `/bookings` | user | live | Create a booking (validated, owner row) |
 | GET | `/bookings/mine` | user | live | The caller's own bookings |
