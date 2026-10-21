@@ -1,0 +1,207 @@
+{
+  "jaipur": {
+    "label": "Jaipur, Rajasthan",
+    "metro": [
+      {
+        "name": "Jaipur Metro",
+        "lines": ["Pink Line"],
+        "stations": [
+          "Mansarovar",
+          "New Aatish Market",
+          "Vivek Vihar",
+          "Shyam Nagar",
+          "Ram Nagar",
+          "Civil Lines",
+          "Railway Station",
+          "Sindhi Camp",
+          "Choti Chaupar",
+          "Chandpole"
+        ],
+        "note": "Operational between Mansarovar and Badi Chaupar. Useful for reaching key parts of the city.",
+        "fare": "₹6-₹30"
+      }
+    ],
+    "rail": [
+      {
+        "name": "Jaipur Junction (JP)",
+        "area": "Gopalbari",
+        "note": "Major railway station with trains from Delhi, Mumbai, Agra, and other cities across India.",
+        "facilities": ["Waiting rooms", "Food plaza", "Pre-paid taxi", "Auto-rickshaw stand"]
+      },
+      {
+        "name": "Gandhinagar Jaipur (GADJ)",
+        "area": "Gandhinagar",
+        "note": "Secondary station on the Jaipur-Delhi route, useful for certain express trains."
+      }
+    ],
+    "airport": [
+      {
+        "name": "Jaipur International Airport (JAI)",
+        "area": "Sanganer, ~12 km from city centre",
+        "note": "Domestic and limited international flights. Connected by taxi, app-cab and airport buses.",
+        "terminals": ["Terminal 1", "Terminal 2"],
+        "distance_from_centre": "~12 km"
+      }
+    ]
+  },
+  "goa": {
+    "label": "Goa",
+    "metro": [],
+    "rail": [
+      {
+        "name": "Madgaon Junction (MAO)",
+        "area": "Margao, South Goa",
+        "note": "Main railway station for Konkan Railway. Major stop for express trains along the west coast.",
+        "facilities": ["Retiring rooms", "Pre-paid taxi", "Food stalls", "Bus connections"]
+      },
+      {
+        "name": "Thivim Railway Station (THVM)",
+        "area": "Thivim, North Goa",
+        "note": "Convenient for North Goa beaches (Anjuna, Baga, Vagator). Auto-rickshaws and taxis readily available.",
+        "facilities": ["Pre-paid taxi", "Auto stand"]
+      },
+      {
+        "name": "Vasco da Gama Railway Station (VSG)",
+        "area": "Vasco da Gama",
+        "note": "Station near Mormugao Port; useful for some trains and connections."
+      }
+    ],
+    "airport": [
+      {
+        "name": "Manohar International Airport, Mopa (GOX)",
+        "area": "Mopa, North Goa, ~35 km from Panaji",
+        "note": "Newer airport serving domestic and international flights; has grown rapidly.",
+        "terminals": ["Terminal 1"],
+        "distance_from_centre": "~35 km"
+      },
+      {
+        "name": "Dabolim Airport (GOI)",
+        "area": "Dabolim, South Goa, ~30 km from Panaji",
+        "note": "Older airport, well connected to domestic and international destinations.",
+        "terminals": ["Terminal 1"],
+        "distance_from_centre": "~30 km"
+      }
+    ]
+  },
+  "delhi": {
+    "label": "Delhi NCR",
+    "metro": [
+      {
+        "name": "Delhi Metro",
+        "lines": [
+          "Red",
+          "Yellow",
+          "Blue",
+          "Green",
+          "Violet",
+          "Pink",
+          "Magenta",
+          "Orange",
+          "Grey",
+          "Airport Express"
+        ],
+        "stations": [
+          "Rajiv Chowk",
+          "New Delhi",
+          "Chandni Chowk",
+          "Hauz Khas",
+          "Connaught Place",
+          "Lajpat Nagar",
+          "Saket"
+        ],
+        "note": "Extensive network covering most of Delhi NCR. Airport Express connects to IGI Airport.",
+        "fare": "₹10-₹60"
+      }
+    ],
+    "rail": [
+      {
+        "name": "New Delhi Railway Station (NDLS)",
+        "area": "Paharganj",
+        "note": "One of India's busiest railway stations with trains to all major cities.",
+        "facilities": ["Metro connection", "Waiting rooms", "Food plaza", "Pre-paid taxi"]
+      },
+      {
+        "name": "Old Delhi Railway Station (DLI)",
+        "area": "Chandni Chowk",
+        "note": "Historic station serving many north-bound trains; close to the old city.",
+        "facilities": ["Auto-rickshaw stand", "Food stalls"]
+      },
+      {
+        "name": "Hazrat Nizamuddin (NZM)",
+        "area": "Nizamuddin",
+        "note": "Important station for south-bound and some long-distance trains.",
+        "facilities": ["Metro nearby", "Pre-paid taxi"]
+      }
+    ],
+    "airport": [
+      {
+        "name": "Indira Gandhi International Airport (DEL)",
+        "area": "Palam, ~16 km from New Delhi",
+        "note": "One of India's busiest airports with three terminals. Connected by Airport Express Metro, taxis and buses.",
+        "terminals": ["Terminal 1", "Terminal 2", "Terminal 3"],
+        "distance_from_centre": "~16 km"
+      }
+    ]
+  },
+  "manali": {
+    "label": "Manali, Himachal Pradesh",
+    "metro": [],
+    "rail": [
+      {
+        "name": "Joginder Nagar Railway Station (JDNX)",
+        "area": "Joginder Nagar, ~125 km from Manali",
+        "note": "Narrow-gauge station; scenic but limited connectivity. Most visitors reach via road.",
+        "facilities": ["Basic facilities"]
+      },
+      {
+        "name": "Chandigarh Junction (CDG)",
+        "area": "Chandigarh, ~310 km from Manali",
+        "note": "Nearest major broad-gauge station. From here take a bus or taxi to Manali (8-10 hours by road).",
+        "facilities": ["Waiting rooms", "Food plaza", "Taxi stand", "Bus stand nearby"]
+      }
+    ],
+    "airport": [
+      {
+        "name": "Kullu–Manali Airport, Bhuntar (KUU)",
+        "area": "Bhuntar, ~50 km from Manali",
+        "note": "Domestic airport with limited flights (weather dependent). Connected by taxi; road journey takes ~1.5 hours.",
+        "terminals": ["Terminal 1"],
+        "distance_from_centre": "~50 km"
+      }
+    ]
+  },
+  "varanasi": {
+    "label": "Varanasi, Uttar Pradesh",
+    "metro": [
+      {
+        "name": "Varanasi Metro (under construction / partial)",
+        "lines": ["Orange Line (planned/expanding)"],
+        "stations": ["Varanasi Cantonment", "Banaras Hindu University (BHU)"],
+        "note": "Metro network is expanding; currently limited coverage. Auto-rickshaws and e-rickshaws are widely used.",
+        "fare": "₹10-₹20"
+      }
+    ],
+    "rail": [
+      {
+        "name": "Varanasi Junction (BSB)",
+        "area": "Cantt, Varanasi",
+        "note": "Major railway station with extensive connectivity across India. Well connected to the city by auto-rickshaw and taxi.",
+        "facilities": ["Waiting rooms", "Food plaza", "Pre-paid taxi", "Auto-rickshaw stand"]
+      },
+      {
+        "name": "Banaras Hindu University (BHU) Station",
+        "area": "BHU Campus",
+        "note": "Smaller station near the BHU campus, useful for some trains."
+      }
+    ],
+    "airport": [
+      {
+        "name": "Lal Bahadur Shastri International Airport (VNS)",
+        "area": "Babatpur, ~26 km from Varanasi",
+        "note": "Domestic and international flights. Connected by pre-paid taxi, app-cab and buses to the city.",
+        "terminals": ["Terminal 1"],
+        "distance_from_centre": "~26 km"
+      }
+    ]
+  }
+}

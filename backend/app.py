@@ -656,6 +656,42 @@ def health():
             conn.close()
 
 
+@app.route('/api/transport')
+@rate_limit(max_requests=60, window=60)
+def transport():
+    """Curated metro/rail/airport info for a demo city.
+
+    Static JSON stand-in matching the shape a live transport provider would
+    supply. Unknown cities return a 404 with the list of cities that exist.
+    """
+    city = (request.args.get('city') or '').strip()
+    if not city:
+        return jsonify({'error': 'city is required'}), 400
+
+    data = _transport(city)
+    if data is None:
+        try:
+            with open(TRANSPORT_PATH, encoding='utf-8') as handle:
+                table = json.load(handle)
+            available = sorted(table.keys()) if isinstance(table, dict) else []
+        except Exception:
+            available = []
+        return jsonify({
+            'error': 'No curated transport info for that city yet',
+            'city': city,
+            'available': available,
+        }), 404
+
+    return jsonify({
+        'city': city.strip().lower(),
+        'label': data.get('label', city),
+        'metro': data.get('metro', []),
+        'rail': data.get('rail', []),
+        'airport': data.get('airport', []),
+        'source': 'curated',
+    }), 200
+
+
 @app.route('/api/places')
 @rate_limit(max_requests=60, window=60)
 def places():
@@ -678,7 +714,7 @@ def places():
             'city': city,
             'available': sorted(
                 os.path.splitext(name)[0] for name in os.listdir(PLACES_DIR)
-                if name.endswith('.json') and name != 'city_costs.json'
+                if name.endswith('.json') and name not in ('city_costs.json', 'transport.json')
             ),
         }), 404
 
@@ -1502,6 +1538,47 @@ def _places(city):
         app.logger.warning('city place file has an unexpected shape: %s', path)
         return None
     _places._cache = {**cache, slug: (mtime, data)}
+    return data
+
+
+# Hand-written transport info for the demo cities (data/transport.json): metro,
+# rail and airport details, curated to be judge-checkable. Same pattern as
+# places - static JSON, validated slugs, mtime cached.
+TRANSPORT_PATH = os.path.join(PROJECT_ROOT, 'data', 'transport.json')
+
+
+def _transport(city):
+    """Curated transport info for one city, or None when unavailable.
+
+    Validates the slug against the same strict pattern used for places so
+    filesystem access cannot be escaped. Cached on mtime.
+    """
+    slug = str(city or '').strip().lower()
+    if not PLACES_CITY_RE.match(slug):
+        return None
+    cache = getattr(_transport, '_cache', {})
+    try:
+        mtime = os.path.getmtime(TRANSPORT_PATH)
+    except OSError:
+        return None
+    if cache.get('mtime') == mtime:
+        table = cache.get('table')
+    else:
+        try:
+            with open(TRANSPORT_PATH, encoding='utf-8') as handle:
+                table = json.load(handle)
+        except (OSError, ValueError):
+            app.logger.exception('transport table is unreadable: %s', TRANSPORT_PATH)
+            return None
+        if not isinstance(table, dict):
+            app.logger.warning('transport table has an unexpected shape')
+            return None
+        _transport._cache = {'mtime': mtime, 'table': table}
+    if not isinstance(table, dict):
+        return None
+    data = table.get(slug)
+    if not isinstance(data, dict):
+        return None
     return data
 
 

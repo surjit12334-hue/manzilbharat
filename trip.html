@@ -359,6 +359,64 @@
         margin-top: 0.8rem;
       }
 
+      .transport {
+        margin-top: 1.6rem;
+      }
+      .transport-head h2 {
+        color: #1a237e;
+        font-size: 1.25rem;
+      }
+      .transport-head p {
+        color: #5a6a8a;
+        font-size: 0.9rem;
+        margin-bottom: 0.9rem;
+      }
+      .transport-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1rem;
+      }
+      .transport-group {
+        background: white;
+        border-radius: 14px;
+        box-shadow: 0 6px 24px rgba(26, 35, 126, 0.08);
+        padding: 1.1rem 1.2rem;
+      }
+      .transport-group h3 {
+        color: #1a237e;
+        font-size: 1rem;
+        margin-bottom: 0.6rem;
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+      }
+      .transport-group h3 i {
+        color: #ff6b35;
+      }
+      .transport-item {
+        padding: 0.55rem 0;
+        border-top: 1px solid #eef1f8;
+      }
+      .transport-item:first-of-type {
+        border-top: 0;
+      }
+      .transport-name {
+        color: #333;
+        font-weight: 700;
+      }
+      .transport-meta {
+        display: block;
+        color: #8a94a8;
+        font-size: 0.76rem;
+        margin-top: 0.1rem;
+      }
+      .transport-note {
+        display: block;
+        color: #5a6a8a;
+        font-size: 0.82rem;
+        margin-top: 0.2rem;
+      }
+
       .day-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -562,6 +620,14 @@
           <div class="places-grid" id="placesGrid"></div>
           <p class="places-source" id="placesSource"></p>
         </section>
+
+        <section class="transport" id="transport" hidden>
+          <div class="transport-head">
+            <h2 id="transportTitle">Getting there & around</h2>
+            <p id="transportSub">Metro, rail and airport info for your destination.</p>
+          </div>
+          <div class="transport-grid" id="transportGrid"></div>
+        </section>
       </section>
 
       <p class="hint">
@@ -594,6 +660,9 @@
       const placesTagline = document.getElementById('placesTagline');
       const placesGrid = document.getElementById('placesGrid');
       const placesSource = document.getElementById('placesSource');
+      const transportEl = document.getElementById('transport');
+      const transportTitle = document.getElementById('transportTitle');
+      const transportGrid = document.getElementById('transportGrid');
 
       // map.html links here with ?destination=..., so the field is filled in
       // and the visitor only chooses the length of the trip.
@@ -829,6 +898,81 @@
         }
       }
 
+      const TRANSPORT_GROUPS = [
+        ['metro', 'Metro', 'fa-subway'],
+        ['rail', 'Rail / Railway Stations', 'fa-train'],
+        ['airport', 'Airport', 'fa-plane-departure'],
+      ];
+
+      function transportItem(entry) {
+        const item = document.createElement('div');
+        item.className = 'transport-item';
+
+        const name = document.createElement('div');
+        name.className = 'transport-name';
+        name.textContent = entry.name;
+
+        const metaParts = [entry.area, entry.fare, entry.distance_from_centre].filter(
+          function (part) {
+            return part;
+          },
+        );
+        const meta = document.createElement('span');
+        meta.className = 'transport-meta';
+        meta.textContent = metaParts.join(' · ');
+
+        const note = document.createElement('span');
+        note.className = 'transport-note';
+        note.textContent = entry.note || '';
+
+        item.append(name, meta, note);
+        return item;
+      }
+
+      function renderTransport(destination, data) {
+        const groups = TRANSPORT_GROUPS.filter(function (group) {
+          return Array.isArray(data[group[0]]) && data[group[0]].length;
+        });
+        if (!groups.length) {
+          transportEl.hidden = true;
+          return;
+        }
+
+        transportTitle.textContent = 'Getting there & around · ' + (data.label || destination);
+
+        transportGrid.replaceChildren();
+        groups.forEach(function (group) {
+          const card = document.createElement('section');
+          card.className = 'transport-group';
+
+          const head = document.createElement('h3');
+          const icon = document.createElement('i');
+          icon.className = 'fas ' + group[2];
+          icon.setAttribute('aria-hidden', 'true');
+          head.append(icon, document.createTextNode(' ' + group[1]));
+
+          card.append(head);
+          data[group[0]].forEach(function (entry) {
+            card.appendChild(transportItem(entry));
+          });
+          transportGrid.appendChild(card);
+        });
+
+        transportEl.hidden = false;
+      }
+
+      async function loadTransport(destination) {
+        try {
+          const res = await fetch(
+            API_BASE + '/api/transport?city=' + encodeURIComponent(destination),
+          );
+          if (!res.ok) throw new Error('no transport');
+          renderTransport(destination, await res.json());
+        } catch (err) {
+          transportEl.hidden = true;
+        }
+      }
+
       async function buildItinerary(event) {
         event.preventDefault();
         const payload = {
@@ -846,6 +990,7 @@
         planBtn.disabled = true;
         resultEl.hidden = true;
         placesEl.hidden = true;
+        transportEl.hidden = true;
         setStatus('loading', 'Building your day-by-day plan...');
 
         try {
@@ -864,6 +1009,7 @@
           // Independent of the itinerary: a slow or missing places list must
           // not hold up (or fail) the plan the visitor already has.
           loadPlaces(payload.destination);
+          loadTransport(payload.destination);
         } catch (err) {
           setStatus('error', err.message || 'Could not build the itinerary.');
         } finally {
