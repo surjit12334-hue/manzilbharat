@@ -555,14 +555,57 @@ PHASE 4 - DEMO THE PITCH (free data instead of paid APIs)   [2-3 days]
 Goal: cover the full travel flow (itinerary, budget, hotels,
 transport) without paying for a single travel API.
 
-  [ ] 1. Day-wise itinerary (1-1 d)                                 [d]
-         - Extend POST /api/ai-guide with kind='itinerary':
-           { destination, days, budget, interests }
-         - Prompt Gemini for JSON:
-           { days: [ { day, morning, afternoon, evening, cost } ] }
-         - Parse + validate server-side, cache the result in a table
-           itinerary_cache(query_hash, payload, created_at)
-         - Render as day cards on map.html / a new trip.html
+  [x] 1. Day-wise itinerary (1-1 d)                                 [d] DONE
+         - POST /api/ai-guide kind='itinerary', body
+           {destination, days, budget, interests}. destination is
+           required (max 120 chars), days must be a whole number from 1
+           to 10 (anything else - bool, float, "three" - is 400),
+           budget/interests are optional free text (60/200 chars).
+           Validation answers before the key check; unknown kinds still
+           400. A non-object JSON body is treated as empty, not a 500.
+           The Gemini call moved into _gemini_text(), shared by the
+           prose kinds too, so timeout / 429 / 502 handling and the
+           "never forward Google's body" rule cannot drift between them.
+         - JSON contract: the request sets
+           generationConfig.responseMimeType=application/json and asks
+           for {days:[{day,morning,afternoon,evening,cost}]}. The reply
+           is parsed server-side (_parse_itinerary): markdown fences and
+           "₹1,200"-style costs are tolerated, extra days are trimmed,
+           and the server numbers the days itself. A short list, a
+           missing morning/afternoon/evening or an unparseable cost is
+           502 "unusable itinerary" and nothing is cached; the model's
+           text is logged (300 chars) but never sent to the browser.
+         - itinerary_cache(query_hash, payload, created_at) added to
+           schema.sql (+ index on created_at). query_hash = sha256 of
+           the normalised request (destination/budget lowercased,
+           interests split and sorted), so "Jaipur" and "  jaipur " or
+           "forts, food" and "Food, FORTS" share one Gemini call.
+           Served for 7 days (make_interval), pruned after 30 on write.
+           The cache is read BEFORE the key check, so warm plans still
+           answer if the key is later removed; a cache read failure is a
+           miss and a write failure is logged, so neither can turn a
+           working plan into a 500. Responses carry "cached": true/false.
+         - trip.html: destination (prefilled from map.html's
+           ?destination=), days 1-10, budget and interests -> day cards
+           with morning/afternoon/evening rows and a per-day rupee
+           estimate. Entry points: "Plan Trip" in the nav of all 12 nav
+           pages, a hero link on index.html, and the map AI card now
+           ends with "Plan a day-wise trip".
+         - Tests: tests/test_itinerary.py (26 cases) covers validation,
+           503 without a key, the exact payload sent to Gemini, the
+           cache write + a repeat request served with the key removed
+           (fails if Gemini is called at all), case/order-insensitive
+           cache keys, an 8-day-old row not being served, seven
+           unusable replies -> 502 with no cache row, fenced JSON +
+           extra days + rupee costs, and the 15/min limiter.
+           VERIFIED: 77 passed in 30s; ruff and prettier clean; local
+           smoke - trip/map/index/aboutus 200, valid request -> 503
+           (no key), days=99 -> 400.
+         - MIGRATING THE LIVE DB: schema.sql is fresh-DB only. On the
+           existing Neon database run the CREATE TABLE + CREATE INDEX
+           for itinerary_cache (and GRANT SELECT/INSERT/UPDATE/DELETE to
+           the app role on a self-hosted DB). Until then the feature
+           works but logs a cache miss on every request.
 
   [ ] 2. Budget estimate (2-3 h)                                    [h]
          - From the same itinerary JSON: sum cost per day

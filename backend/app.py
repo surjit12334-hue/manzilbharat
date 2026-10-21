@@ -1352,6 +1352,11 @@ def cancel_booking(booking_id):
 # map.html used to call Google directly with a key from config.js, which
 # publishes the key to every visitor; a published key gets scraped and
 # billed within days. The rate limit protects the quota as well.
+#
+# Two kinds answer with prose ('destination', 'trip'). A third, 'itinerary',
+# answers with STRUCTURED day cards: Gemini is asked for JSON, the reply is
+# parsed and validated here, and the result is cached in itinerary_cache so
+# the same request does not spend Gemini quota twice.
 # ---------------------------------------------------------------------------
 
 AI_PROMPTS = {
@@ -1370,13 +1375,292 @@ AI_PROMPTS = {
     ),
 }
 
+# Every extra day is another Gemini output block, and the free tier's quota
+# is shared with the prose kinds, so the planner is deliberately bounded.
+ITINERARY_MAX_DAYS = 10
+ITINERARY_CACHE_TTL_DAYS = 7
+# Gemini is asked for 12 words per slot; this cap only stops a runaway reply
+# from bloating both the cache row and the rendered card.
+ITINERARY_MAX_SLOT_CHARS = 500
+ITINERARY_MAX_DAY_COST = 1_000_000  # rupees; anything above is an artefact
+ITINERARY_CACHE_PRUNE_DAYS = 30
+
+
+class _ItineraryError(Exception):
+    """The model's reply could not be turned into a usable itinerary."""
+
+
+def _gemini_text(prompt, json_mode=False):
+    """One Gemini call. Returns (text, None) or (None, (message, status)).
+
+    Shared by every guide kind so timeout, quota and upstream-error handling
+    (including the rule that Google's own body is never forwarded) cannot
+    drift between them. json_mode asks Gemini for an application/json reply
+    instead of prose.
+    """
+    payload = {'contents': [{'parts': [{'text': prompt}]}]}
+    if json_mode:
+        payload['generationConfig'] = {'responseMimeType': 'application/json'}
+
+    try:
+        resp = requests.post(
+            'https://generativelanguage.googleapis.com/v1beta/models/'
+            + GEMINI_MODEL + ':generateContent',
+            params={'key': GEMINI_API_KEY},
+            json=payload,
+            timeout=30,
+        )
+    except requests.exceptions.Timeout:
+        return None, ('The AI service timed out. Please try again.', 504)
+    except requests.exceptions.RequestException:
+        return None, ('Could not reach the AI service. Please try again later.', 502)
+
+    if resp.status_code == 429:
+        return None, ('The AI service is rate-limited right now. Please try again in a minute.', 429)
+    if resp.status_code != 200:
+        # Log server-side for debugging, but never forward Google's body to
+        # the client (it can echo request details).
+        app.logger.warning('Gemini returned HTTP %s: %s', resp.status_code, resp.text[:300])
+        return None, ('The AI service returned an error. Please try again later.', 502)
+
+    try:
+        body = resp.json()
+        parts = body['candidates'][0]['content']['parts']
+        text = ''.join(p.get('text') or '' for p in parts).strip()
+    except (ValueError, KeyError, IndexError, TypeError):
+        app.logger.warning('Gemini response had unexpected shape: %s', resp.text[:300])
+        return None, ('The AI service returned an unexpected response.', 502)
+
+    if not text:
+        return None, ('The AI service returned an empty response. Please try again.', 502)
+    return text, None
+
+
+def _itinerary_request(data):
+    """Validate the itinerary body. Returns (plan, None) or (None, (error, status))."""
+    destination = str(data.get('destination') or '').strip()
+    if not destination:
+        return None, ('A destination is required', 400)
+    if len(destination) > 120:
+        return None, ('Destination is too long (max 120 characters)', 400)
+
+    raw_days = data.get('days')
+    if isinstance(raw_days, bool) or not isinstance(raw_days, (int, str)):
+        return None, ('days must be a whole number from 1 to 10', 400)
+    try:
+        days = int(str(raw_days).strip())
+    except ValueError:
+        return None, ('days must be a whole number from 1 to 10', 400)
+    if days < 1 or days > ITINERARY_MAX_DAYS:
+        return None, (f'days must be between 1 and {ITINERARY_MAX_DAYS}', 400)
+
+    budget = str(data.get('budget') or '').strip() or 'mid-range'
+    if len(budget) > 60:
+        return None, ('Budget is too long (max 60 characters)', 400)
+    interests = str(data.get('interests') or '').strip() or 'sightseeing, local food'
+    if len(interests) > 200:
+        return None, ('Interests are too long (max 200 characters)', 400)
+
+    return {
+        'destination': destination,
+        'days': days,
+        'budget': budget,
+        'interests': interests,
+    }, None
+
+
+def _itinerary_cache_key(plan):
+    """Stable hash of the normalised request.
+
+    Lowercasing and sorting the comma-separated interests means
+    "Jaipur, 3 days, forts, food" and "jaipur, 3 days, food, forts" share one
+    Gemini call.
+    """
+    interests = sorted(
+        part.strip().lower() for part in plan['interests'].split(',') if part.strip()
+    )
+    canonical = json.dumps(
+        [plan['destination'].strip().lower(), plan['days'],
+         plan['budget'].strip().lower(), interests],
+        separators=(',', ':'),
+    )
+    return hashlib.sha256(canonical.encode('utf-8')).hexdigest()
+
+
+def _cached_itinerary(query_hash):
+    """Fresh cached days for this request, or None. A cache failure is a miss."""
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            'SELECT payload FROM itinerary_cache '
+            'WHERE query_hash = %s '
+            'AND created_at > now() - make_interval(days => %s)',
+            (query_hash, ITINERARY_CACHE_TTL_DAYS),
+        )
+        row = cur.fetchone()
+        cur.close()
+        if not row:
+            return None
+        return json.loads(row[0])['days']
+    except Exception:
+        app.logger.exception('itinerary cache read failed; treating as a miss')
+        return None
+    finally:
+        if conn:
+            conn.close()
+
+
+def _store_itinerary(query_hash, days):
+    """Save validated days. Best-effort: the plan is already built, so a
+    database blip must not turn a working itinerary into a 500."""
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            'INSERT INTO itinerary_cache (query_hash, payload) VALUES (%s, %s) '
+            'ON CONFLICT (query_hash) DO UPDATE SET '
+            'payload = EXCLUDED.payload, created_at = now()',
+            (query_hash, json.dumps({'days': days})),
+        )
+        cur.execute(
+            'DELETE FROM itinerary_cache WHERE created_at < now() - make_interval(days => %s)',
+            (ITINERARY_CACHE_PRUNE_DAYS,),
+        )
+        cur.close()
+        conn.commit()
+    except Exception:
+        if conn:
+            conn.rollback()
+        app.logger.exception('itinerary cache write failed')
+    finally:
+        if conn:
+            conn.close()
+
+
+def _itinerary_slot(value):
+    """One morning/afternoon/evening cell: non-empty text, length-capped."""
+    text = ('' if value is None else str(value)).strip()
+    if not text:
+        raise _ItineraryError('empty itinerary slot')
+    return text[:ITINERARY_MAX_SLOT_CHARS]
+
+
+def _itinerary_cost(value):
+    """A day's estimated spend in rupees. Gemini sometimes writes "₹1,200"
+    even when asked for a plain number, so anything digit-like is accepted."""
+    if isinstance(value, bool):
+        raise _ItineraryError('non-numeric day cost')
+    if isinstance(value, (int, float)):
+        cost = int(value)
+    else:
+        digits = re.sub(r'[^0-9]', '', str(value or ''))
+        if not digits:
+            raise _ItineraryError('non-numeric day cost')
+        cost = int(digits)
+    if cost < 0 or cost > ITINERARY_MAX_DAY_COST:
+        raise _ItineraryError('day cost out of range')
+    return cost
+
+
+def _parse_itinerary(text, expected_days):
+    """Turn Gemini's JSON reply into the validated day list.
+
+    Strict on purpose: half-rendered cards are worse than a retry. Extra days
+    are trimmed (models like to add a bonus day); an unparseable body, a
+    missing day or an empty slot raises _ItineraryError, which ai_guide() maps to
+    502 without echoing the model's text.
+    """
+    cleaned = text.strip()
+    if cleaned.startswith('```'):
+        # Tolerate a markdown fence even though responseMimeType should
+        # prevent it.
+        cleaned = cleaned.split('\n', 1)[1] if '\n' in cleaned else ''
+        if cleaned.rstrip().endswith('```'):
+            cleaned = cleaned.rstrip()[:-3].rstrip()
+
+    try:
+        data = json.loads(cleaned)
+    except ValueError as exc:
+        raise _ItineraryError('itinerary was not JSON') from exc
+
+    raw_days = data.get('days') if isinstance(data, dict) else None
+    if not isinstance(raw_days, list) or not raw_days:
+        raise _ItineraryError('itinerary had no days')
+    if len(raw_days) < expected_days:
+        raise _ItineraryError('itinerary was shorter than requested')
+
+    days = []
+    for index, entry in enumerate(raw_days[:expected_days], start=1):
+        if not isinstance(entry, dict):
+            raise _ItineraryError('day was not an object')
+        days.append({
+            'day': index,
+            'morning': _itinerary_slot(entry.get('morning')),
+            'afternoon': _itinerary_slot(entry.get('afternoon')),
+            'evening': _itinerary_slot(entry.get('evening')),
+            'cost': _itinerary_cost(entry.get('cost')),
+        })
+    return days
+
+
+def _itinerary_prompt(plan):
+    return (
+        'You are Manzil Bharat, a travel planner for India. Create a day-wise '
+        f"itinerary for {plan['destination']} covering {plan['days']} day(s) on a "
+        f"{plan['budget']} budget, focused on {plan['interests']}. "
+        'Respond with ONLY a JSON object, no markdown and no commentary, shaped '
+        'exactly like: {"days": [{"day": 1, "morning": "...", "afternoon": '
+        '"...", "evening": "...", "cost": 1200}]}. '
+        f"Give exactly {plan['days']} entries numbered 1 to {plan['days']}. "
+        'morning, afternoon and evening must each name one concrete activity '
+        "or place in 12 words or fewer. cost is that day's estimated spend for "
+        'one traveller in Indian rupees, as a plain number.'
+    )
+
+
+def _itinerary_guide(data):
+    plan, error = _itinerary_request(data)
+    if error:
+        return jsonify({'error': error[0]}), error[1]
+
+    query_hash = _itinerary_cache_key(plan)
+    cached = _cached_itinerary(query_hash)
+    if cached is not None:
+        return jsonify({'days': cached, 'cached': True}), 200
+
+    # The cache is checked first so a warm itinerary still works if the key is
+    # later removed; everything else needs the key.
+    if not GEMINI_API_KEY:
+        return jsonify({'error': 'AI is not configured on this server. Set GEMINI_API_KEY in .env.'}), 503
+
+    text, error = _gemini_text(_itinerary_prompt(plan), json_mode=True)
+    if error:
+        return jsonify({'error': error[0]}), error[1]
+
+    try:
+        days = _parse_itinerary(text, plan['days'])
+    except _ItineraryError as exc:
+        app.logger.warning('Gemini itinerary was invalid (%s): %s', exc, text[:300])
+        return jsonify({'error': 'The AI returned an unusable itinerary. Please try again.'}), 502
+
+    _store_itinerary(query_hash, days)
+    return jsonify({'days': days, 'cached': False}), 200
+
 
 @app.route('/api/ai-guide', methods=['POST'])
 @rate_limit(max_requests=15, window=60)
 def ai_guide():
     data = request.get_json(silent=True) or {}
-    kind = (data.get('kind') or '').strip()
-    query = (data.get('query') or '').strip()
+    if not isinstance(data, dict):
+        data = {}
+    kind = str(data.get('kind') or '').strip()
+    if kind == 'itinerary':
+        return _itinerary_guide(data)
+
+    query = str(data.get('query') or '').strip()
 
     if kind not in AI_PROMPTS:
         return jsonify({'error': 'Unknown guide type'}), 400
@@ -1387,39 +1671,9 @@ def ai_guide():
     if not GEMINI_API_KEY:
         return jsonify({'error': 'AI is not configured on this server. Set GEMINI_API_KEY in .env.'}), 503
 
-    prompt = AI_PROMPTS[kind].replace('{query}', query)
-
-    try:
-        resp = requests.post(
-            'https://generativelanguage.googleapis.com/v1beta/models/'
-            + GEMINI_MODEL + ':generateContent',
-            params={'key': GEMINI_API_KEY},
-            json={'contents': [{'parts': [{'text': prompt}]}]},
-            timeout=30,
-        )
-    except requests.exceptions.Timeout:
-        return jsonify({'error': 'The AI service timed out. Please try again.'}), 504
-    except requests.exceptions.RequestException:
-        return jsonify({'error': 'Could not reach the AI service. Please try again later.'}), 502
-
-    if resp.status_code == 429:
-        return jsonify({'error': 'The AI service is rate-limited right now. Please try again in a minute.'}), 429
-    if resp.status_code != 200:
-        # Log server-side for debugging, but never forward Google's body to
-        # the client (it can echo request details).
-        app.logger.warning('Gemini returned HTTP %s: %s', resp.status_code, resp.text[:300])
-        return jsonify({'error': 'The AI service returned an error. Please try again later.'}), 502
-
-    try:
-        body = resp.json()
-        parts = body['candidates'][0]['content']['parts']
-        text = ''.join(p.get('text') or '' for p in parts).strip()
-    except (ValueError, KeyError, IndexError, TypeError):
-        app.logger.warning('Gemini response had unexpected shape: %s', resp.text[:300])
-        return jsonify({'error': 'The AI service returned an unexpected response.'}), 502
-
-    if not text:
-        return jsonify({'error': 'The AI service returned an empty response. Please try again.'}), 502
+    text, error = _gemini_text(AI_PROMPTS[kind].replace('{query}', query))
+    if error:
+        return jsonify({'error': error[0]}), error[1]
     return jsonify({'text': text}), 200
 
 

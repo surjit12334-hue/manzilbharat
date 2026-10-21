@@ -83,6 +83,18 @@ CREATE TABLE IF NOT EXISTS reset_tokens (
 );
 CREATE INDEX IF NOT EXISTS reset_tokens_exp_idx ON reset_tokens (exp);
 
+-- Generated day-wise itineraries, keyed by a hash of the normalised request
+-- (destination, days, budget, interests), so asking for the same trip twice
+-- costs one Gemini call. payload is the validated JSON the API returns; rows
+-- are served for ITINERARY_CACHE_TTL_DAYS and pruned a month after they were
+-- last written (see backend/app.py).
+CREATE TABLE IF NOT EXISTS itinerary_cache (
+    query_hash TEXT PRIMARY KEY,
+    payload    TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS itinerary_cache_created_idx ON itinerary_cache (created_at);
+
 -- ============================================================================
 -- Existing DB fixes (run on the CURRENT live database only if migrating)
 -- ============================================================================

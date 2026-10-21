@@ -146,6 +146,7 @@ manzilbharat/
 ├── pytest.ini
 ├── index.html              # Landing + destination search
 ├── map.html                # Leaflet map, AI travel card, photo gallery
+├── trip.html               # Day-wise itinerary planner (AI day cards)
 ├── login.html              # Login / forgot password / Google sign-in
 ├── createaccount.html      # Signup
 ├── admin.html              # Admin panel (stats, users, bookings, payments)
@@ -177,7 +178,7 @@ Status column: `live` = implemented today, `todo` = Phase 1 of ROADMAP.txt.
 | POST | `/google-login` | — | live | Google Sign-In |
 | POST | `/forgot-password` | — | live | Emails a signed 30-minute reset link |
 | POST | `/reset-password` | — | live | Redeem reset link |
-| POST | `/ai-guide` | — | live | Server-side Gemini proxy (rate-limited) |
+| POST | `/ai-guide` | — | live | Server-side Gemini proxy (rate-limited); `kind='itinerary'` returns cached day cards |
 | GET | `/me` | user | live | Current user profile |
 | POST | `/bookings` | user | live | Create a booking (validated, owner row) |
 | GET | `/bookings/mine` | user | live | The caller's own bookings |

@@ -220,6 +220,26 @@
         font-size: 0.8rem;
         margin-top: 1rem;
       }
+      .ai-panel .ai-plan {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        padding: 0.55rem 1rem;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #ff6b35, #e65100);
+        color: white;
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-decoration: none;
+        transition:
+          transform 0.2s ease,
+          box-shadow 0.2s ease;
+      }
+      .ai-panel .ai-plan:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(255, 107, 53, 0.35);
+      }
       .ai-panel .ai-loading {
         display: flex;
         align-items: center;
@@ -369,6 +389,7 @@
       </h1>
       <p id="pageSub">Exploring your destination...</p>
       <div class="topbar-links">
+        <a class="back" href="" id="planLink"><i class="fas fa-calendar-alt"></i> Plan Trip</a>
         <a class="back" href="mytrips.html"><i class="fas fa-route"></i> My Trips</a>
         <a class="back" href="index.html"><i class="fas fa-arrow-left"></i> New search</a>
       </div>
@@ -450,6 +471,10 @@
       let photonResults = [];
 
       function init() {
+        const planLink = document.getElementById('planLink');
+        planLink.href = params.get('name')
+          ? 'trip.html?destination=' + encodeURIComponent(name)
+          : 'trip.html';
         if (!lat || !lon) {
           contentEl.style.display = 'none';
           noResultEl.style.display = 'block';
@@ -672,6 +697,9 @@
           escHtml(name) +
           '</span></div>' +
           '<div class="ai-body"></div>' +
+          '<a class="ai-plan" href="trip.html?destination=' +
+          encodeURIComponent(name) +
+          '"><i class="fas fa-calendar-alt"></i> Plan a day-wise trip</a>' +
           '<div class="ai-hint"><i class="fas fa-sparkles"></i> AI tips by Gemini</div>';
         aiPanel.querySelector('.ai-body').textContent = text;
       }
