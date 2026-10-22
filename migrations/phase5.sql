@@ -39,6 +39,12 @@ CREATE TABLE IF NOT EXISTS page_views (
 );
 CREATE INDEX IF NOT EXISTS page_views_day_idx ON page_views (day);
 
+-- Razorpay TEST mode (Phase 5 step 2). The payments table is older than
+-- Phase 5, so the column that says "this was a test payment" is added here.
+-- mode is 'test' for every payment this build takes; 'live' exists so the
+-- column can say the truth if the project ever goes live.
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS mode VARCHAR(10) NOT NULL DEFAULT 'test';
+
 -- Access for the role the app connects as.
 \if :{?app_role}
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE consents, page_views TO :"app_role";

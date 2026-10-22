@@ -38,8 +38,15 @@ CREATE TABLE IF NOT EXISTS payments (
     razorpay_order_id  VARCHAR(255),
     booking_type       VARCHAR(50),
     status             VARCHAR(20) DEFAULT 'pending',
+    mode               VARCHAR(10) NOT NULL DEFAULT 'test',
     created_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- mode says whether the payment was taken in TEST mode ('test') or with
+-- real money ('live'). This build only ever writes 'test'. A separate
+-- statement, because CREATE TABLE IF NOT EXISTS does NOT add a column to a
+-- table that already exists.
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS mode VARCHAR(10) NOT NULL DEFAULT 'test';
 
 -- Newsletter signups. No user_id: subscribers are often signed out, and
 -- ON CONFLICT (email) makes a double-submit idempotent.

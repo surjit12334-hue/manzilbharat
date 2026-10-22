@@ -857,13 +857,38 @@ PHASE 5 - TRUST & COMPLIANCE (free, but looks expensive)     [1 day]
            policy links to them and now describes what the code really does.
          - tests/test_consent.py - 16 cases.
 
-  [ ] 2. Razorpay TEST mode (half a day, no money)
+  [x] 2. Razorpay TEST mode (half a day, no money)              DONE
          - Free to build: order creation + signature verification
            server-side, never touch card data
          - Tables already exist (payments with razorpay ids)
          - Mark every payment as 'test' in the UI
          - Skip entirely if time is short - but then remove the
            payment icons and refund policy claims
+
+         WHAT WAS BUILT
+         - POST /api/payments/order opens a Razorpay order for one of the
+           caller's bookings (403 for somebody else's, 400 for a cancelled
+           or already-paid one) and records a 'pending' payment row.
+         - POST /api/payments/verify recomputes the signature Razorpay sends
+           back - HMAC-SHA256 of "<order id>|<payment id>" with the key
+           SECRET - and only then marks the payment 'captured' and the trip
+           'confirmed'. A forged signature, or one made for a different
+           payment, is refused and the row stays pending.
+         - The card details never reach this server: Razorpay's hosted
+           checkout takes them. There is nowhere in the code to store a
+           card number, a CVV or an expiry date.
+         - TEST MODE IS ENFORCED. The endpoints answer 503 without keys and
+           refuse a rzp_live_... key outright; every payment row is marked
+           mode='test' (a new column) and the admin panel shows the mode and
+           calls the revenue "test". No real money can move.
+         - My Trips -> "Pay (test)" on a trip, opening checkout.js lazily;
+           the CSP allows checkout.razorpay.com (script, frame) and
+           api.razorpay.com (connect) and nothing else new.
+         - The amount is capped at Razorpay's own ₹50,000 per order, checked
+           before the API call instead of letting Razorpay reject it.
+         - tests/test_payments.py - 25 cases, including a hardcoded signature
+           vector, the secret never appearing in a response, and a deleted
+           account taking its payment rows with it.
 
   [x] 3. Security headers + cookie hardening (1 h)                DONE (1aab8ca)
          - Add CSP, Strict-Transport-Security, Permissions-Policy
@@ -939,9 +964,12 @@ PHASE 5 - TRUST & COMPLIANCE (free, but looks expensive)     [1 day]
 
   DONE WHEN: privacy policy matches what the code actually does,
   and you can show a backup + an audit log to a judge.
-  -> Steps 1, 3, 4 and 5 are done and the privacy policy now describes
-     exactly what the code does (consent, the two self-service rights, the
-     server log, the traffic counter). Step 2 is the last one open.
+  -> PHASE 5 COMPLETE (all 5 steps). The privacy policy now describes exactly
+     what the code does (consent, the two self-service rights, the server
+     log, the traffic counter, the payment data), the backups and the audit
+     log were run against a real Postgres, and the checkout takes Razorpay
+     TEST payments only - every payment is labelled 'test' and no real money
+     can move.
 
 
 ===============================================================================

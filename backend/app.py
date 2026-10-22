@@ -106,6 +106,33 @@ elif EMAIL_PROVIDER not in ('smtp', 'resend', 'brevo'):
     print('NOTE: no email provider configured (set EMAIL_PROVIDER and its '
           'credentials) - password-reset emails are disabled')
 
+# ---------------------------------------------------------------------------
+# Razorpay - TEST MODE ONLY (Phase 5 step 2)
+# ---------------------------------------------------------------------------
+# This build never takes live money. The checkout runs against Razorpay's
+# TEST keys, which are free to create and cannot move real rupees, and every
+# payment it records is marked 'test' in the database and in the admin panel.
+#
+# RAZORPAY_KEY_ID is public - the browser needs it to open the checkout.
+# RAZORPAY_KEY_SECRET is not: it signs the order and verifies the payment
+# and it never leaves the server.
+#
+# Without the keys the payment endpoints answer 503 and the rest of the site
+# keeps working: a missing key must not take the travel planner down.
+RAZORPAY_KEY_ID = (os.getenv('RAZORPAY_KEY_ID') or '').strip()
+RAZORPAY_KEY_SECRET = (os.getenv('RAZORPAY_KEY_SECRET') or '').strip()
+RAZORPAY_API_BASE = 'https://api.razorpay.com/v1'
+RAZORPAY_TIMEOUT_SECONDS = 15
+# Razorpay's own ceiling for a single order (₹50,000).
+RAZORPAY_MAX_AMOUNT_PAISE = 5_000_000
+# Razorpay key ids say which mode they belong to: rzp_test_... for the test
+# keys, rzp_live_... for the live ones. The server refuses a live key on
+# purpose - a demo that quietly starts moving real money is a bug, not a
+# feature.
+RAZORPAY_TEST_KEY_PREFIX = 'rzp_test_'
+# What every payment this build records is called.
+RAZORPAY_MODE = 'test'
+
 ALLOWED_ORIGINS = [
     "http://localhost:5000",
     "http://localhost:8000",
@@ -370,6 +397,7 @@ def count_page_view(response):
 #   accounts.google.com   Google Sign-In
 #   tile.openstreetmap.org / server.arcgisonline.com   the map tiles
 #   www.google.com        the Google Maps embed on the contact page
+#   checkout.razorpay.com the hosted checkout (Phase 5 step 2)
 # 'unsafe-inline' is needed for scripts and styles because every page carries
 # its own <script> and <style> block; a nonce-per-page version would mean
 # rewriting all 18 pages. Everything else is locked down: no plugins, no
@@ -377,15 +405,17 @@ def count_page_view(response):
 _CSP = (
     "default-src 'self'; "
     "script-src 'self' 'unsafe-inline' https://accounts.google.com "
-    "https://unpkg.com https://cdnjs.cloudflare.com; "
+    "https://unpkg.com https://cdnjs.cloudflare.com "
+    "https://checkout.razorpay.com; "
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com "
     "https://cdnjs.cloudflare.com https://unpkg.com; "
     "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; "
     "img-src 'self' data: blob: https://tile.openstreetmap.org "
     "https://server.arcgisonline.com https://*.googleapis.com "
     "https://maps.gstatic.com; "
-    "connect-src 'self' https://accounts.google.com; "
-    "frame-src https://www.google.com https://accounts.google.com; "
+    "connect-src 'self' https://accounts.google.com https://api.razorpay.com; "
+    "frame-src https://www.google.com https://accounts.google.com "
+    "https://checkout.razorpay.com; "
     "object-src 'none'; "
     "base-uri 'self'; "
     "form-action 'self'; "
@@ -1821,7 +1851,7 @@ def export_me():
         saved_trips = [dict(r) for r in cur.fetchall()]
         cur.execute("SELECT id, text_version, source, created_at FROM consents WHERE user_id = %s ORDER BY created_at DESC", (g.user['user_id'],))
         consents = [dict(r) for r in cur.fetchall()]
-        cur.execute("SELECT id, amount, currency, booking_type, status, created_at FROM payments WHERE user_id = %s ORDER BY created_at DESC", (g.user['user_id'],))
+        cur.execute("SELECT id, amount, currency, booking_type, status, mode, razorpay_order_id, razorpay_payment_id, created_at FROM payments WHERE user_id = %s ORDER BY created_at DESC", (g.user['user_id'],))
         payments = [dict(r) for r in cur.fetchall()]
         cur.execute("SELECT id, email, created_at FROM subscribers WHERE email = %s", (user['email'],))
         newsletter = [dict(r) for r in cur.fetchall()]
@@ -2146,6 +2176,292 @@ def my_bookings():
     except Exception:
         app.logger.exception('my_bookings failed for user %s', g.user['user_id'])
         return jsonify({'error': 'Could not load your bookings'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Razorpay TEST mode (Phase 5 step 2)
+#
+# WHAT HAPPENS IN A PAYMENT
+#   1. The browser asks the server for an order (POST /api/payments/order).
+#      The server checks the booking belongs to the caller and asks Razorpay
+#      to open an order. It records a 'pending' payment row.
+#   2. The browser opens Razorpay's hosted checkout. THE CARD DETAILS GO
+#      STRAIGHT TO RAZORPAY - this server never sees a card number, a CVV
+#      or an expiry date, and there is nowhere in the code to store them.
+#   3. Razorpay hands the browser three things: the order id, the payment id
+#      and a signature. The browser sends them back (POST
+#      /api/payments/verify) and the server recomputes the signature with
+#      the SECRET key. Only the server holds the secret, so a signature that
+#      matches is proof that Razorpay really made the payment - a request
+#      forged in the browser cannot fake it.
+#
+# EVERY PAYMENT THIS BUILD TAKES IS A TEST PAYMENT. The keys are TEST keys,
+# the payment rows are marked 'test' and the admin panel says so. No real
+# money moves, and the server refuses a live key even if one is pasted into
+# the environment.
+# ---------------------------------------------------------------------------
+
+
+def razorpay_configured():
+    """True when the server has both Razorpay keys."""
+    return bool(RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET)
+
+
+def razorpay_test_keys():
+    """True when the configured key id is a TEST key (rzp_test_...)."""
+    return RAZORPAY_KEY_ID.startswith(RAZORPAY_TEST_KEY_PREFIX)
+
+
+def razorpay_signature(order_id, payment_id):
+    """The signature Razorpay sends back, computed the way their docs say.
+
+    HMAC-SHA256 over "<order id>|<payment id>" with the key secret, hex.
+    """
+    message = f'{order_id}|{payment_id}'.encode()
+    return hmac.new(RAZORPAY_KEY_SECRET.encode(), message,
+                    hashlib.sha256).hexdigest()
+
+
+def razorpay_signature_matches(order_id, payment_id, signature):
+    """True when the signature the browser sent back is the real one."""
+    if not signature:
+        return False
+    return hmac.compare_digest(razorpay_signature(order_id, payment_id),
+                               signature.strip())
+
+
+def razorpay_create_order(amount_paise, receipt, notes):
+    """Ask Razorpay to open an order. Returns the order as a dict.
+
+    Raises RuntimeError when Razorpay refuses or cannot be reached - the
+    message is written to the log, not shown to the visitor.
+    """
+    try:
+        response = requests.post(
+            f'{RAZORPAY_API_BASE}/orders',
+            auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET),
+            json={'amount': amount_paise, 'currency': 'INR',
+                  'receipt': receipt, 'notes': notes},
+            timeout=RAZORPAY_TIMEOUT_SECONDS,
+        )
+    except requests.RequestException as exc:
+        raise RuntimeError(f'could not reach Razorpay: {exc}') from exc
+    if response.status_code >= 400:
+        raise RuntimeError(f'razorpay refused the order ({response.status_code})')
+    try:
+        return response.json()
+    except ValueError as exc:
+        raise RuntimeError('razorpay sent something that is not JSON') from exc
+
+
+@app.route('/api/payments/order', methods=['POST'])
+@require_user
+@rate_limit(max_requests=10, window=60)
+def create_payment_order():
+    """Open a Razorpay TEST order for one of the caller's bookings.
+
+    The key id in the answer is public (the checkout needs it); the secret
+    never leaves the server.
+    """
+    data = request.get_json(silent=True) or {}
+    try:
+        booking_id = int(data.get('booking_id'))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Which trip is this payment for?'}), 400
+
+    if not razorpay_configured():
+        return jsonify({
+            'error': 'Payments are not configured on this server.',
+            'hint': 'Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to Razorpay '
+                    'TEST keys (Razorpay Dashboard -> Settings -> API keys).',
+        }), 503
+    if not razorpay_test_keys():
+        return jsonify({
+            'error': 'This build only accepts Razorpay TEST keys.',
+            'hint': f'The key id has to start with {RAZORPAY_TEST_KEY_PREFIX}. '
+                    'Live payments are not enabled here.',
+        }), 503
+
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("SELECT * FROM bookings WHERE id = %s", (booking_id,))
+        booking = cur.fetchone()
+        if not booking:
+            return jsonify({'error': 'That trip does not exist.'}), 404
+        if booking['user_id'] != g.user['user_id']:
+            return jsonify({'error': 'That trip belongs to somebody else.'}), 403
+        if booking['status'] == 'cancelled':
+            return jsonify({'error': 'That trip was cancelled.'}), 400
+
+        amount = float(booking['amount'] or 0)
+        if amount <= 0:
+            return jsonify({'error': 'That trip has no amount to pay.'}), 400
+        amount_paise = round(amount * 100)
+        if amount_paise > RAZORPAY_MAX_AMOUNT_PAISE:
+            return jsonify({
+                'error': 'Razorpay accepts up to ₹50,000 in one order. '
+                         'Pay the rest separately.',
+            }), 400
+
+        cur.execute(
+            "SELECT id FROM payments WHERE user_id = %s AND booking_id = %s "
+            "AND status = 'captured'",
+            (g.user['user_id'], booking_id),
+        )
+        if cur.fetchone():
+            return jsonify({'error': 'That trip is already paid.'}), 400
+
+        receipt = f'mb_booking_{booking_id}'
+        notes = {'booking_id': str(booking_id), 'user_id': str(g.user['user_id'])}
+        try:
+            order = razorpay_create_order(amount_paise, receipt, notes)
+        except RuntimeError as exc:
+            app.logger.warning('razorpay order failed for user %s: %s',
+                               g.user['user_id'], exc)
+            return jsonify({'error': 'The payment provider did not accept the '
+                                     'request. Please try again.'}), 502
+        order_id = str(order.get('id') or '')
+        if not order_id:
+            app.logger.warning('razorpay returned an order without an id')
+            return jsonify({'error': 'The payment provider did not accept the '
+                                     'request. Please try again.'}), 502
+
+        cur.execute(
+            """INSERT INTO payments (user_id, booking_id, amount, currency,
+                                     razorpay_order_id, booking_type, status, mode)
+               VALUES (%s, %s, %s, 'INR', %s, %s, 'pending', %s)
+               RETURNING id""",
+            (g.user['user_id'], booking_id, amount, order_id,
+             booking['booking_type'], RAZORPAY_MODE),
+        )
+        payment_row_id = cur.fetchone()['id']
+        conn.commit()
+        app.logger.info('payment order %s opened for user %s (booking %s, %s mode)',
+                        order_id, g.user['user_id'], booking_id, RAZORPAY_MODE)
+        return jsonify({
+            'order_id': order_id,
+            'payment_id': payment_row_id,
+            'booking_id': booking_id,
+            'key_id': RAZORPAY_KEY_ID,
+            'amount': amount,
+            'amount_paise': amount_paise,
+            'currency': 'INR',
+            'mode': RAZORPAY_MODE,
+        }), 201
+    except Exception:
+        if conn:
+            conn.rollback()
+        app.logger.exception('create_payment_order failed for user %s',
+                             g.user['user_id'])
+        return jsonify({'error': 'Could not start the payment.'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route('/api/payments/verify', methods=['POST'])
+@require_user
+@rate_limit(max_requests=10, window=60)
+def verify_payment():
+    """Check the signature Razorpay sent back and record the payment.
+
+    The signature is the proof: an HMAC of "<order id>|<payment id>" made
+    with the key secret, and only the server has the secret. A made-up
+    signature - or the signature of a different payment - is refused and the
+    payment row stays pending.
+    """
+    data = request.get_json(silent=True) or {}
+    order_id = str(data.get('razorpay_order_id') or '').strip()
+    payment_ref = str(data.get('razorpay_payment_id') or '').strip()
+    signature = str(data.get('razorpay_signature') or '').strip()
+    if not order_id or not payment_ref or not signature:
+        return jsonify({'error': 'The payment details are incomplete.'}), 400
+    if not razorpay_configured():
+        return jsonify({'error': 'Payments are not configured on this server.'}), 503
+    if not razorpay_signature_matches(order_id, payment_ref, signature):
+        app.logger.warning('payment signature check failed for user %s (order %s)',
+                           g.user['user_id'], order_id)
+        return jsonify({'error': 'The payment could not be verified.'}), 400
+
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(
+            """SELECT id, booking_id, amount, status FROM payments
+               WHERE user_id = %s AND razorpay_order_id = %s""",
+            (g.user['user_id'], order_id),
+        )
+        payment = cur.fetchone()
+        if not payment:
+            return jsonify({'error': 'No payment is waiting for that order.'}), 404
+        if payment['status'] == 'captured':
+            # The browser sent the same confirmation twice. Nothing to do,
+            # and the answer is the same one the first time produced.
+            return jsonify({'status': 'captured', 'payment_id': payment['id'],
+                            'booking_id': payment['booking_id'],
+                            'amount': float(payment['amount']),
+                            'mode': RAZORPAY_MODE}), 200
+
+        cur.execute(
+            """UPDATE payments SET status = 'captured', razorpay_payment_id = %s
+               WHERE id = %s RETURNING id, booking_id, amount""",
+            (payment_ref, payment['id']),
+        )
+        updated = cur.fetchone()
+        if updated['booking_id']:
+            # A trip that has been paid for is no longer waiting for the
+            # travel agent to confirm it.
+            cur.execute(
+                "UPDATE bookings SET status = 'confirmed' WHERE id = %s "
+                "AND user_id = %s AND status = 'pending'",
+                (updated['booking_id'], g.user['user_id']),
+            )
+        conn.commit()
+        app.logger.info('payment %s captured for user %s (booking %s, %s mode)',
+                        payment_ref, g.user['user_id'], updated['booking_id'],
+                        RAZORPAY_MODE)
+        return jsonify({'status': 'captured', 'payment_id': updated['id'],
+                        'booking_id': updated['booking_id'],
+                        'amount': float(updated['amount']),
+                        'mode': RAZORPAY_MODE}), 200
+    except Exception:
+        if conn:
+            conn.rollback()
+        app.logger.exception('verify_payment failed for user %s',
+                             g.user['user_id'])
+        return jsonify({'error': 'Could not verify the payment.'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route('/api/payments/mine', methods=['GET'])
+@require_user
+def my_payments():
+    """The caller's own payments - My Trips shows what has been paid."""
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(
+            """SELECT id, booking_id, amount, currency, razorpay_order_id,
+                      razorpay_payment_id, booking_type, status, mode, created_at
+               FROM payments WHERE user_id = %s
+               ORDER BY created_at DESC, id DESC""",
+            (g.user['user_id'],),
+        )
+        rows = [dict(r) for r in cur.fetchall()]
+        cur.close()
+        return jsonify(rows), 200
+    except Exception:
+        app.logger.exception('my_payments failed for user %s', g.user['user_id'])
+        return jsonify({'error': 'Could not load your payments'}), 500
     finally:
         if conn:
             conn.close()

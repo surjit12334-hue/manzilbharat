@@ -48,6 +48,21 @@ def test_the_csp_allows_the_origins_the_pages_use(client):
     assert 'https://cdnjs.cloudflare.com' in csp
 
 
+def test_the_csp_allows_the_razorpay_checkout(client):
+    """Phase 5 step 2 loads checkout.js and frames the hosted checkout; the
+    API host is there because the script talks to it from the page."""
+    csp = client.get('/mytrips.html').headers['Content-Security-Policy']
+    directives = {
+        part.strip().split(' ', 1)[0]: part
+        for part in csp.split(';')
+        if part.strip()
+    }
+
+    assert 'https://checkout.razorpay.com' in directives['script-src']
+    assert 'https://checkout.razorpay.com' in directives['frame-src']
+    assert 'https://api.razorpay.com' in directives['connect-src']
+
+
 def test_hsts_is_sent_over_https(client):
     response = client.get('/index.html', headers={'X-Forwarded-Proto': 'https'})
 

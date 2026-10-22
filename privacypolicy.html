@@ -271,6 +271,13 @@
         Payment credentials may be processed by authorized payment service providers rather than
         being stored directly by ManzilBharat, where applicable.
       </p>
+      <p>
+        <strong>Test-mode checkout.</strong> The checkout currently runs in Razorpay's TEST mode. No
+        real payment is taken, no real card details are needed, and what our database records is
+        only the transaction identifiers Razorpay returns (an order id and a payment id), the
+        amount, and whether the payment succeeded. A test payment is marked as such in your account
+        and in the admin panel.
+      </p>
 
       <h3>E. Technical Information</h3>
       <p>We may automatically receive limited technical information such as:</p>

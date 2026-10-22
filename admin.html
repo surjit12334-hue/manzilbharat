@@ -356,6 +356,10 @@
         background: #ffebee;
         color: #c62828;
       }
+      .badge.test {
+        background: #e0f7fa;
+        color: #00838f;
+      }
 
       .action-btns {
         display: flex;
@@ -813,7 +817,7 @@
             <div class="icon revenue"><i class="fas fa-rupee-sign"></i></div>
             <div class="info">
               <h3 id="statRevenue">0</h3>
-              <p>Revenue (INR)</p>
+              <p>Revenue (INR, test)</p>
             </div>
           </div>
         </div>
@@ -903,6 +907,7 @@
                 <th>ID</th>
                 <th>User</th>
                 <th>Amount</th>
+                <th>Mode</th>
                 <th>Payment ID</th>
                 <th>Status</th>
                 <th>Date</th>
@@ -1454,7 +1459,7 @@
           renderPayments(payments);
         } catch (err) {
           console.error(err);
-          renderLoadError('paymentsBody', 7, err);
+          renderLoadError('paymentsBody', 8, err);
         }
       }
 
@@ -1462,7 +1467,7 @@
         var html = '';
         if (payments.length === 0) {
           document.getElementById('paymentsBody').innerHTML =
-            '<tr><td colspan="7" class="empty-state"><i class="fas fa-credit-card"></i>No payments yet</td></tr>';
+            '<tr><td colspan="8" class="empty-state"><i class="fas fa-credit-card"></i>No payments yet</td></tr>';
           return;
         }
         payments.forEach(function (p) {
@@ -1475,7 +1480,9 @@
             esc(p.amount) +
             ' ' +
             esc(p.currency) +
-            '</td><td>' +
+            '</td><td><span class="badge test">' +
+            esc(p.mode || 'test') +
+            '</span></td><td>' +
             esc(p.razorpay_payment_id || '-') +
             '</td><td><span class="badge ' +
             statusClass(p.status) +
@@ -1498,6 +1505,7 @@
           { label: 'ID', value: p.id },
           { label: 'User', value: (p.user_name || '-') + ' (' + (p.user_email || '') + ')' },
           { label: 'Amount', value: '₹' + p.amount + ' ' + p.currency },
+          { label: 'Mode', value: p.mode || 'test' },
           { label: 'Razorpay Payment ID', value: p.razorpay_payment_id || '-' },
           { label: 'Razorpay Order ID', value: p.razorpay_order_id || '-' },
           { label: 'Booking Type', value: p.booking_type || '-' },

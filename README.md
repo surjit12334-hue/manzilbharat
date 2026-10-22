@@ -108,6 +108,7 @@ Prefer clicking it yourself? *New → Web Service*, Language **Docker**, and use
    | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | admin panel login |
    | `GEMINI_API_KEY` | from <https://aistudio.google.com/apikey> |
    | `GOOGLE_CLIENT_ID` | optional, see step 5 |
+   | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | optional, Razorpay **TEST** keys (payments answer 503 without them) |
    | `APP_ORIGIN` | `https://<your-service>.onrender.com` |
    | `EMAIL_PROVIDER`, `RESEND_API_KEY`, `EMAIL_FROM` | HTTPS reset mail, see step 6 |
 
@@ -213,6 +214,9 @@ Status column: `live` = implemented today, `todo` = Phase 1 of ROADMAP.txt.
 | POST | `/bookings` | user | live | Create a booking (validated, owner row) |
 | GET | `/bookings/mine` | user | live | The caller's own bookings |
 | POST | `/bookings/<id>/cancel` | user | live | Cancel own booking (403/404/409 protected) |
+| POST | `/payments/order` | user | live | Open a Razorpay **TEST** order for one of the caller's bookings (503 without test keys) |
+| POST | `/payments/verify` | user | live | Check the Razorpay signature and record the payment (400 on a forged one) |
+| GET | `/payments/mine` | user | live | The caller's own payments (marked `test`) |
 | POST, GET | `/me/trips` | user | live | Save an itinerary / list the caller's saved itineraries |
 | DELETE | `/me/trips/<id>` | user | live | Remove one saved itinerary (403 for somebody else's) |
 | POST | `/admin/login` | — | live | Admin session |
@@ -254,6 +258,16 @@ consent records, data exports, account deletions, admin actions and crashes
 are written to `logs/manzil.log` (rotated at 5 MB, 3 old files) and to stdout,
 where the host collects them. Passwords, password hashes, session tokens and
 reset links are never logged.
+
+**Payments, in test mode.** *My Trips → Pay (test)* opens Razorpay's hosted
+checkout for a booking. The card details go straight to Razorpay - this server
+never sees a card number, a CVV or an expiry date - and what comes back is an
+order id, a payment id and a signature. The server recomputes that signature
+with the **secret** key before it records anything, so a request forged in the
+browser cannot mark a trip as paid. Only Razorpay **TEST** keys are accepted:
+the endpoints answer 503 without them and refuse a `rzp_live_...` key, every
+payment row is marked `test`, and the admin panel labels the revenue as test
+money. No real money can move through this build.
 
 **Backups.** `scripts/backup.sh` takes a `pg_dump` into `backups/`, keeps the
 last 14 of them, and never lets a broken dump replace a good one;

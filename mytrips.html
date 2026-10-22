@@ -426,6 +426,34 @@
         background: none;
         color: #e74c3c;
       }
+      .trip-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+      }
+      .btn-pay {
+        background: linear-gradient(135deg, #ff6b35, #ff8f5e);
+        border: none;
+        color: white;
+        padding: 0.4rem 0.9rem;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: filter 0.3s;
+      }
+      .btn-pay:hover {
+        filter: brightness(1.06);
+      }
+      .btn-pay:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+      .badge.test {
+        background: rgba(41, 128, 185, 0.15);
+        color: #2980b9;
+      }
 
       .empty {
         text-align: center;
@@ -765,6 +793,9 @@
         const savedTripsEmpty = document.getElementById('savedTripsEmpty');
         const savedTripsError = document.getElementById('savedTripsError');
         let trips = [];
+        // The caller's payments (Phase 5 step 2). A trip that already has a
+        // captured payment is not payable again.
+        let payments = [];
 
         const TYPE_ICONS = {
           flight: 'fa-plane',
@@ -991,6 +1022,11 @@
             const icon = TYPE_ICONS[t.booking_type] || 'fa-suitcase';
             const status = esc(t.status || 'pending');
             const canCancel = t.status === 'pending' || t.status === 'confirmed';
+            const paid = payments.some(function (p) {
+              return Number(p.booking_id) === Number(t.id) && p.status === 'captured';
+            });
+            const canPay =
+              !paid && (t.status === 'pending' || t.status === 'confirmed') && Number(t.amount) > 0;
             card.innerHTML =
               '<div class="trip-icon"><i class="fas ' +
               icon +
@@ -1009,7 +1045,16 @@
               '<div class="trip-amount">' +
               esc(fmtMoney(t.amount)) +
               '</div>' +
-              '<div><button class="btn-cancel" data-id="' +
+              '<div class="trip-actions">' +
+              (paid
+                ? '<span class="badge test"><i class="fas fa-flask"></i> Test payment</span>'
+                : '') +
+              (canPay
+                ? '<button class="btn-pay" data-id="' +
+                  Number(t.id) +
+                  '"><i class="fas fa-credit-card"></i> Pay (test)</button>'
+                : '') +
+              '<button class="btn-cancel" data-id="' +
               Number(t.id) +
               '"' +
               (canCancel
@@ -1028,6 +1073,11 @@
             if (canCancel)
               btn.addEventListener('click', function () {
                 cancelTrip(Number(t.id), btn);
+              });
+            const payBtn = card.querySelector('.btn-pay');
+            if (payBtn)
+              payBtn.addEventListener('click', function () {
+                payForTrip(t, payBtn);
               });
             listEl.appendChild(card);
           });
@@ -1049,6 +1099,121 @@
             btn.disabled = false;
             btn.textContent = 'Cancel trip';
             showPageError('Could not cancel: ' + (e.message || 'network error'));
+          }
+        }
+
+        // ----- Razorpay TEST checkout (Phase 5 step 2) -----
+        //
+        // The card details go straight to Razorpay's hosted checkout - this
+        // page never sees a card number. What comes back is an order id, a
+        // payment id and a signature, and the server checks that signature
+        // against its secret key before it records anything. Every payment
+        // taken here is a TEST payment: no real money moves.
+        let checkoutScript = null;
+
+        function loadCheckoutScript() {
+          if (window.Razorpay) return Promise.resolve();
+          if (checkoutScript) return checkoutScript;
+          checkoutScript = new Promise(function (resolve, reject) {
+            const script = document.createElement('script');
+            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+            script.async = true;
+            script.onload = function () {
+              resolve();
+            };
+            script.onerror = function () {
+              checkoutScript = null;
+              reject(new Error('the Razorpay checkout could not be loaded (are you online?)'));
+            };
+            document.head.appendChild(script);
+          });
+          return checkoutScript;
+        }
+
+        async function loadPayments() {
+          try {
+            const res = await fetch(API_BASE + '/api/payments/mine', {
+              headers: MBAuth.authHeaders(),
+            });
+            if (res.status === 401 || res.status === 403) {
+              MBAuth.clearSession();
+              window.location.replace('login.html?next=mytrips.html');
+              return [];
+            }
+            if (!res.ok) return [];
+            const data = await res.json().catch(() => []);
+            return Array.isArray(data) ? data : [];
+          } catch (e) {
+            return [];
+          }
+        }
+
+        function resetPayButton(btn, label) {
+          if (!btn) return;
+          btn.disabled = false;
+          btn.innerHTML = label;
+        }
+
+        async function payForTrip(trip, btn) {
+          const label = btn.innerHTML;
+          btn.disabled = true;
+          btn.textContent = 'Preparing...';
+          try {
+            const res = await fetch(API_BASE + '/api/payments/order', {
+              method: 'POST',
+              headers: MBAuth.authHeaders({ 'Content-Type': 'application/json' }),
+              body: JSON.stringify({ booking_id: Number(trip.id) }),
+            });
+            const data = await res.json().catch(() => null);
+            if (!res.ok) throw new Error((data && data.error) || 'HTTP ' + res.status);
+            await loadCheckoutScript();
+            const razorpay = new window.Razorpay({
+              key: data.key_id,
+              amount: data.amount_paise,
+              currency: data.currency,
+              name: 'Manzil Bharat',
+              description: 'Trip #' + data.booking_id + ' - test payment',
+              order_id: data.order_id,
+              notes: { mode: data.mode },
+              theme: { color: '#ff6b35' },
+              handler: function (response) {
+                verifyPayment(data, response, btn, label);
+              },
+              modal: {
+                ondismiss: function () {
+                  resetPayButton(btn, label);
+                },
+              },
+            });
+            razorpay.open();
+          } catch (e) {
+            resetPayButton(btn, label);
+            showPageError('The payment could not be started: ' + (e.message || 'network error'));
+          }
+        }
+
+        async function verifyPayment(order, response, btn, label) {
+          btn.disabled = true;
+          btn.textContent = 'Verifying...';
+          try {
+            const res = await fetch(API_BASE + '/api/payments/verify', {
+              method: 'POST',
+              headers: MBAuth.authHeaders({ 'Content-Type': 'application/json' }),
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id || order.order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              }),
+            });
+            const data = await res.json().catch(() => null);
+            if (!res.ok) throw new Error((data && data.error) || 'HTTP ' + res.status);
+            // Reload the payments first: the trip list is drawn from them, so
+            // the trip has to come back marked as paid.
+            payments = await loadPayments();
+            await loadTrips();
+          } catch (e) {
+            resetPayButton(btn, label);
+            showPageError('The payment was not verified: ' + (e.message || 'network error'));
           }
         }
 
@@ -1316,7 +1481,12 @@
         });
 
         loadProfile();
-        loadTrips();
+        // The payments are loaded first: the trip list is drawn from them,
+        // so a trip that has been paid for must not show a Pay button.
+        loadPayments().then(function (rows) {
+          payments = rows;
+          loadTrips();
+        });
         loadSavedTrips();
         loadConsents();
       })();
