@@ -253,6 +253,18 @@
         right: 0;
       }
 
+      /* The Google button creates an account too, so the consent has to be
+         visible next to it. */
+      .google-consent {
+        text-align: center;
+        font-size: 0.78rem;
+        color: #888;
+        margin: 0.4rem 0 0;
+      }
+      .google-consent a {
+        color: #ff6b35;
+      }
+
       .auth-footer {
         text-align: center;
         margin-top: 1.5rem;
@@ -391,6 +403,12 @@
             if (signin) signin.setAttribute('data-client_id', cid);
           })();
         </script>
+
+        <p class="google-consent">
+          Signing in with Google means you accept our
+          <a href="privacypolicy.html">Privacy Policy</a> and
+          <a href="terms-and-conditions.html">Terms &amp; Conditions</a>.
+        </p>
 
         <div class="divider">or log in with email</div>
 

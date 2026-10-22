@@ -286,6 +286,21 @@
         We use this information primarily for security, troubleshooting, analytics, and improving
         our services.
       </p>
+      <p>
+        <strong>Server logs.</strong> Our server writes an access log of what happened: sign-ups,
+        sign-ins (successful and failed), password resets, the consent records you gave, data
+        exports, account deletions and the actions taken in the admin panel. A log line names the
+        account involved - your user id and email address - and the time and the request. Passwords,
+        password hashes, session tokens and reset links are never written to the log. The log file
+        is kept on the server, rotated at 5 MB, and the older copies are deleted when they are
+        replaced.
+      </p>
+      <p>
+        <strong>Traffic counting.</strong> We also count how often each page is requested, in a
+        counter kept by our own server. That counter holds the path of the page and the day - no
+        cookie, no visitor identifier, and never the query string of the request, because it can
+        carry a destination or an address. It is not linked to your account.
+      </p>
 
       <h2>2. Why We Use Your Data</h2>
       <p>We may process personal data for clearly specified purposes, including:</p>

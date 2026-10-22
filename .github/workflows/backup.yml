@@ -1,0 +1,92 @@
+# Nightly database backup (Phase 5 step 4).
+#
+# WHY THIS EXISTS
+#   A backup that lives on the same disk as the app is not a backup: the
+#   free-tier hosts wipe their disk on every deploy. This workflow runs the
+#   dump on GitHub's own runners, so the file outlives the server.
+#
+# HOW TO SET IT UP
+#   Add a repository secret named DATABASE_URL with the same connection
+#   string the app uses (Settings -> Secrets and variables -> Actions).
+#   Without it the workflow skips itself and says so - it never fails the
+#   build for a missing secret.
+#
+# WHERE THE BACKUP ENDS UP
+#   As a workflow artifact, kept for 14 days. Download it from the run's
+#   page (Actions -> Nightly backup -> Artifacts). For a longer life, upload
+#   it to a bucket (S3, Cloudflare R2, Backblaze) from the same step - the
+#   free tiers of all three are enough for a database this size.
+#
+# NOTE ON SCHEDULED WORKFLOWS
+#   GitHub only runs a schedule from the DEFAULT branch, and a scheduled
+#   workflow can be delayed by a busy GitHub - so treat the artifact as the
+#   daily copy and run scripts/backup.sh on a cron as the belt-and-braces
+#   one on a machine you own.
+name: Nightly backup
+
+on:
+  schedule:
+    # 03:17 UTC every day. Not on the hour: the top of the hour is when
+    # every other scheduled workflow in the world wants to run.
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    name: pg_dump -> artifact
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+          pg_dump --version
+
+      - name: Skip when there is no database URL
+        id: check
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "No DATABASE_URL secret is set - there is nothing to back up."
+            echo "Add it under Settings -> Secrets and variables -> Actions."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Take the dump
+        if: steps.check.outputs.skip != 'true'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          stamp="$(date -u +%Y%m%d-%H%M%S)"
+          out="manzil-${stamp}.dump"
+          # The custom format (-Fc) is pg_dump's own compressed archive and
+          # the only one pg_restore can clean up: restoring it over a
+          # database that already has the tables works.
+          # --no-owner/--no-privileges keep the dump restorable into a
+          # different role (a staging database, for example).
+          pg_dump --no-owner --no-privileges --format=custom --compress=9 "$DATABASE_URL" > "$out"
+          if [ ! -s "$out" ]; then
+            echo "::error::the dump came out empty"
+            exit 1
+          fi
+          echo "Wrote $out ($(du -h "$out" | cut -f1))"
+          ls -la
+
+      - name: Upload the backup
+        if: steps.check.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: manzil-db-backup
+          path: manzil-*.dump
+          retention-days: 14
+          if-no-files-found: error

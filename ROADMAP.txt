@@ -830,13 +830,32 @@ save it -> see it under My Trips. Fully offline-capable data.
 PHASE 5 - TRUST & COMPLIANCE (free, but looks expensive)     [1 day]
 ===============================================================================
 
-  [ ] 1. DPDP consent (2-3 h)
+  [x] 1. DPDP consent (2-3 h)                                    DONE (cb25b07)
          - consent checkbox on signup (already required - make it an
            explicit labeled consent, not buried in T&C)
          - table consents(user_id, text_version, created_at)
          - DELETE /api/me (self-serve account deletion) + export
            GET /api/me/export (JSON of their data)
          - Link both from privacypolicy.html
+
+         WHAT WAS BUILT
+         - The checkbox on createaccount.html is labelled and NOT pre-ticked:
+           the API refuses a signup without consent: true (400), so no
+           account can be created without the consent that created it.
+         - The consent row is written in the SAME transaction as the user row
+           (a SAVEPOINT around it, so a database that has not run
+           migrations/phase5.sql yet still creates the account - loudly).
+         - Every consent keeps the version of the text that was accepted
+           (dpdp-v1) and where it came from (signup / google / renewal), so
+           we can always prove WHICH wording somebody agreed to. An unknown
+           version is refused (400) instead of being recorded against the
+           wrong text.
+         - GET /api/me/export (one JSON file: profile, bookings, saved
+           itineraries, payments, consents), DELETE /api/me (the account and
+           every booking, saved trip, payment and consent row go with it).
+         - My Trips -> "Your data & privacy" has both buttons; the privacy
+           policy links to them and now describes what the code really does.
+         - tests/test_consent.py - 16 cases.
 
   [ ] 2. Razorpay TEST mode (half a day, no money)
          - Free to build: order creation + signature verification
@@ -846,26 +865,83 @@ PHASE 5 - TRUST & COMPLIANCE (free, but looks expensive)     [1 day]
          - Skip entirely if time is short - but then remove the
            payment icons and refund policy claims
 
-  [ ] 3. Security headers + cookie hardening (1 h)
+  [x] 3. Security headers + cookie hardening (1 h)                DONE (1aab8ca)
          - Add CSP, Strict-Transport-Security, Permissions-Policy
            to the after_request hook (app.py:131)
          - Consider httpOnly cookie for the token instead of
            localStorage (optional, bigger change)
 
-  [ ] 4. Logging + backups (2 h)
+         WHAT WAS BUILT
+         - A Content-Security-Policy that names the origins the pages
+           really use (Font Awesome, Google Fonts, Leaflet, Google
+           Sign-In, the map tiles, the Maps embed) and locks the rest down:
+           object-src 'none', base-uri 'self', form-action 'self',
+           frame-ancestors 'self'.
+         - Strict-Transport-Security - but only on a request that arrived
+           over HTTPS: sending it on a plain http:// page would pin a
+           developer to a scheme the local server does not speak.
+         - Permissions-Policy denies the camera, the microphone, the
+           location and the payment API - the app never asks for them.
+         - 'unsafe-inline' stays in script-src/style-src because every page
+           carries its own <script> and <style> block; a nonce-per-page
+           version would mean rewriting all 18 pages. Documented, not
+           hidden.
+         - Cookie hardening: the app sets NO cookies at all (the session
+           token lives in web storage), so there is no cookie to harden. The
+           httpOnly-cookie switch is a bigger change and is left out on
+           purpose - it is noted here rather than silently skipped.
+         - tests/test_security_headers.py - 8 cases.
+
+  [x] 4. Logging + backups (2 h)                                  DONE
          - Python logging -> file + stdout (host captures it)
          - Log: logins, signups, admin actions, 500s (never log
            passwords/tokens)
          - Nightly pg_dump to local disk / free object storage
            (cron + the free tier's volume)
 
-  [ ] 5. Analytics without a third party (1-2 h)
+         WHAT WAS BUILT
+         - Python logging to stdout (the host collects it) AND to
+           logs/manzil.log, rotated at 5 MB with 3 old files. A read-only
+           disk is not a reason to stop serving.
+         - The audit trail: sign-ups (accepted and refused), sign-ins
+           (successful and failed), admin logins, password resets, consent
+           records, data exports, account deletions, admin actions and
+           crashes. Passwords, password hashes, session tokens and reset
+           links are NEVER written to the log - tests/test_logging.py
+           checks that (18 cases).
+         - A 500 handler that logs the request that caused it and answers a
+           plain message: no stack trace ever reaches the visitor.
+         - scripts/backup.sh (pg_dump -> backups/, keeps 14, a broken dump
+           never replaces a good one) and scripts/restore.sh
+           (pg_restore --clean --if-exists, so a restore works over a
+           database that already has the tables). Both were run against a
+           real Postgres, not just written.
+         - .github/workflows/backup.yml runs the dump nightly and keeps it
+           as an artifact for 14 days; it skips itself when the
+           DATABASE_URL secret is not set. The cron line for a machine you
+           own is in the script's header.
+
+  [x] 5. Analytics without a third party (1-2 h)                  DONE (7826c50)
          - table page_views(path, day, count) updated in
            after_request
          - Chart in the admin panel - you already have charts there
 
+         WHAT WAS BUILT
+         - page_views(path, day, count), updated in after_request. No
+           third-party script, no cookie, no visitor identifier, and the
+           query string is never stored (it can carry a destination or an
+           email). Assets, API calls and 404s are not counted, and a
+           failure in the counter can never break the page.
+         - GET /api/analytics (admin only, the day range is clamped) and a
+           Traffic tab in the admin panel that draws the last 14 days as
+           plain CSS bars - no chart library.
+         - tests/test_analytics.py - 11 cases.
+
   DONE WHEN: privacy policy matches what the code actually does,
   and you can show a backup + an audit log to a judge.
+  -> Steps 1, 3, 4 and 5 are done and the privacy policy now describes
+     exactly what the code does (consent, the two self-service rights, the
+     server log, the traffic counter). Step 2 is the last one open.
 
 
 ===============================================================================

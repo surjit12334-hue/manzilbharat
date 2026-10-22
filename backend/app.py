@@ -3,13 +3,16 @@ import hashlib
 import hmac
 import ipaddress
 import json
+import logging
 import os
 import re
 import smtplib
+import sys
 import time
 from datetime import date, datetime, timedelta
 from email.mime.text import MIMEText
 from functools import wraps
+from logging.handlers import RotatingFileHandler
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import bcrypt
@@ -134,6 +137,51 @@ PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
 
 app = Flask(__name__, static_folder=PROJECT_ROOT, static_url_path='')
 
+# ---------------------------------------------------------------------------
+# Logging (Phase 5 step 4)
+# ---------------------------------------------------------------------------
+# Two sinks, one set of lines:
+#   stdout   the host collects it (Render's log dashboard, Docker, systemd)
+#   a file   logs/manzil.log on disk, rotated at 5 MB with 3 old files
+#
+# WHAT IS NEVER LOGGED: passwords, password hashes, session tokens, reset
+# tokens, API keys. The audit lines below carry the user id and the email
+# address of the account involved - that is what an access log is for - and
+# nothing else. The privacy policy says so in section 1.E.
+LOG_DIR = os.path.join(PROJECT_ROOT, 'logs')
+LOG_FILE = os.path.join(LOG_DIR, 'manzil.log')
+
+
+def _setup_logging():
+    """Send the app's logs to stdout and to a rotating file."""
+    root = logging.getLogger()
+    if getattr(root, '_manzil_configured', False):
+        return
+    root.setLevel(logging.INFO)
+    formatter = logging.Formatter(
+        '[%(asctime)s] %(levelname)s %(name)s: %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S')
+
+    stream = logging.StreamHandler(sys.stdout)
+    stream.setFormatter(formatter)
+    root.addHandler(stream)
+
+    try:
+        os.makedirs(LOG_DIR, exist_ok=True)
+        file_handler = RotatingFileHandler(
+            LOG_FILE, maxBytes=5 * 1024 * 1024, backupCount=3, encoding='utf-8')
+        file_handler.setFormatter(formatter)
+        root.addHandler(file_handler)
+    except OSError as exc:
+        # A read-only disk is not a reason to refuse to serve traffic: the
+        # stdout stream is still there.
+        print(f'NOTE: cannot write {LOG_FILE} ({exc}) - logging to stdout only')
+
+    root._manzil_configured = True
+
+
+_setup_logging()
+
 # Trust one proxy hop so request.remote_addr / request.scheme reflect the real
 # visitor when running behind a reverse proxy. NOTE: this is NOT enough to key
 # the rate limiter on Render - see _client_ip() for why.
@@ -214,6 +262,31 @@ def handle_http_exception(error):
     if request.path.startswith('/api/'):
         return jsonify({'error': error.description}), error.code
     return error
+
+
+@app.errorhandler(500)
+def handle_internal_error(error):
+    """Log a crash with the request that caused it.
+
+    The traceback belongs in the log, not in the response: a stack trace in
+    the body tells an outsider about the internals of the server. The visitor
+    gets the same plain message every time, and the operator gets the
+    details in logs/manzil.log (and on stdout).
+    """
+    user_id = None
+    try:
+        user_id = g.get('user', {}).get('user_id')
+    except Exception:
+        user_id = None
+    app.logger.exception('500 on %s %s (user %s)', request.method, request.path,
+                        user_id)
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'An internal error occurred. Please try again later.'}), 500
+    return ('<!doctype html><html lang="en"><head><meta charset="utf-8">'
+            '<title>Something went wrong</title></head><body>'
+            '<h1>Something went wrong</h1>'
+            '<p>The server hit an unexpected error. Please try again in a '
+            'moment.</p></body></html>'), 500
 
 
 @app.route('/')
@@ -1335,6 +1408,7 @@ def signup():
         errors['consent'] = 'The privacy policy has changed. Please reload the page and accept it again'
 
     if errors:
+        app.logger.info('signup refused: %d invalid field(s)', len(errors))
         return jsonify({'error': 'Validation failed', 'errors': errors}), 400
 
     hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
@@ -1358,8 +1432,8 @@ def signup():
         cur.execute('SAVEPOINT consent_row')
         try:
             cur.execute(
-                "INSERT INTO consents (user_id, text_version) VALUES (%s, %s)",
-                (user[0], consent_version),
+                "INSERT INTO consents (user_id, text_version, source) VALUES (%s, %s, %s)",
+                (user[0], consent_version, 'signup'),
             )
         except psycopg2.errors.UndefinedTable:
             cur.execute('ROLLBACK TO SAVEPOINT consent_row')
@@ -1370,10 +1444,13 @@ def signup():
         cur.close()
         conn.commit()
         token = create_token(user[0], user[2])
+        app.logger.info('signup: user %s (%s) created, consent %s',
+                        user[0], user[2], consent_version)
         return jsonify({'message': 'Account created successfully', 'user': {'id': user[0], 'name': user[1], 'email': user[2], 'contact': user[3]}, 'token': token, 'consent_recorded': consent_recorded}), 201
     except psycopg2.IntegrityError:
         if conn:
             conn.rollback()
+        app.logger.info('signup refused: the address is already registered')
         return jsonify({'error': 'Email already exists', 'errors': {'email': 'This email is already registered'}}), 409
     except Exception:
         if conn:
@@ -1405,9 +1482,11 @@ def login():
         # Identical message for "no such account" and "wrong password" so the
         # endpoint cannot be used to enumerate registered email addresses.
         if not user or not user[4] or not bcrypt.checkpw(password.encode('utf-8'), user[4].encode('utf-8')):
+            app.logger.warning('login failed for %s', email)
             return jsonify({'error': 'Invalid email or password'}), 401
 
         token = create_token(user[0], user[2])
+        app.logger.info('login: user %s (%s) signed in', user[0], user[2])
         return jsonify({
             'message': 'Login successful',
             'user': {'id': user[0], 'name': user[1], 'email': user[2], 'contact': user[3]},
@@ -1447,6 +1526,7 @@ def google_login():
         if user:
             token = create_token(user[0], user[2])
             cur.close()
+            app.logger.info('login (google): user %s (%s) signed in', user[0], user[2])
             return jsonify({
                 'message': 'Login successful',
                 'user': {'id': user[0], 'name': user[1], 'email': user[2], 'contact': user[3]},
@@ -1458,9 +1538,17 @@ def google_login():
                 (name, email)
             )
             new_user = cur.fetchone()
+            # A Google sign-in creates the account too, so the consent is
+            # recorded here as well - the page says that pressing the button
+            # means accepting the policy (source = 'google').
+            cur.execute(
+                "INSERT INTO consents (user_id, text_version, source) VALUES (%s, %s, %s)",
+                (new_user[0], CONSENT_TEXT_VERSION, 'google'),
+            )
             conn.commit()
             token = create_token(new_user[0], new_user[2])
             cur.close()
+            app.logger.info('signup (google): user %s (%s) created', new_user[0], new_user[2])
             return jsonify({
                 'message': 'Account created and logged in',
                 'user': {'id': new_user[0], 'name': new_user[1], 'email': new_user[2], 'contact': new_user[3]},
@@ -1527,6 +1615,7 @@ def forgot_password():
         app.logger.exception('Password-reset email could not be sent to %s', email)
         return jsonify({'error': 'Could not send the reset email. Please try again later.'}), 500
 
+    app.logger.info('password reset: a link was sent to %s', email)
     return jsonify({'message': 'A password reset link has been sent to your email. It is valid for 30 minutes.'}), 200
 
 
@@ -1572,6 +1661,7 @@ def reset_password():
                     (datetime.utcnow(), _hash_reset_token(token)))
         conn.commit()
         cur.close()
+        app.logger.info('password reset: the password of user %s (%s) was changed', user[0], email)
         return jsonify({'message': 'Password updated successfully'}), 200
     except Exception:
         if conn:
@@ -1654,12 +1744,14 @@ def record_consent():
         conn = get_db()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cur.execute(
-            "INSERT INTO consents (user_id, text_version) VALUES (%s, %s) RETURNING id, user_id, text_version, created_at",
-            (g.user['user_id'], version),
+            "INSERT INTO consents (user_id, text_version, source) VALUES (%s, %s, %s) RETURNING id, user_id, text_version, source, created_at",
+            (g.user['user_id'], version, 'renewal'),
         )
         row = dict(cur.fetchone())
         conn.commit()
         cur.close()
+        app.logger.info('consent: user %s recorded version %s (source: renewal)',
+                        g.user['user_id'], version)
         return jsonify({'message': 'Consent recorded', 'consent': row}), 201
     except psycopg2.errors.UndefinedTable:
         if conn:
@@ -1684,7 +1776,7 @@ def list_consents():
         conn = get_db()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cur.execute(
-            "SELECT id, user_id, text_version, created_at FROM consents WHERE user_id = %s ORDER BY created_at DESC, id DESC",
+            "SELECT id, user_id, text_version, source, created_at FROM consents WHERE user_id = %s ORDER BY created_at DESC, id DESC",
             (g.user['user_id'],),
         )
         rows = [dict(r) for r in cur.fetchall()]
@@ -1727,13 +1819,14 @@ def export_me():
         # in the export too.
         cur.execute("SELECT id, title, payload, created_at FROM saved_trips WHERE user_id = %s ORDER BY created_at DESC", (g.user['user_id'],))
         saved_trips = [dict(r) for r in cur.fetchall()]
-        cur.execute("SELECT id, text_version, created_at FROM consents WHERE user_id = %s ORDER BY created_at DESC", (g.user['user_id'],))
+        cur.execute("SELECT id, text_version, source, created_at FROM consents WHERE user_id = %s ORDER BY created_at DESC", (g.user['user_id'],))
         consents = [dict(r) for r in cur.fetchall()]
         cur.execute("SELECT id, amount, currency, booking_type, status, created_at FROM payments WHERE user_id = %s ORDER BY created_at DESC", (g.user['user_id'],))
         payments = [dict(r) for r in cur.fetchall()]
         cur.execute("SELECT id, email, created_at FROM subscribers WHERE email = %s", (user['email'],))
         newsletter = [dict(r) for r in cur.fetchall()]
         cur.close()
+        app.logger.info('privacy: user %s exported their data', g.user['user_id'])
         return jsonify({
             'user': dict(user),
             'bookings': bookings,
@@ -1773,7 +1866,7 @@ def delete_me():
             return jsonify({'error': 'Account no longer exists'}), 404
         conn.commit()
         cur.close()
-        app.logger.info('Account deleted by user %s', g.user['user_id'])
+        app.logger.info('privacy: user %s deleted their account and its data', g.user['user_id'])
         return jsonify({'message': 'Account deleted'}), 200
     except Exception:
         if conn:
@@ -2846,12 +2939,15 @@ def admin_login():
         # Spend the same bcrypt work as a real check so response timing does
         # not reveal whether the submitted email is the admin's.
         bcrypt.checkpw(password.encode('utf-8'), _DUMMY_ADMIN_HASH)
+        app.logger.warning('admin login failed for %s', email)
         return jsonify({'error': 'Invalid admin credentials'}), 401
 
     if not bcrypt.checkpw(password.encode('utf-8'), ADMIN_PASSWORD_HASH.encode('utf-8')):
+        app.logger.warning('admin login failed for %s (wrong password)', email)
         return jsonify({'error': 'Invalid admin credentials'}), 401
 
     token = create_token(0, email)
+    app.logger.info('admin login: %s signed in', email)
     return jsonify({'token': token, 'message': 'Admin login successful'}), 200
 
 
@@ -3039,6 +3135,7 @@ def delete_user(user_id):
             return jsonify({'error': 'User not found'}), 404
         conn.commit()
         cur.close()
+        app.logger.info('admin: deleted user %s', user_id)
         return jsonify({'message': 'User deleted'})
     except psycopg2.errors.ForeignKeyViolation:
         if conn:
@@ -3119,6 +3216,7 @@ def admin_update_booking(booking_id):
             return jsonify({'error': 'Booking not found'}), 404
         conn.commit()
         cur.close()
+        app.logger.info('admin: booking %s set to %s', booking_id, status)
         return jsonify({'message': 'Booking updated'})
     except Exception:
         if conn:
@@ -3143,6 +3241,7 @@ def admin_delete_booking(booking_id):
             return jsonify({'error': 'Booking not found'}), 404
         conn.commit()
         cur.close()
+        app.logger.info('admin: deleted booking %s', booking_id)
         return jsonify({'message': 'Booking deleted'})
     except Exception:
         if conn:

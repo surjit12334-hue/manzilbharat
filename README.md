@@ -158,7 +158,13 @@ manzilbharat/
 │   ├── blog_posts.json     # Local blog stories (replaces rss2json)
 │   └── <city>.json         # Curated hotels/things-to-do/eateries for the 5 demo cities
 ├── migrations/
-│   └── phase4.sql          # Adds the saved_trips + geocode_cache tables to an existing database
+│   ├── phase4.sql          # Adds the saved_trips + geocode_cache tables to an existing database
+│   └── phase5.sql          # Adds the consents + page_views tables (Phase 5) to an existing database
+├── scripts/
+│   ├── backup.sh           # pg_dump to backups/ (nightly, via cron)
+│   └── restore.sh          # put a backup back into the database
+├── logs/                   # The rotating application log (gitignored, never committed)
+├── backups/                # The pg_dump archives (gitignored, never committed)
 ├── requirements-dev.txt    # pytest - never installed by Render
 ├── pytest.ini
 ├── index.html              # Landing + destination search
@@ -200,6 +206,10 @@ Status column: `live` = implemented today, `todo` = Phase 1 of ROADMAP.txt.
 | POST | `/reset-password` | — | live | Redeem reset link |
 | POST | `/ai-guide` | — | live | Server-side Gemini proxy (rate-limited); `kind='itinerary'` returns cached day cards + a budget estimate |
 | GET | `/me` | user | live | Current user profile |
+| POST | `/me/consent` | user | live | Record consent again after the policy text changes (versioned) |
+| GET | `/me/consent` | user | live | The caller's consent history |
+| GET | `/me/export` | user | live | DPDP data export: profile, bookings, saved trips, payments, consents (one JSON file) |
+| DELETE | `/me` | user | live | DPDP erasure: deletes the account and everything attached to it |
 | POST | `/bookings` | user | live | Create a booking (validated, owner row) |
 | GET | `/bookings/mine` | user | live | The caller's own bookings |
 | POST | `/bookings/<id>/cancel` | user | live | Cancel own booking (403/404/409 protected) |
@@ -207,11 +217,56 @@ Status column: `live` = implemented today, `todo` = Phase 1 of ROADMAP.txt.
 | DELETE | `/me/trips/<id>` | user | live | Remove one saved itinerary (403 for somebody else's) |
 | POST | `/admin/login` | — | live | Admin session |
 | GET | `/stats`, `/recent` | admin | live | Dashboard |
+| GET | `/analytics?days=14` | admin | live | The server's own page-view counter (no third-party analytics) |
 | GET, DELETE | `/users`, `/users/<id>` | admin | live | User management |
 | GET, PUT, DELETE | `/bookings/<id>`, `/payments/<id>` | admin | live | Record management |
 
 Blog content is served locally from `data/blog_posts.json` and rendered by
 `blog.html` / `blog-post.html` (no third-party RSS proxy).
+
+---
+
+## Trust & compliance (Phase 5)
+
+**Consent (DPDP).** Creating an account needs an explicit, labelled checkbox -
+the API refuses a signup without `consent: true`, and the consent row is
+written in the *same transaction* as the user row, so an account can never
+exist without the consent that created it. Every consent keeps the version of
+the policy text that was accepted (`dpdp-v1` today) and where it came from
+(`signup`, `google`, `renewal`), so we can always prove *which* wording
+somebody agreed to. `privacypolicy.html` describes exactly this.
+
+**Your data, your call.** *My Trips → Your data & privacy* has the two
+self-service rights: **Download my data** (one JSON file with the profile,
+bookings, saved itineraries, payments and consent history) and **Delete my
+account** (the profile and every booking, saved trip, payment and consent row
+go with it - `ON DELETE CASCADE`).
+
+**Security headers.** Every response carries a Content-Security-Policy that
+names the origins the pages really use (Font Awesome, Google Fonts, Leaflet,
+Google Sign-In, the map tiles) and locks the rest down (`object-src 'none'`,
+`frame-ancestors 'self'`, `form-action 'self'`), plus
+`Strict-Transport-Security` (on HTTPS requests only) and a `Permissions-Policy`
+that denies the camera, the microphone, the location and the payment API.
+
+**Logging.** Sign-ups, sign-ins (successful and failed), password resets,
+consent records, data exports, account deletions, admin actions and crashes
+are written to `logs/manzil.log` (rotated at 5 MB, 3 old files) and to stdout,
+where the host collects them. Passwords, password hashes, session tokens and
+reset links are never logged.
+
+**Backups.** `scripts/backup.sh` takes a `pg_dump` into `backups/`, keeps the
+last 14 of them, and never lets a broken dump replace a good one;
+`scripts/restore.sh` puts a backup back (`pg_restore --clean --if-exists`, so
+a restore works over a database that already has the tables). Run it nightly
+with cron, or let `.github/workflows/backup.yml` do it - that workflow runs on
+a schedule, skips itself when the `DATABASE_URL` secret is not set, and keeps
+the dump as an artifact for 14 days.
+
+**Analytics.** The server counts the pages it serves (`page_views`, one row
+per path and day) and the admin panel shows it as a bar chart in the Traffic
+tab. No third-party script, no cookie, no visitor identifier, and the query
+string is never stored.
 
 ---
 

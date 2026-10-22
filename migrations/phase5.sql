@@ -18,9 +18,15 @@ CREATE TABLE IF NOT EXISTS consents (
     id           SERIAL PRIMARY KEY,
     user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     text_version VARCHAR(50) NOT NULL,
+    source       VARCHAR(20) NOT NULL DEFAULT 'signup',
     created_at   TIMESTAMP NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS consents_user_id_idx ON consents (user_id);
+
+-- source says WHERE the consent came from: 'signup', 'google' or 'renewal'.
+-- A separate statement, because CREATE TABLE IF NOT EXISTS does NOT add a
+-- column to a table that already exists.
+ALTER TABLE consents ADD COLUMN IF NOT EXISTS source VARCHAR(20) NOT NULL DEFAULT 'signup';
 
 -- First-party page-view counter (Phase 5 step 5). One row per (path, day):
 -- no third-party script, no cookies, no visitor identifier - just how often
