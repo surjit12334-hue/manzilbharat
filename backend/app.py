@@ -121,6 +121,14 @@ ALLOWED_ORIGINS += [o.strip() for o in (os.getenv('APP_ORIGIN') or '').split(','
 
 RESET_TOKEN_VALID_SECONDS = 1800
 
+# The version of the consent text the visitor agreed to (DPDP). Bump it when
+# the wording in privacypolicy.html changes: the old rows stay in the consents
+# table, so we can always prove WHICH text someone accepted, and a signup that
+# quotes an outdated version is refused instead of being recorded against the
+# wrong text.
+CONSENT_TEXT_VERSION = 'dpdp-v1'
+CONSENT_TEXT_VERSIONS = {CONSENT_TEXT_VERSION}
+
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
 
@@ -213,12 +221,58 @@ def index():
     return send_from_directory(PROJECT_ROOT, 'index.html')
 
 
+# ---------------------------------------------------------------------------
+# Security headers (Phase 5 step 3)
+# ---------------------------------------------------------------------------
+# The Content-Security-Policy lists every origin the pages actually use:
+#   cdnjs.cloudflare.com  Font Awesome (the icons)
+#   fonts.googleapis.com  the web font
+#   fonts.gstatic.com     the font files themselves
+#   unpkg.com             Leaflet (the map)
+#   accounts.google.com   Google Sign-In
+#   tile.openstreetmap.org / server.arcgisonline.com   the map tiles
+#   www.google.com        the Google Maps embed on the contact page
+# 'unsafe-inline' is needed for scripts and styles because every page carries
+# its own <script> and <style> block; a nonce-per-page version would mean
+# rewriting all 18 pages. Everything else is locked down: no plugins, no
+# framing by strangers, forms can only post to us.
+_CSP = (
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-inline' https://accounts.google.com "
+    "https://unpkg.com https://cdnjs.cloudflare.com; "
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com "
+    "https://cdnjs.cloudflare.com https://unpkg.com; "
+    "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; "
+    "img-src 'self' data: blob: https://tile.openstreetmap.org "
+    "https://server.arcgisonline.com https://*.googleapis.com "
+    "https://maps.gstatic.com; "
+    "connect-src 'self' https://accounts.google.com; "
+    "frame-src https://www.google.com https://accounts.google.com; "
+    "object-src 'none'; "
+    "base-uri 'self'; "
+    "form-action 'self'; "
+    "frame-ancestors 'self'"
+)
+
+
 @app.after_request
 def set_security_headers(response):
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'
     response.headers['X-XSS-Protection'] = '1; mode=block'
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    response.headers['Content-Security-Policy'] = _CSP
+    # The app never asks for the camera, the microphone or the location, so
+    # no page may use them.
+    response.headers['Permissions-Policy'] = (
+        'geolocation=(), microphone=(), camera=(), payment=(), usb=()')
+    # Strict-Transport-Security is only meaningful over HTTPS - sending it on
+    # a plain http:// page would pin the visitor to a scheme the local
+    # development server does not speak. ProxyFix makes request.is_secure
+    # true behind the reverse proxy, so the live site gets the header.
+    if request.is_secure:
+        response.headers['Strict-Transport-Security'] = (
+            'max-age=31536000; includeSubDomains')
     # Auth responses carry tokens and password hashes; keep them out of any
     # shared/browser cache.
     if request.path.startswith('/api/'):
@@ -638,7 +692,7 @@ def _check_phase4_tables():
     than a code bug, and saying so once at boot is clearer than letting
     every request fail with a 500.
     """
-    wanted = ['saved_trips', 'geocode_cache']
+    wanted = ['saved_trips', 'geocode_cache', 'consents']
     conn = None
     try:
         conn = get_db()
@@ -1134,6 +1188,10 @@ def signup():
     residential_address = (data.get('residential_address') or '').strip()
     pincode = (data.get('pincode') or '').strip()
     password = data.get('password') or ''
+    # DPDP: consent is an explicit, affirmative act, so the client has to send
+    # it. The version says WHICH text was accepted (see CONSENT_TEXT_VERSION).
+    consent = data.get('consent')
+    consent_version = (data.get('consent_version') or CONSENT_TEXT_VERSION).strip()
 
     errors = {}
 
@@ -1201,6 +1259,15 @@ def signup():
     elif not re.search(r'[^A-Za-z0-9]', password):
         errors['password'] = 'Password must contain at least one special character'
 
+    # Consent is validated BEFORE the account is created, so a signup that
+    # skips it creates nothing at all.
+    if consent is not True and consent != 'true' and consent != 'on' and consent != 1:
+        errors['consent'] = 'Please accept the Privacy Policy to create an account'
+    elif consent_version not in CONSENT_TEXT_VERSIONS:
+        # The policy text changed since the page was loaded: ask for the new
+        # consent instead of recording this one against the wrong wording.
+        errors['consent'] = 'The privacy policy has changed. Please reload the page and accept it again'
+
     if errors:
         return jsonify({'error': 'Validation failed', 'errors': errors}), 400
 
@@ -1216,10 +1283,28 @@ def signup():
             (name, email, contact, gender, dob, marital_status, residential_address, pincode, hashed)
         )
         user = cur.fetchone()
+        # The consent row is written in the SAME transaction as the account, so
+        # an account can never exist without the consent that created it. If
+        # the consents table is missing (the live database has not run
+        # migrations/phase4.sql yet) the account is still created - the
+        # operator is told about it in the boot log and in the response.
+        consent_recorded = True
+        cur.execute('SAVEPOINT consent_row')
+        try:
+            cur.execute(
+                "INSERT INTO consents (user_id, text_version) VALUES (%s, %s)",
+                (user[0], consent_version),
+            )
+        except psycopg2.errors.UndefinedTable:
+            cur.execute('ROLLBACK TO SAVEPOINT consent_row')
+            consent_recorded = False
+            app.logger.error(
+                'the consents table is missing - run migrations/phase4.sql '
+                'against this database, otherwise the consent is not recorded')
         cur.close()
         conn.commit()
         token = create_token(user[0], user[2])
-        return jsonify({'message': 'Account created successfully', 'user': {'id': user[0], 'name': user[1], 'email': user[2], 'contact': user[3]}, 'token': token}), 201
+        return jsonify({'message': 'Account created successfully', 'user': {'id': user[0], 'name': user[1], 'email': user[2], 'contact': user[3]}, 'token': token, 'consent_recorded': consent_recorded}), 201
     except psycopg2.IntegrityError:
         if conn:
             conn.rollback()
@@ -1477,6 +1562,158 @@ def get_me():
         return jsonify(dict(user)), 200
     except Exception:
         return jsonify({'error': 'Could not load your profile'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route('/api/me/consent', methods=['POST'])
+@require_user
+@rate_limit(max_requests=10, window=60)
+def record_consent():
+    """Record that the user has given explicit consent (DPDP).
+
+    Used to re-record consent after the policy text changes. The version is
+    checked against the ones this build knows about, so the consent history
+    always says which wording was accepted.
+    """
+    data = request.get_json(silent=True) or {}
+    version = (data.get('version') or CONSENT_TEXT_VERSION).strip()
+    if not version:
+        version = CONSENT_TEXT_VERSION
+    if version not in CONSENT_TEXT_VERSIONS:
+        return jsonify({'error': 'Unknown consent version', 'versions': sorted(CONSENT_TEXT_VERSIONS)}), 400
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(
+            "INSERT INTO consents (user_id, text_version) VALUES (%s, %s) RETURNING id, user_id, text_version, created_at",
+            (g.user['user_id'], version),
+        )
+        row = dict(cur.fetchone())
+        conn.commit()
+        cur.close()
+        return jsonify({'message': 'Consent recorded', 'consent': row}), 201
+    except psycopg2.errors.UndefinedTable:
+        if conn:
+            conn.rollback()
+        app.logger.exception('consents is missing - run migrations/phase4.sql')
+        return jsonify({'error': 'Consent is not available right now.'}), 503
+    except Exception:
+        if conn:
+            conn.rollback()
+        app.logger.exception('record_consent failed for user %s', g.user['user_id'])
+        return jsonify({'error': 'Could not record consent'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route('/api/me/consent', methods=['GET'])
+@require_user
+def list_consents():
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(
+            "SELECT id, user_id, text_version, created_at FROM consents WHERE user_id = %s ORDER BY created_at DESC, id DESC",
+            (g.user['user_id'],),
+        )
+        rows = [dict(r) for r in cur.fetchall()]
+        cur.close()
+        return jsonify(rows), 200
+    except psycopg2.errors.UndefinedTable:
+        if conn:
+            conn.rollback()
+        return jsonify([]), 200
+    except Exception:
+        app.logger.exception('list_consents failed for user %s', g.user['user_id'])
+        return jsonify({'error': 'Could not load consents'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route('/api/me/export', methods=['GET'])
+@require_user
+def export_me():
+    """Self-serve data export (DPDP).
+
+    Returns everything the server holds about the caller as one JSON document:
+    the profile, the bookings, the saved itineraries, the payments and the
+    consent history. Only the caller's own rows are read - the token decides
+    whose data it is, so nobody can ask for somebody else's.
+    """
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("SELECT id, name, email, contact, gender, dob, marital_status, residential_address, pincode, created_at FROM users WHERE id = %s", (g.user['user_id'],))
+        user = cur.fetchone()
+        if not user:
+            cur.close()
+            return jsonify({'error': 'Account no longer exists'}), 404
+        cur.execute("SELECT id, booking_type, source, destination, travel_date, amount, status, created_at FROM bookings WHERE user_id = %s ORDER BY created_at DESC", (g.user['user_id'],))
+        bookings = [dict(r) for r in cur.fetchall()]
+        # The payload holds the actual itinerary the user saved, so it belongs
+        # in the export too.
+        cur.execute("SELECT id, title, payload, created_at FROM saved_trips WHERE user_id = %s ORDER BY created_at DESC", (g.user['user_id'],))
+        saved_trips = [dict(r) for r in cur.fetchall()]
+        cur.execute("SELECT id, text_version, created_at FROM consents WHERE user_id = %s ORDER BY created_at DESC", (g.user['user_id'],))
+        consents = [dict(r) for r in cur.fetchall()]
+        cur.execute("SELECT id, amount, currency, booking_type, status, created_at FROM payments WHERE user_id = %s ORDER BY created_at DESC", (g.user['user_id'],))
+        payments = [dict(r) for r in cur.fetchall()]
+        cur.execute("SELECT id, email, created_at FROM subscribers WHERE email = %s", (user['email'],))
+        newsletter = [dict(r) for r in cur.fetchall()]
+        cur.close()
+        return jsonify({
+            'user': dict(user),
+            'bookings': bookings,
+            'saved_trips': saved_trips,
+            'payments': payments,
+            'consents': consents,
+            'newsletter': newsletter,
+            'exported_at': datetime.utcnow().isoformat() + 'Z',
+        }), 200
+    except Exception:
+        app.logger.exception('export_me failed for user %s', g.user['user_id'])
+        return jsonify({'error': 'Could not export your data'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route('/api/me', methods=['DELETE'])
+@require_user
+@rate_limit(max_requests=5, window=300)
+def delete_me():
+    """Self-serve account deletion (DPDP).
+
+    The bookings, saved itineraries, payments and consent rows of that
+    account go with it (ON DELETE CASCADE in the schema), so nothing about
+    the person is left behind.
+    """
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("DELETE FROM users WHERE id = %s RETURNING id", (g.user['user_id'],))
+        row = cur.fetchone()
+        if not row:
+            conn.rollback()
+            cur.close()
+            return jsonify({'error': 'Account no longer exists'}), 404
+        conn.commit()
+        cur.close()
+        app.logger.info('Account deleted by user %s', g.user['user_id'])
+        return jsonify({'message': 'Account deleted'}), 200
+    except Exception:
+        if conn:
+            conn.rollback()
+        app.logger.exception('delete_me failed for user %s', g.user['user_id'])
+        return jsonify({'error': 'Could not delete your account'}), 500
     finally:
         if conn:
             conn.close()

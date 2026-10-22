@@ -121,6 +121,16 @@ CREATE TABLE IF NOT EXISTS geocode_cache (
 );
 CREATE INDEX IF NOT EXISTS geocode_cache_created_idx ON geocode_cache (created_at);
 
+-- DPDP consent records (Phase 5 step 1). Each time consent is given it is
+-- recorded with a version so we can prove what the user agreed to.
+CREATE TABLE IF NOT EXISTS consents (
+    id           SERIAL PRIMARY KEY,
+    user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    text_version VARCHAR(50) NOT NULL,
+    created_at   TIMESTAMP NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS consents_user_id_idx ON consents (user_id);
+
 -- ============================================================================
 -- Existing DB fixes (run on the CURRENT live database only if migrating)
 -- ============================================================================

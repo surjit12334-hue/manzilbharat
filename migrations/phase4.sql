@@ -42,10 +42,19 @@ CREATE TABLE IF NOT EXISTS geocode_cache (
 );
 CREATE INDEX IF NOT EXISTS geocode_cache_created_idx ON geocode_cache (created_at);
 
+-- DPDP consent records (Phase 5 step 1).
+CREATE TABLE IF NOT EXISTS consents (
+    id           SERIAL PRIMARY KEY,
+    user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    text_version VARCHAR(50) NOT NULL,
+    created_at   TIMESTAMP NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS consents_user_id_idx ON consents (user_id);
+
 -- Access for the role the app connects as.
 \if :{?app_role}
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE saved_trips, geocode_cache TO :"app_role";
-GRANT USAGE, SELECT ON SEQUENCE saved_trips_id_seq TO :"app_role";
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE saved_trips, geocode_cache, consents TO :"app_role";
+GRANT USAGE, SELECT ON SEQUENCE saved_trips_id_seq, consents_id_seq TO :"app_role";
 \else
 \echo 'No app_role given - skipping the GRANT statements (run with -v app_role=<role> to include them).'
 \endif

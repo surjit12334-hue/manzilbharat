@@ -187,6 +187,35 @@
         cursor: not-allowed;
         transform: none;
       }
+      .btn-secondary {
+        background: white;
+        color: #0a1628;
+        border: 2px solid #e0e5ec;
+        padding: 0.75rem 1.5rem;
+        border-radius: 12px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+      .btn-secondary:hover {
+        border-color: #8892b0;
+      }
+      .btn-danger {
+        background: white;
+        color: #e74c3c;
+        border: 2px solid #f5c6c0;
+        padding: 0.75rem 1.5rem;
+        border-radius: 12px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+      .btn-danger:hover {
+        border-color: #e74c3c;
+        background: #fdf3f2;
+      }
 
       .stats {
         display: grid;
@@ -688,6 +717,25 @@
           <p>Build a plan on <a href="trip.html">Plan a Trip</a> and save it to see it here.</p>
         </div>
       </section>
+
+      <section class="panel" id="privacyPanel">
+        <h2><i class="fas fa-shield-halved" style="color: #ff6b35"></i> Your data &amp; privacy</h2>
+        <p class="subtitle" style="margin-bottom: 1rem">
+          The Digital Personal Data Protection Act gives you two rights we honour ourselves: a copy
+          of everything we hold about you, and deletion of your account and its data.
+        </p>
+        <div class="form-actions">
+          <button type="button" class="btn-primary" id="exportBtn">
+            <i class="fas fa-download"></i> Download my data (JSON)
+          </button>
+          <button type="button" class="btn-danger" id="deleteBtn">
+            <i class="fas fa-trash"></i> Delete my account
+          </button>
+        </div>
+        <div class="form-note" id="consentNote" style="margin-top: 0.8rem"></div>
+        <div class="form-error" id="privacyError"></div>
+        <div class="form-note" id="privacyOk" style="color: #27ae60; display: none"></div>
+      </section>
     </main>
 
     <footer>
@@ -1166,9 +1214,111 @@
           }
         });
 
+        // ----- DPDP: export my data / delete my account -----
+        const consentNote = document.getElementById('consentNote');
+        const privacyError = document.getElementById('privacyError');
+        const privacyOk = document.getElementById('privacyOk');
+
+        function showPrivacyError(text) {
+          privacyError.textContent = text || '';
+          privacyOk.style.display = 'none';
+        }
+
+        function showPrivacyOk(text) {
+          privacyOk.textContent = text;
+          privacyOk.style.display = 'block';
+          privacyError.textContent = '';
+        }
+
+        async function loadConsents() {
+          try {
+            const res = await fetch(API_BASE + '/api/me/consent', {
+              headers: MBAuth.authHeaders(),
+            });
+            if (!res.ok) return;
+            const rows = await res.json();
+            if (!Array.isArray(rows) || rows.length === 0) {
+              consentNote.textContent = 'No consent record found for this account yet.';
+              return;
+            }
+            consentNote.textContent =
+              'Consent given ' +
+              rows.length +
+              ' time(s). Latest: ' +
+              rows[0].text_version +
+              ' on ' +
+              new Date(rows[0].created_at).toLocaleDateString('en-IN') +
+              '.';
+          } catch (err) {
+            consentNote.textContent = '';
+          }
+        }
+
+        document.getElementById('exportBtn').addEventListener('click', async function () {
+          const btn = this;
+          btn.disabled = true;
+          showPrivacyError('');
+          try {
+            const res = await fetch(API_BASE + '/api/me/export', {
+              headers: MBAuth.authHeaders(),
+            });
+            const data = await res.json().catch(() => null);
+            if (!res.ok) {
+              showPrivacyError((data && data.error) || 'HTTP ' + res.status);
+              return;
+            }
+            // Hand the visitor a file instead of dumping JSON on the page.
+            const blob = new Blob([JSON.stringify(data, null, 2)], {
+              type: 'application/json',
+            });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'manzil-bharat-my-data.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showPrivacyOk('Your data has been downloaded.');
+          } catch (err) {
+            showPrivacyError('Cannot reach the server. Is it running? Start it with: ./start.sh');
+          } finally {
+            btn.disabled = false;
+          }
+        });
+
+        document.getElementById('deleteBtn').addEventListener('click', async function () {
+          const ok = window.confirm(
+            'Delete your account and every trip, booking and payment in it?\n\n' +
+              'This cannot be undone. Download your data first if you want a copy.',
+          );
+          if (!ok) return;
+          const btn = this;
+          btn.disabled = true;
+          showPrivacyError('');
+          try {
+            const res = await fetch(API_BASE + '/api/me', {
+              method: 'DELETE',
+              headers: MBAuth.authHeaders(),
+            });
+            const data = await res.json().catch(() => null);
+            if (!res.ok) {
+              showPrivacyError((data && data.error) || 'HTTP ' + res.status);
+              btn.disabled = false;
+              return;
+            }
+            MBAuth.clearSession();
+            window.location.replace('index.html');
+          } catch (err) {
+            showPrivacyError('Cannot reach the server. Is it running? Start it with: ./start.sh');
+            btn.disabled = false;
+          }
+        });
+
         loadProfile();
         loadTrips();
         loadSavedTrips();
+        loadConsents();
       })();
     </script>
   </body>
