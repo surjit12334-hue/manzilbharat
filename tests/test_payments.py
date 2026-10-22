@@ -432,6 +432,39 @@ def test_mine_needs_a_session(client):
     assert client.get('/api/payments/mine').status_code == 401
 
 
+def test_the_admin_revenue_counts_what_the_checkout_recorded(client, user, auth,
+                                                            booking_payload, razorpay,
+                                                            admin_headers, sql):
+    """The dashboard has to reflect the money the checkout recorded.
+
+    The stats query used to sum status='completed' only - a status the
+    checkout never writes - so a successful test payment left the Revenue
+    card at Rs.0. The seeded demo rows are still 'completed' and must keep
+    counting, so the query has to know both.
+    """
+    _email, token = user()
+    headers = auth(token)
+    booking_id, order = open_order(client, headers, booking_payload)
+    client.post('/api/payments/verify', headers=headers, json={
+        'razorpay_order_id': order['order_id'],
+        'razorpay_payment_id': 'pay_TEST456',
+        'razorpay_signature': signature_for(order['order_id'], 'pay_TEST456'),
+    })
+    # A row shaped like seed.sql's demo history.
+    sql(
+        "INSERT INTO payments (user_id, booking_id, amount, currency, status, mode) "
+        "SELECT user_id, id, 950, 'INR', 'completed', 'test' FROM bookings "
+        "WHERE id = %s",
+        (booking_id,),
+    )
+
+    stats = client.get('/api/stats', headers=admin_headers())
+
+    assert stats.status_code == 200
+    assert stats.get_json()['totalPayments'] == 2
+    assert stats.get_json()['totalRevenue'] == 3350.0
+
+
 def test_deleting_the_account_takes_the_payment_with_it(client, user, auth,
                                                        booking_payload, razorpay,
                                                        sql):

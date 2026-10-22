@@ -981,6 +981,19 @@ PHASE 6 - PRESENTATION & SUBMISSION                          [1 day]
          - 60 sec: live flow: signup -> search -> itinerary -> budget
                    -> book -> My Trips -> admin panel
          - 30 sec: what's real vs. what's an integration stub
+
+         SCRIPT WRITTEN -> DEMO.md: word-for-word "say" lines, a click-by-click
+         timing table, the pre-flight list (including pre-warming the itinerary
+         cache so the AI beat survives a dead network), failure drills, the
+         likely judge questions, and a rehearsal log.
+         STILL OPEN for a human: rehearse three times and fill the log.
+         Two things the script caught that the demo would have hit live:
+           - signup refuses a duplicate email, so each run needs a new address
+             (riya1@, riya2@, riya3@);
+           - the admin Revenue card summed payments with status='completed',
+             which the checkout never writes, so a successful test payment
+             showed Rs.0. Fixed: it now counts 'captured' and the seeded
+             'completed' rows (one test covers both).
   [ ] 2. Screenshots/video backup for every step (network can fail)
   [ ] 3. Update aboutus.html team photos (compress them first)
   [ ] 4. Final cross-check of all 18 pages: no broken links, no

@@ -3293,7 +3293,15 @@ def get_stats():
         total_bookings = cur.fetchone()[0]
         cur.execute("SELECT COUNT(*) FROM payments")
         total_payments = cur.fetchone()[0]
-        cur.execute("SELECT COALESCE(SUM(amount), 0) FROM payments WHERE status = 'completed'")
+        # Two statuses are worth money: 'captured' is what
+        # /api/payments/verify writes when Razorpay's signature checks out,
+        # 'completed' is the status of the older demo rows (seed.sql).
+        # Counting only 'completed' showed Rs.0 after a real test payment;
+        # counting only 'captured' would hide the seeded demo history.
+        cur.execute(
+            "SELECT COALESCE(SUM(amount), 0) FROM payments "
+            "WHERE status IN ('captured', 'completed')"
+        )
         total_revenue = cur.fetchone()[0]
         cur.close()
         return jsonify({

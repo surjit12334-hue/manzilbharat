@@ -183,6 +183,7 @@ manzilbharat/
 ├── Dockerfile              # python:3.12-slim image (.env excluded)
 ├── render.yaml             # Render blueprint: service + env vars for free deploy
 ├── ROADMAP.txt             # Zero-cost plan: phases, tasks, acceptance tests
+├── DEMO.md                 # Two-minute demo script: timings, clicks, drills
 └── .env.example            # Environment template (real .env is gitignored)
 ```
 
