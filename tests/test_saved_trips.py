@@ -281,7 +281,7 @@ def test_the_migration_file_creates_the_same_tables_as_the_schema():
     with open(MIGRATION_PATH, encoding='utf-8') as handle:
         migration = handle.read()
 
-    for table in ('saved_trips',):
+    for table in ('saved_trips', 'geocode_cache'):
         assert table_columns(schema, table) == table_columns(migration, table), table
 
 

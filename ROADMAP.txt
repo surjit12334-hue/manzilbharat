@@ -780,13 +780,50 @@ transport) without paying for a single travel API.
            migrations/phase4.sql") and answers 503 with a clear message
            instead of a 500 if the table is not there yet.
 
-  [ ] 7. Nominatim/Photon hygiene (1 h)                             [h]
-         - Send a real User-Agent with contact info (policy)
-         - Cache results in a small table to cut repeat calls
-         - Policy: https://operations.osmfoundation.org/policies/nominatim/
+  [x] 7. Nominatim/Photon hygiene (1 h)                             [h] DONE
+         - A browser cannot set a User-Agent (it is a forbidden header
+           name), and the OSM usage policy asks every client to identify
+           itself with a real contact address - so the pages no longer
+           call the geocoders themselves.
+         - NEW GET /api/geocode?q=...&provider=nominatim|photon: the
+           server sends "ManzilBharat/1.0 (+origin); contact: <admin
+           email>" (override with GEOCODER_USER_AGENT), normalises both
+           providers into ONE shape {label, display, lat, lon, type} and
+           answers {query, provider, results, cached}.
+         - The answers are cached in the new table geocode_cache
+           (keyed by a hash of the normalised query + provider + limit),
+           so "Jaipur" and "  jaipur " share one upstream call and the
+           same search never hits the shared service twice. Served for 7
+           days, pruned after 30.
+         - The outbound volume is capped at 60 calls/minute across ALL
+           workers, counted in the rate_limits table (so 2 gunicorn
+           workers share one budget, not one each). A cached answer is
+           still served when the budget is spent or the provider is
+           down, and only then does the endpoint answer 429/502.
+         - The provider's own body is never forwarded to the browser.
+         - index.html and map.html now call /api/geocode; the third-party
+           URLs are gone from the frontend.
+         - Tests: tests/test_geocode.py (24 cases) - validation, the
+           User-Agent (built and overridden), the provider, the
+           normalisation of both providers, a result without coordinates
+           dropped, the limit clamped, the cache (a second search makes
+           no upstream call, the key ignores case and spaces, a
+           different query is not served from the cache, the row is in
+           the table), a stale row refreshed, upstream 503/timeout/
+           connection failure/body-that-is-not-JSON all answered 502
+           without leaking the provider's body, a stale answer served
+           when the provider is down, the outbound budget, and the
+           endpoint's own rate limit.
+         - VERIFIED: 182 passed; ruff + prettier clean. Live smoke:
+           /api/geocode?q=jaipur answered with the real Nominatim
+           result, and the second (case-different) query came back
+           "cached": true.
 
   DONE WHEN: pick a city -> get an itinerary + budget + places ->
 save it -> see it under My Trips. Fully offline-capable data.
+  -> PHASE 4 COMPLETE (all 7 steps). The save round trip is verified
+     end to end: signup -> build a plan -> save it -> see it under
+     My Trips -> remove it.
 
 
 ===============================================================================

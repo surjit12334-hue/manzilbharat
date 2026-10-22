@@ -519,15 +519,17 @@
       }
 
       async function photonSearch(q) {
+        // Through our server, not straight to the public geocoder: a browser
+        // cannot set a User-Agent, and both Nominatim and Photon ask clients
+        // to identify themselves with a real contact address. The server sends
+        // that UA, caches the answers and keeps the traffic polite.
         try {
           const res = await fetch(
-            'https://photon.komoot.io/api/?q=' + encodeURIComponent(q) + '&limit=6',
+            API_BASE + '/api/geocode?provider=photon&limit=6&q=' + encodeURIComponent(q),
           );
           if (!res.ok) throw new Error('HTTP ' + res.status);
           const data = await res.json();
-          photonResults = (data.features || []).filter(function (f) {
-            return f.geometry && f.geometry.coordinates;
-          });
+          photonResults = Array.isArray(data.results) ? data.results : [];
           renderMapDrop();
         } catch (e) {
           photonResults = [];
@@ -547,11 +549,8 @@
         }
         mapSearchDrop.innerHTML = '';
         photonResults.forEach(function (f, i) {
-          const p = f.properties || {};
-          const nm = p.name || 'Unnamed place';
-          const ctx = [p.city, p.state, p.country].filter(Boolean).join(', ');
           const div = document.createElement('div');
-          div.textContent = nm + (ctx ? ' — ' + ctx : '');
+          div.textContent = f.display || f.label || 'Unnamed place';
           div.onclick = function () {
             pickMapResult(i);
           };
@@ -560,19 +559,12 @@
         mapSearchDrop.style.display = 'block';
       }
 
-      function shortOf(displayText) {
-        return (displayText || '').split(',')[0];
-      }
-
       function pickMapResult(i) {
         const f = photonResults[i];
         if (!f) return;
         mapSearchDrop.style.display = 'none';
-        const lon = f.geometry.coordinates[0],
-          la = f.geometry.coordinates[1];
-        const p = f.properties || {};
-        const nm = p.name || shortOf(p.city) || shortOf(p.state) || 'Place';
-        goTo(la, lon, nm, p.name || [p.city, p.state, p.country].filter(Boolean).join(', '));
+        const nm = f.label || 'Place';
+        goTo(f.lat, f.lon, nm, f.display || nm);
       }
 
       function mapSearchGo() {

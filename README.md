@@ -17,7 +17,7 @@ request after ~15 idle minutes takes up to a minute to wake the instance).
 | Backend   | Python 3 + Flask (`backend/app.py`, single file) |
 | Database  | PostgreSQL |
 | AI        | Google Gemini (called **server-side** via `/api/ai-guide`) |
-| Maps      | Leaflet + OpenStreetMap (Nominatim / Photon for search) |
+| Maps      | Leaflet + OpenStreetMap (place search goes through our own `/api/geocode` proxy, which sets the User-Agent the OSM policy asks for and caches the answers) |
 | Auth      | Signed HMAC tokens, bcrypt password hashing, Google Sign-In |
 
 ---
@@ -60,6 +60,7 @@ See `.env.example` for the full commented list.
 | `GOOGLE_CLIENT_ID` | Google Sign-In (optional) |
 | `EMAIL_PROVIDER`, `RESEND_API_KEY` / `BREVO_API_KEY`, `EMAIL_FROM` | Password-reset mail over HTTPS (optional) |
 | `SMTP_USER`, `SMTP_PASSWORD` | Password-reset mail over SMTP (local only - see below) |
+| `GEOCODER_USER_AGENT` | Optional. The User-Agent sent to the public geocoders; by default the app builds one from `ADMIN_EMAIL` |
 | `PORT` | HTTP port (default 5000) |
 
 ---
@@ -157,7 +158,7 @@ manzilbharat/
 │   ├── blog_posts.json     # Local blog stories (replaces rss2json)
 │   └── <city>.json         # Curated hotels/things-to-do/eateries for the 5 demo cities
 ├── migrations/
-│   └── phase4.sql          # Adds the saved_trips table to an existing database
+│   └── phase4.sql          # Adds the saved_trips + geocode_cache tables to an existing database
 ├── requirements-dev.txt    # pytest - never installed by Render
 ├── pytest.ini
 ├── index.html              # Landing + destination search
@@ -191,6 +192,7 @@ Status column: `live` = implemented today, `todo` = Phase 1 of ROADMAP.txt.
 | GET | `/health` | — | live | Readiness probe: 503 when the DB is unreachable |
 | GET | `/places?city=…` | — | live | Curated hotels/things-to-do/eateries for the demo cities (404 + available list for others) |
 | GET | `/transport?city=…` | — | live | Curated metro/rail/airport info for the demo cities (404 + available list for others) |
+| GET | `/geocode?q=…` | — | live | Place search through the server (real User-Agent, cached, rate-limited) |
 | POST | `/signup` | — | live | Create account |
 | POST | `/login` | — | live | Email + password login |
 | POST | `/google-login` | — | live | Google Sign-In |

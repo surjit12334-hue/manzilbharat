@@ -30,10 +30,21 @@ CREATE TABLE IF NOT EXISTS saved_trips (
 CREATE INDEX IF NOT EXISTS saved_trips_user_id_idx ON saved_trips (user_id);
 CREATE INDEX IF NOT EXISTS saved_trips_created_at_idx ON saved_trips (created_at);
 
+-- Step 7: cached answers from the public geocoders (Nominatim / Photon).
+-- The site searches for places through the server so it can send a proper
+-- User-Agent, and every answer is kept here so the same search does not hit
+-- the shared community service twice.
+CREATE TABLE IF NOT EXISTS geocode_cache (
+    query_key  TEXT PRIMARY KEY,
+    provider   TEXT NOT NULL,
+    payload    TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS geocode_cache_created_idx ON geocode_cache (created_at);
 
 -- Access for the role the app connects as.
 \if :{?app_role}
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE saved_trips TO :"app_role";
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE saved_trips, geocode_cache TO :"app_role";
 GRANT USAGE, SELECT ON SEQUENCE saved_trips_id_seq TO :"app_role";
 \else
 \echo 'No app_role given - skipping the GRANT statements (run with -v app_role=<role> to include them).'

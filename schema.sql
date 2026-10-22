@@ -107,6 +107,19 @@ CREATE TABLE IF NOT EXISTS saved_trips (
 CREATE INDEX IF NOT EXISTS saved_trips_user_id_idx ON saved_trips (user_id);
 CREATE INDEX IF NOT EXISTS saved_trips_created_at_idx ON saved_trips (created_at);
 
+-- Cached answers from the public geocoders (Nominatim / Photon). The site
+-- searches for places through the server (so it can send a proper
+-- User-Agent, as the OSM usage policy asks), and every answer is kept here
+-- so the same search does not hit the shared community service twice.
+-- Rows are served for GEOCODE_CACHE_TTL_DAYS and pruned a month after they
+-- were last written (see backend/app.py).
+CREATE TABLE IF NOT EXISTS geocode_cache (
+    query_key  TEXT PRIMARY KEY,
+    provider   TEXT NOT NULL,
+    payload    TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS geocode_cache_created_idx ON geocode_cache (created_at);
 
 -- ============================================================================
 -- Existing DB fixes (run on the CURRENT live database only if migrating)

@@ -1024,7 +1024,12 @@
         }
       }
 
-      // ---------- Nominatim autocomplete ----------
+      // ---------- Place autocomplete (through our server) ----------
+      // The search goes through /api/geocode rather than straight to
+      // Nominatim: a browser cannot set a User-Agent (it is a forbidden
+      // header), and the OSM usage policy asks every client to identify
+      // itself with a real contact address. The server sends that UA, caches
+      // the answers and keeps the traffic to the shared service polite.
       async function onType(q) {
         clearTimeout(debounceTimer);
         const value = q.trim();
@@ -1034,12 +1039,12 @@
         }
         debounceTimer = setTimeout(async () => {
           try {
-            const url =
-              'https://nominatim.openstreetmap.org/search?format=json&limit=5&addressdetails=1&q=' +
-              encodeURIComponent(value);
-            const res = await fetch(url);
-            const results = await res.json();
-            renderDropdown(results);
+            const res = await fetch(
+              API_BASE + '/api/geocode?provider=nominatim&limit=5&q=' + encodeURIComponent(value),
+            );
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const data = await res.json();
+            renderDropdown(data.results || []);
           } catch (e) {
             dropdown.style.display = 'none';
           }
@@ -1063,12 +1068,9 @@
         });
         dropdown.innerHTML = html;
         dropdown.querySelectorAll('.sd-item').forEach((el, i) => {
-          el.querySelector('.sd-name').textContent =
-            results[i].name || (results[i].display_name || '').split(', ')[0];
-          el.querySelector('.sd-region').textContent = (results[i].display_name || '')
-            .split(', ')
-            .slice(1)
-            .join(', ');
+          const result = results[i];
+          el.querySelector('.sd-name').textContent = result.label || '';
+          el.querySelector('.sd-region').textContent = result.display || '';
         });
         dropdown.style.display = 'block';
         window._nomResults = results;
@@ -1078,8 +1080,8 @@
         const r = window._nomResults[i];
         if (!r) return;
         selectedPlace = r;
-        const shortName = r.name || (r.display_name || '').split(', ')[0];
-        if (r.lat && r.lon) {
+        const shortName = r.label || r.display;
+        if (r.lat !== undefined && r.lon !== undefined) {
           openMap(r, shortName);
         } else {
           input.value = shortName;
@@ -1097,7 +1099,7 @@
           '&name=' +
           encodeURIComponent(shortName) +
           '&display=' +
-          encodeURIComponent(r.display_name || shortName);
+          encodeURIComponent(r.display || shortName);
         window.location.href = url;
       }
 
@@ -1108,13 +1110,14 @@
           '<div class="ai-loading"><div class="spinner"></div> Finding your place...</div>',
         );
         try {
-          const url =
-            'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' +
-            encodeURIComponent(q);
-          const res = await fetch(url);
-          const results = await res.json();
-          if (results && results[0] && results[0].lat && results[0].lon) {
-            openMap(results[0], results[0].name || q);
+          const res = await fetch(
+            API_BASE + '/api/geocode?provider=nominatim&limit=1&q=' + encodeURIComponent(q),
+          );
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const data = await res.json();
+          const results = data.results || [];
+          if (results.length && results[0].lat !== undefined) {
+            openMap(results[0], results[0].label || q);
           } else {
             askGemini('trip', q);
           }
@@ -1157,7 +1160,9 @@
       }
 
       function escBody(text) {
-        const title = selectedPlace ? selectedPlace.name || input.value.trim() : input.value.trim();
+        const title = selectedPlace
+          ? selectedPlace.label || input.value.trim()
+          : input.value.trim();
         showPanel(
           '<div class="ai-title"><i class="fas fa-route"></i><span></span></div>' +
             '<div class="ai-body"></div>' +

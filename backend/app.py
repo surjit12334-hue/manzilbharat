@@ -638,7 +638,7 @@ def _check_phase4_tables():
     than a code bug, and saying so once at boot is clearer than letting
     every request fail with a 500.
     """
-    wanted = ['saved_trips']
+    wanted = ['saved_trips', 'geocode_cache']
     conn = None
     try:
         conn = get_db()
@@ -778,6 +778,328 @@ def places():
         'things_to_do': data.get('things_to_do', []),
         'eateries': data.get('eateries', []),
         'source': 'curated',
+    }), 200
+
+
+# ---------------------------------------------------------------------------
+# Place search - server-side proxy for the public geocoders (Phase 4 step 7).
+#
+# Why this is not a browser fetch any more:
+#
+# * Nominatim's usage policy (operations.osmfoundation.org/policies/nominatim)
+#   asks every client to identify itself with a real User-Agent that carries a
+#   contact address. A browser cannot set User-Agent - it is a forbidden
+#   header name - so a page calling Nominatim directly can only send the
+#   browser's own UA, which is exactly what the policy asks clients NOT to do.
+#   Routing the call through this server lets us send the UA we choose.
+# * Both public geocoders are shared community infrastructure. Their policy
+#   caps how hard they may be used, so the calls are cached in a table and
+#   the outbound volume is capped as well.
+#
+# The response is normalised into one shape for every provider, so the
+# frontend does not have to know which geocoder answered.
+# ---------------------------------------------------------------------------
+
+GEOCODE_PROVIDERS = ('nominatim', 'photon')
+GEOCODE_MAX_QUERY = 120
+GEOCODE_MAX_RESULTS = 10
+GEOCODE_CACHE_TTL_DAYS = 7
+GEOCODE_CACHE_PRUNE_DAYS = 30
+GEOCODE_TIMEOUT_SECONDS = 10
+# The OSM policy asks for at most ~1 request per second. This budget is
+# counted in Postgres, so it is shared by every gunicorn worker rather than
+# being per-process.
+GEOCODE_UPSTREAM_BUDGET_PER_MINUTE = 60
+
+
+def _geocoder_user_agent():
+    """The User-Agent this app sends to the public geocoders.
+
+    GEOCODER_USER_AGENT overrides it; otherwise it is built from the app name
+    and the admin address, which is the contact the OSM policy asks for.
+    """
+    configured = (os.getenv('GEOCODER_USER_AGENT') or '').strip()
+    if configured:
+        return configured
+    contact = (os.getenv('ADMIN_EMAIL') or '').strip()
+    origin = (os.getenv('APP_ORIGIN') or '').strip().split(',')[0].strip()
+    agent = 'ManzilBharat/1.0'
+    if origin:
+        agent += ' (+' + origin + ')'
+    if contact:
+        agent += '; contact: ' + contact
+    return agent
+
+
+def _geocode_cache_key(provider, query, limit):
+    """Stable hash of the normalised request.
+
+    Lowercasing and collapsing whitespace means "  Jaipur " and "jaipur" share
+    one upstream call and one cache row.
+    """
+    canonical = json.dumps(
+        [provider, ' '.join(query.split()).lower(), limit], separators=(',', ':')
+    )
+    return hashlib.sha256(canonical.encode('utf-8')).hexdigest()
+
+
+def _cached_geocode(query_key):
+    """The cached result for this request, or None. A cache failure is a miss."""
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            'SELECT payload FROM geocode_cache '
+            'WHERE query_key = %s '
+            'AND created_at > now() - make_interval(days => %s)',
+            (query_key, GEOCODE_CACHE_TTL_DAYS),
+        )
+        row = cur.fetchone()
+        cur.close()
+        if not row:
+            return None
+        results = json.loads(row[0])
+        return results if isinstance(results, list) else None
+    except Exception:
+        app.logger.exception('geocode cache read failed; treating as a miss')
+        return None
+    finally:
+        if conn:
+            conn.close()
+
+
+def _store_geocode(query_key, provider, results):
+    """Save a geocoder answer. Best-effort: the answer is already in hand, so a
+    database blip must not turn a working search into a 500."""
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            'INSERT INTO geocode_cache (query_key, provider, payload) '
+            'VALUES (%s, %s, %s) '
+            'ON CONFLICT (query_key) DO UPDATE SET '
+            'provider = EXCLUDED.provider, payload = EXCLUDED.payload, '
+            'created_at = now()',
+            (query_key, provider, json.dumps(results)),
+        )
+        cur.execute(
+            'DELETE FROM geocode_cache '
+            'WHERE created_at < now() - make_interval(days => %s)',
+            (GEOCODE_CACHE_PRUNE_DAYS,),
+        )
+        cur.close()
+        conn.commit()
+    except Exception:
+        app.logger.exception('geocode cache write failed')
+        if conn:
+            conn.rollback()
+    finally:
+        if conn:
+            conn.close()
+
+
+def _normalise_nominatim(rows):
+    """Nominatim rows -> the shape the frontend uses."""
+    results = []
+    for row in rows or []:
+        if not isinstance(row, dict):
+            continue
+        try:
+            lat = float(row.get('lat'))
+            lon = float(row.get('lon'))
+        except (TypeError, ValueError):
+            continue
+        display = str(row.get('display_name') or '').strip()
+        name = str(row.get('name') or '').strip() or (display.split(',')[0].strip()
+                                                     if display else '')
+        results.append({
+            'label': name or display,
+            'display': display or name,
+            'lat': lat,
+            'lon': lon,
+            'type': str(row.get('type') or row.get('category') or 'place'),
+        })
+    return results
+
+
+def _normalise_photon(features):
+    """Photon GeoJSON features -> the shape the frontend uses."""
+    results = []
+    for feature in features or []:
+        if not isinstance(feature, dict):
+            continue
+        geometry = feature.get('geometry') or {}
+        coordinates = geometry.get('coordinates') or []
+        if len(coordinates) < 2:
+            continue
+        try:
+            lon = float(coordinates[0])
+            lat = float(coordinates[1])
+        except (TypeError, ValueError):
+            continue
+        props = feature.get('properties') or {}
+        if not isinstance(props, dict):
+            props = {}
+        name = str(props.get('name') or '').strip()
+        city = str(props.get('city') or '').strip()
+        state = str(props.get('state') or '').strip()
+        country = str(props.get('country') or '').strip()
+        label = name or city or state or country
+        context = ', '.join(part for part in (city, state, country) if part)
+        results.append({
+            'label': label,
+            'display': (label + ', ' + context).strip(', ') if context else label,
+            'lat': lat,
+            'lon': lon,
+            'type': str(props.get('type') or 'place'),
+        })
+    return results
+
+
+def _fetch_geocode(provider, query, limit):
+    """Ask the provider for results. Returns (results, error_message)."""
+    headers = {
+        'User-Agent': _geocoder_user_agent(),
+        'Accept': 'application/json',
+    }
+    try:
+        if provider == 'photon':
+            response = requests.get(
+                'https://photon.komoot.io/api/',
+                params={'q': query, 'limit': limit},
+                headers=headers,
+                timeout=GEOCODE_TIMEOUT_SECONDS,
+            )
+        else:
+            response = requests.get(
+                'https://nominatim.openstreetmap.org/search',
+                params={
+                    'q': query,
+                    'format': 'jsonv2',
+                    'limit': limit,
+                    'addressdetails': 1,
+                },
+                headers=headers,
+                timeout=GEOCODE_TIMEOUT_SECONDS,
+            )
+    except requests.Timeout:
+        app.logger.warning('geocoder %s timed out for %r', provider, query)
+        return None, 'Place search timed out. Please try again.'
+    except requests.RequestException:
+        app.logger.exception('geocoder %s request failed', provider)
+        return None, 'Place search is unavailable right now. Please try again.'
+
+    if response.status_code != 200:
+        # The provider's own body is never forwarded to the browser.
+        app.logger.warning('geocoder %s answered HTTP %s', provider,
+                            response.status_code)
+        return None, 'Place search is unavailable right now. Please try again.'
+
+    try:
+        data = response.json()
+    except ValueError:
+        app.logger.warning('geocoder %s sent a body that is not JSON', provider)
+        return None, 'Place search is unavailable right now. Please try again.'
+
+    if provider == 'photon':
+        features = data.get('features') if isinstance(data, dict) else None
+        return _normalise_photon(features), None
+    return _normalise_nominatim(data if isinstance(data, list) else None), None
+
+
+def _stale_geocode(query_key):
+    """A cached answer that is past its TTL - better than an error."""
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute('SELECT payload FROM geocode_cache WHERE query_key = %s', (query_key,))
+        row = cur.fetchone()
+        cur.close()
+        if not row:
+            return None
+        results = json.loads(row[0])
+        return results if isinstance(results, list) else None
+    except Exception:
+        app.logger.exception('stale geocode read failed')
+        return None
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route('/api/geocode')
+@rate_limit(max_requests=60, window=60)
+def geocode():
+    """Search for a place, through the server.
+
+    Answers {query, provider, results, cached}. The results are normalised
+    into one shape for every provider: {label, display, lat, lon, type}.
+    """
+    query = (request.args.get('q') or '').strip()
+    if not query:
+        return jsonify({'error': 'q is required'}), 400
+    if len(query) > GEOCODE_MAX_QUERY:
+        return jsonify({'error': 'Query is too long'}), 400
+
+    provider = (request.args.get('provider') or 'nominatim').strip().lower()
+    if provider not in GEOCODE_PROVIDERS:
+        return jsonify({'error': 'Unknown provider'}), 400
+
+    try:
+        limit = int(request.args.get('limit') or 5)
+    except ValueError:
+        limit = 5
+    limit = max(1, min(limit, GEOCODE_MAX_RESULTS))
+
+    query_key = _geocode_cache_key(provider, query, limit)
+
+    cached = _cached_geocode(query_key)
+    if cached is not None:
+        return jsonify({
+            'query': query,
+            'provider': provider,
+            'results': cached,
+            'cached': True,
+        }), 200
+
+    # Outbound budget, shared by every worker through the rate_limits table.
+    # Without it a burst of searches would hammer a shared community service.
+    if not _rate_limit_allowed('geocode:upstream', GEOCODE_UPSTREAM_BUDGET_PER_MINUTE, 60):
+        # A cached answer is still better than an error, so try the cache once
+        # more ignoring its TTL before giving up.
+        stale = _stale_geocode(query_key)
+        if stale is not None:
+            return jsonify({
+                'query': query,
+                'provider': provider,
+                'results': stale,
+                'cached': True,
+            }), 200
+        return jsonify({
+            'error': 'Too many place searches right now. Please try again in a minute.',
+        }), 429
+
+    results, error = _fetch_geocode(provider, query, limit)
+    if error:
+        stale = _stale_geocode(query_key)
+        if stale is not None:
+            return jsonify({
+                'query': query,
+                'provider': provider,
+                'results': stale,
+                'cached': True,
+            }), 200
+        return jsonify({'error': error}), 502
+
+    _store_geocode(query_key, provider, results)
+    return jsonify({
+        'query': query,
+        'provider': provider,
+        'results': results,
+        'cached': False,
     }), 200
 
 
