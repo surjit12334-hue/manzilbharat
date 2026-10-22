@@ -738,10 +738,47 @@ transport) without paying for a single travel API.
          - VERIFIED: 140 passed in 38s; ruff + prettier clean. The
            blog loads the local JSON and renders the 5 story cards.
 
-  [ ] 6. Save itineraries (2 h)                                     [h]
-         - Table saved_trips(user_id, title, payload, created_at)
-         - POST/GET /api/me/trips, show on My Trips page
-         - THIS is what makes it "personalized" per the PS
+  [x] 6. Save itineraries (2 h)                                     [h] DONE
+         - Table saved_trips(user_id, title, payload, created_at) +
+           two indexes; the row belongs to one user and goes with the
+           account (ON DELETE CASCADE).
+         - POST /api/me/trips: title required (<=255), payload required
+           and must be a JSON object (<=200 KB). Saving the SAME plan
+           twice returns the row that is already there (200) instead of
+           writing a copy, so a double-click cannot fill My Trips with
+           duplicates. A user may keep 25 plans; the 26th is 409.
+         - GET /api/me/trips: the caller's own plans, newest first.
+           DELETE /api/me/trips/<id>: 404 missing, 403 for somebody
+           else's plan (the ownership check happens before the delete),
+           200 otherwise.
+         - trip.html: "Save this itinerary" on the plan the visitor just
+           built. FIXED A BUG found on the way: the button read the
+           token from localStorage under the key "mb_token", which
+           nothing ever writes - the real key is "manzilToken" and a
+           session that is not "remember me" lives in sessionStorage, so
+           saving could never have worked. The page now loads auth.js
+           and uses MBAuth.getToken()/authHeaders(), which read both.
+         - mytrips.html: a "Saved Itineraries" panel with the
+           destination, the number of days, the budget level and the
+           estimated cost read out of the saved plan, plus a Remove
+           button. A failure in this panel never blocks the bookings
+           view - it says what went wrong instead.
+         - Tests: tests/test_saved_trips.py (18 cases) - create, the
+           eight validation shapes (and that no row was written for
+           any of them), the duplicate-save rule, list, list-only-your-
+           own, newest first, delete, 403 for another user's plan, 404,
+           401 without a token, the admin token refused, ON DELETE
+           CASCADE with the account, the rate limit and the per-user
+           cap.
+         - VERIFIED: 182 passed; ruff + prettier clean. Live smoke on
+           the local server: signup -> save 201 -> save again 200 ->
+           list -> delete 200 -> list empty.
+         - MIGRATING THE LIVE DB: schema.sql is fresh-DB only, so the
+           live database gets migrations/phase4.sql (idempotent):
+             psql "$DATABASE_URL" -v app_role=<role> -f migrations/phase4.sql
+           The app also says so at boot ("NOTE: missing table(s) ... run
+           migrations/phase4.sql") and answers 503 with a clear message
+           instead of a 500 if the table is not there yet.
 
   [ ] 7. Nominatim/Photon hygiene (1 h)                             [h]
          - Send a real User-Agent with contact info (policy)
@@ -805,7 +842,7 @@ PHASE 6 - PRESENTATION & SUBMISSION                          [1 day]
          - 30 sec: what's real vs. what's an integration stub
   [ ] 2. Screenshots/video backup for every step (network can fail)
   [ ] 3. Update aboutus.html team photos (compress them first)
-  [ ] 4. Final cross-check of all 17 pages: no broken links, no
+  [ ] 4. Final cross-check of all 18 pages: no broken links, no
          lorem ipsum, forms all work
   [ ] 5. ROADMAP + README updated to reflect reality
   [ ] 6. Tag the repo:  git tag -a v1.0-sih && git push --tags

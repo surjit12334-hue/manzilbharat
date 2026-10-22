@@ -13,7 +13,7 @@ request after ~15 idle minutes takes up to a minute to wake the instance).
 
 | Layer     | Technology |
 |-----------|------------|
-| Frontend  | HTML5, CSS3, vanilla JavaScript (17 static pages) |
+| Frontend  | HTML5, CSS3, vanilla JavaScript (18 static pages) |
 | Backend   | Python 3 + Flask (`backend/app.py`, single file) |
 | Database  | PostgreSQL |
 | AI        | Google Gemini (called **server-side** via `/api/ai-guide`) |
@@ -88,6 +88,15 @@ Prefer clicking it yourself? *New → Web Service*, Language **Docker**, and use
    psql "$DATABASE_URL" -f seed.sql        # optional demo data
    ```
 
+   Already have a database from an earlier version? `schema.sql` is the
+   fresh-database script, so run the migration instead — it only adds the
+   tables that came later and is safe to run twice:
+
+   ```bash
+   psql "$DATABASE_URL" -v app_role=<the role the app connects as> \
+        -f migrations/phase4.sql
+   ```
+
 4. **Environment variables** (set them in the Render dashboard, never upload
    `.env`):
 
@@ -147,6 +156,8 @@ manzilbharat/
 │   ├── transport.json      # Curated metro/rail/airport info for the 5 demo cities
 │   ├── blog_posts.json     # Local blog stories (replaces rss2json)
 │   └── <city>.json         # Curated hotels/things-to-do/eateries for the 5 demo cities
+├── migrations/
+│   └── phase4.sql          # Adds the saved_trips table to an existing database
 ├── requirements-dev.txt    # pytest - never installed by Render
 ├── pytest.ini
 ├── index.html              # Landing + destination search
@@ -180,8 +191,6 @@ Status column: `live` = implemented today, `todo` = Phase 1 of ROADMAP.txt.
 | GET | `/health` | — | live | Readiness probe: 503 when the DB is unreachable |
 | GET | `/places?city=…` | — | live | Curated hotels/things-to-do/eateries for the demo cities (404 + available list for others) |
 | GET | `/transport?city=…` | — | live | Curated metro/rail/airport info for the demo cities (404 + available list for others) |
-
-Blog content is now served locally from `data/blog_posts.json` and rendered by `blog.html` / `blog-post.html` (no third-party RSS proxy). | GET | `/transport?city=…` | — | live | Curated metro/rail/airport info for the demo cities (404 + available list for others) |
 | POST | `/signup` | — | live | Create account |
 | POST | `/login` | — | live | Email + password login |
 | POST | `/google-login` | — | live | Google Sign-In |
@@ -192,10 +201,15 @@ Blog content is now served locally from `data/blog_posts.json` and rendered by `
 | POST | `/bookings` | user | live | Create a booking (validated, owner row) |
 | GET | `/bookings/mine` | user | live | The caller's own bookings |
 | POST | `/bookings/<id>/cancel` | user | live | Cancel own booking (403/404/409 protected) |
+| POST, GET | `/me/trips` | user | live | Save an itinerary / list the caller's saved itineraries |
+| DELETE | `/me/trips/<id>` | user | live | Remove one saved itinerary (403 for somebody else's) |
 | POST | `/admin/login` | — | live | Admin session |
 | GET | `/stats`, `/recent` | admin | live | Dashboard |
 | GET, DELETE | `/users`, `/users/<id>` | admin | live | User management |
 | GET, PUT, DELETE | `/bookings/<id>`, `/payments/<id>` | admin | live | Record management |
+
+Blog content is served locally from `data/blog_posts.json` and rendered by
+`blog.html` / `blog-post.html` (no third-party RSS proxy).
 
 ---
 

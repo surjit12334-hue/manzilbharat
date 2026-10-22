@@ -373,6 +373,10 @@
         background: rgba(231, 76, 60, 0.12);
         color: #e74c3c;
       }
+      .badge.saved {
+        background: rgba(142, 68, 173, 0.15);
+        color: #8e44ad;
+      }
       .btn-cancel {
         background: none;
         border: 1px solid rgba(231, 76, 60, 0.4);
@@ -670,6 +674,20 @@
         <div id="pageError2" class="page-error" style="display: none"></div>
         <div class="trip-list" id="tripList"></div>
       </section>
+
+      <section class="panel" id="savedTripsPanel">
+        <h2>Saved Itineraries</h2>
+        <p class="subtitle" style="margin-bottom: 1rem">
+          AI itineraries saved from the trip planner.
+        </p>
+        <div id="savedTripsList" class="trip-list"></div>
+        <div id="savedTripsError" class="page-error" style="display: none"></div>
+        <div id="savedTripsEmpty" class="empty" style="display: none">
+          <i class="fas fa-bookmark"></i>
+          <h3>No saved itineraries yet</h3>
+          <p>Build a plan on <a href="trip.html">Plan a Trip</a> and save it to see it here.</p>
+        </div>
+      </section>
     </main>
 
     <footer>
@@ -695,6 +713,9 @@
         const errEl = document.getElementById('pageError');
         const tripForm = document.getElementById('tripForm');
         const panel = document.getElementById('newTripPanel');
+        const savedTripsList = document.getElementById('savedTripsList');
+        const savedTripsEmpty = document.getElementById('savedTripsEmpty');
+        const savedTripsError = document.getElementById('savedTripsError');
         let trips = [];
 
         const TYPE_ICONS = {
@@ -748,6 +769,104 @@
         function showPageError(msg) {
           errEl.textContent = msg;
           errEl.style.display = msg ? 'block' : 'none';
+        }
+
+        // Saved itineraries (Phase 4 step 6). The plan itself lives in the
+        // payload; the card shows what can be read from it without another
+        // API call - destination, days and the budget level.
+        function savedTripFacts(trip) {
+          const facts = [];
+          const payload = trip && trip.payload ? trip.payload : null;
+          const itin = payload && payload.itinerary ? payload.itinerary : null;
+          if (itin) {
+            if (itin.destination) facts.push(itin.destination);
+            if (itin.days && itin.days.length)
+              facts.push(itin.days.length + (itin.days.length === 1 ? ' day' : ' days'));
+            if (itin.budget) facts.push(itin.budget + ' budget');
+            if (itin.estimate && itin.estimate.total)
+              facts.push('≈ ' + fmtMoney(itin.estimate.total));
+          }
+          return facts;
+        }
+
+        async function removeSavedTrip(id, card) {
+          if (!window.confirm('Remove this saved itinerary?')) return;
+          card.querySelector('.btn-cancel').disabled = true;
+          try {
+            const res = await fetch(API_BASE + '/api/me/trips/' + Number(id), {
+              method: 'DELETE',
+              headers: MBAuth.authHeaders(),
+            });
+            if (res.status === 401 || res.status === 403) {
+              MBAuth.clearSession();
+              window.location.replace('login.html?next=mytrips.html');
+              return;
+            }
+            const data = await res.json().catch(() => null);
+            if (!res.ok) throw new Error((data && data.error) || 'HTTP ' + res.status);
+            card.remove();
+            if (!savedTripsList.children.length) savedTripsEmpty.style.display = 'block';
+          } catch (e) {
+            card.querySelector('.btn-cancel').disabled = false;
+            console.error('removeSavedTrip failed', e);
+            window.alert(e.message || 'Could not remove the saved itinerary. Please try again.');
+          }
+        }
+
+        async function loadSavedTrips() {
+          try {
+            const res = await fetch(API_BASE + '/api/me/trips', {
+              headers: MBAuth.authHeaders(),
+            });
+            if (res.status === 401 || res.status === 403) {
+              MBAuth.clearSession();
+              window.location.replace('login.html?next=mytrips.html');
+              return;
+            }
+            const data = await res.json().catch(() => null);
+            if (!res.ok) throw new Error((data && data.error) || 'HTTP ' + res.status);
+            const saved = Array.isArray(data) ? data : [];
+            savedTripsList.innerHTML = '';
+            savedTripsError.style.display = 'none';
+            if (!saved.length) {
+              savedTripsEmpty.style.display = 'block';
+              return;
+            }
+            savedTripsEmpty.style.display = 'none';
+            saved.forEach(function (trip) {
+              const card = document.createElement('div');
+              card.className = 'trip-card';
+              const created = trip.created_at ? fmtDate(trip.created_at) : '-';
+              card.innerHTML =
+                '<div class="trip-icon"><i class="fas fa-map-signs"></i></div>' +
+                '<div class="trip-main">' +
+                '<div class="trip-route"></div>' +
+                '<div class="trip-meta"><span class="badge saved"></span>' +
+                '<span></span><span>·</span><span></span></div>' +
+                '</div>' +
+                '<div class="trip-amount"></div>' +
+                '<div><button class="btn-cancel" data-id="' +
+                Number(trip.id) +
+                '">Remove</button></div>';
+              card.querySelector('.trip-route').textContent = trip.title || 'Saved itinerary';
+              const meta = card.querySelectorAll('.trip-meta span');
+              meta[0].textContent = 'saved';
+              const facts = savedTripFacts(trip);
+              meta[1].textContent = facts.length ? facts.join(' · ') : 'Itinerary';
+              meta[3].textContent = 'Saved on ' + created;
+              const btn = card.querySelector('.btn-cancel');
+              btn.addEventListener('click', function () {
+                removeSavedTrip(trip.id, card);
+              });
+              savedTripsList.appendChild(card);
+            });
+          } catch (e) {
+            // Best-effort: don't block the bookings view if saved itineraries fail.
+            console.error('loadSavedTrips failed', e);
+            savedTripsEmpty.style.display = 'none';
+            savedTripsError.textContent = e.message || 'Could not load your saved itineraries.';
+            savedTripsError.style.display = 'block';
+          }
         }
 
         async function loadProfile() {
@@ -1049,6 +1168,7 @@
 
         loadProfile();
         loadTrips();
+        loadSavedTrips();
       })();
     </script>
   </body>

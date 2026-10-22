@@ -630,6 +630,57 @@ def get_db():
     return conn
 
 
+def _check_phase4_tables():
+    """Warn once at boot when a Phase 4 table is missing.
+
+    The live database was created before steps 6 and 7, so it still needs
+    migrations/phase4.sql. A missing table is a deployment mistake rather
+    than a code bug, and saying so once at boot is clearer than letting
+    every request fail with a 500.
+    """
+    wanted = ['saved_trips']
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT tablename FROM pg_tables WHERE schemaname = 'public' "
+            "AND tablename = ANY(%s)",
+            (wanted,),
+        )
+        found = {row[0] for row in cur.fetchall()}
+        cur.close()
+        missing = [name for name in wanted if name not in found]
+        if missing:
+            print('NOTE: missing table(s) ' + ', '.join(missing) + ' - run '
+                  'migrations/phase4.sql against the database')
+    except Exception:
+        # The database may be asleep (Neon scales to zero) or unreachable.
+        # That is no reason to refuse to boot.
+        app.logger.info('phase 4 table check skipped: the database is unreachable')
+    finally:
+        if conn:
+            conn.close()
+
+
+_phase4_tables_checked = False
+
+
+@app.before_request
+def _check_phase4_tables_once():
+    """Run the table check on the first request, not at import.
+
+    At import time the database may still be starting (or asleep), and the
+    test suite imports the app before it creates its schema. The check is
+    skipped in testing mode for the same reason.
+    """
+    global _phase4_tables_checked
+    if _phase4_tables_checked or app.testing:
+        return
+    _phase4_tables_checked = True
+    _check_phase4_tables()
+
+
 @app.route('/api/health')
 def health():
     """Readiness probe: Render's healthCheckPath and the post-deploy smoke test.
@@ -1377,6 +1428,213 @@ def my_bookings():
     except Exception:
         app.logger.exception('my_bookings failed for user %s', g.user['user_id'])
         return jsonify({'error': 'Could not load your bookings'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Saved itineraries (Phase 4 step 6).
+#
+# A saved trip is the WHOLE plan the visitor built on trip.html: the day
+# cards, the budget estimate and the places/transport cards for one
+# destination. The row belongs to exactly one user (ON DELETE CASCADE takes
+# it with the account) and the plan itself is stored as JSON, so a saved
+# itinerary can be re-rendered later without asking the AI for it again.
+#
+# This is what makes the product personalised: the plan follows the user
+# between visits, instead of living in one browser tab.
+# ---------------------------------------------------------------------------
+
+SAVED_TRIP_MAX_TITLE = 255
+SAVED_TRIP_MAX_PAYLOAD_BYTES = 200_000
+# A ceiling on how many plans one account can keep. It sits below the POST
+# rate limit (30/min) on purpose, so the two limits never overlap.
+SAVED_TRIP_MAX_PER_USER = 25
+
+
+def _saved_trip_json(payload):
+    """Check the saved plan and return (text, error_message).
+
+    The payload must be a JSON object - the plan trip.html builds is a dict -
+    and must not be absurdly large. Its CONTENTS are not interpreted here:
+    trip.html owns the shape, and a plan saved before a page change must
+    still render afterwards.
+    """
+    if not isinstance(payload, dict):
+        return None, 'Payload must be an object'
+    try:
+        text = json.dumps(payload)
+    except (TypeError, ValueError):
+        return None, 'Payload must be JSON-serialisable'
+    if len(text.encode('utf-8')) > SAVED_TRIP_MAX_PAYLOAD_BYTES:
+        return None, 'Payload is too large'
+    return text, None
+
+
+@app.route('/api/me/trips', methods=['POST'])
+@require_user
+@rate_limit(max_requests=30, window=60)
+def create_saved_trip():
+    """Save the current plan for the signed-in user.
+
+    Saving the SAME plan twice is not an error: the existing row is returned
+    (200) instead of a duplicate, so a double-click on the button cannot fill
+    My Trips with copies of one itinerary.
+    """
+    data = request.get_json(silent=True) or {}
+    title = (data.get('title') or '').strip()
+    if not title:
+        return jsonify({'error': 'Title is required'}), 400
+    if len(title) > SAVED_TRIP_MAX_TITLE:
+        return jsonify({'error': 'Title is too long'}), 400
+    if 'payload' not in data or data.get('payload') is None:
+        return jsonify({'error': 'Payload is required'}), 400
+
+    payload_text, error = _saved_trip_json(data.get('payload'))
+    if error:
+        return jsonify({'error': error}), 400
+
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        # Same user, same title, same plan -> return the row that is already
+        # there instead of writing a second copy.
+        cur.execute(
+            "SELECT id, user_id, title, payload, created_at FROM saved_trips "
+            "WHERE user_id = %s AND title = %s AND payload = %s "
+            "ORDER BY created_at DESC, id DESC LIMIT 1",
+            (g.user['user_id'], title, payload_text),
+        )
+        existing = cur.fetchone()
+        if existing:
+            row = dict(existing)
+            try:
+                row['payload'] = json.loads(row['payload'])
+            except ValueError:
+                row['payload'] = None
+            cur.close()
+            return jsonify({
+                'message': 'This itinerary is already saved',
+                'trip': row,
+            }), 200
+
+        cur.execute(
+            'SELECT COUNT(*) AS saved FROM saved_trips WHERE user_id = %s',
+            (g.user['user_id'],),
+        )
+        count = cur.fetchone()['saved']
+        if count >= SAVED_TRIP_MAX_PER_USER:
+            cur.close()
+            return jsonify({
+                'error': 'You have reached the limit of saved itineraries. '
+                         'Remove one to save another.',
+            }), 409
+
+        cur.execute(
+            """INSERT INTO saved_trips (user_id, title, payload)
+               VALUES (%s, %s, %s)
+               RETURNING id, user_id, title, payload, created_at""",
+            (g.user['user_id'], title, payload_text),
+        )
+        row = dict(cur.fetchone())
+        conn.commit()
+        cur.close()
+        try:
+            row['payload'] = json.loads(row['payload'])
+        except ValueError:
+            row['payload'] = None
+        return jsonify({'message': 'Itinerary saved', 'trip': row}), 201
+    except psycopg2.errors.UndefinedTable:
+        if conn:
+            conn.rollback()
+        app.logger.exception('saved_trips is missing - run migrations/phase4.sql')
+        return jsonify({
+            'error': 'Saved itineraries are not available right now. Please try again later.',
+        }), 503
+    except Exception:
+        if conn:
+            conn.rollback()
+        app.logger.exception('create_saved_trip failed for user %s', g.user['user_id'])
+        return jsonify({'error': 'Could not save the itinerary'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route('/api/me/trips', methods=['GET'])
+@require_user
+@rate_limit(max_requests=60, window=60)
+def list_saved_trips():
+    """The signed-in user's saved itineraries, newest first."""
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(
+            "SELECT id, user_id, title, payload, created_at FROM saved_trips "
+            "WHERE user_id = %s ORDER BY created_at DESC, id DESC LIMIT %s",
+            (g.user['user_id'], SAVED_TRIP_MAX_PER_USER),
+        )
+        rows = []
+        for r in cur.fetchall():
+            d = dict(r)
+            try:
+                d['payload'] = json.loads(d['payload'])
+            except ValueError:
+                d['payload'] = None
+            rows.append(d)
+        cur.close()
+        return jsonify(rows), 200
+    except psycopg2.errors.UndefinedTable:
+        if conn:
+            conn.rollback()
+        app.logger.exception('saved_trips is missing - run migrations/phase4.sql')
+        return jsonify({
+            'error': 'Saved itineraries are not available right now. Please try again later.',
+        }), 503
+    except Exception:
+        app.logger.exception('list_saved_trips failed for user %s', g.user['user_id'])
+        return jsonify({'error': 'Could not load saved itineraries'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route('/api/me/trips/<int:trip_id>', methods=['DELETE'])
+@require_user
+def delete_saved_trip(trip_id):
+    """Remove one saved itinerary.
+
+    404 when the row does not exist, 403 when it belongs to somebody else -
+    the ownership check happens before the delete, so a guessed id cannot
+    remove another user's plan.
+    """
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("SELECT id, user_id, title FROM saved_trips WHERE id = %s", (trip_id,))
+        trip = cur.fetchone()
+        if not trip:
+            cur.close()
+            return jsonify({'error': 'Saved itinerary not found'}), 404
+        if trip['user_id'] != g.user['user_id']:
+            cur.close()
+            return jsonify({'error': 'You can only remove your own saved itineraries'}), 403
+
+        cur.execute("DELETE FROM saved_trips WHERE id = %s RETURNING id, title", (trip_id,))
+        deleted = dict(cur.fetchone())
+        conn.commit()
+        cur.close()
+        return jsonify({'message': 'Saved itinerary removed', 'trip': deleted}), 200
+    except Exception:
+        if conn:
+            conn.rollback()
+        app.logger.exception('delete_saved_trip %s failed for user %s',
+                             trip_id, g.user['user_id'])
+        return jsonify({'error': 'Could not remove the saved itinerary'}), 500
     finally:
         if conn:
             conn.close()

@@ -95,6 +95,19 @@ CREATE TABLE IF NOT EXISTS itinerary_cache (
 );
 CREATE INDEX IF NOT EXISTS itinerary_cache_created_idx ON itinerary_cache (created_at);
 
+-- User-saved itineraries (Phase 4 step 6). Each row is a complete plan the
+-- visitor saved from trip.html so they can revisit it under My Trips.
+CREATE TABLE IF NOT EXISTS saved_trips (
+    id         SERIAL PRIMARY KEY,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title      VARCHAR(255) NOT NULL,
+    payload    TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS saved_trips_user_id_idx ON saved_trips (user_id);
+CREATE INDEX IF NOT EXISTS saved_trips_created_at_idx ON saved_trips (created_at);
+
+
 -- ============================================================================
 -- Existing DB fixes (run on the CURRENT live database only if migrating)
 -- ============================================================================
