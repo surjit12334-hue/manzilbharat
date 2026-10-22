@@ -131,6 +131,17 @@ CREATE TABLE IF NOT EXISTS consents (
 );
 CREATE INDEX IF NOT EXISTS consents_user_id_idx ON consents (user_id);
 
+-- First-party page-view counter (Phase 5 step 5). One row per (path, day).
+-- No third-party analytics script, no cookies and no visitor identifier -
+-- the server just counts how often each page was asked for.
+CREATE TABLE IF NOT EXISTS page_views (
+    path  VARCHAR(255) NOT NULL,
+    day   DATE NOT NULL,
+    count INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (path, day)
+);
+CREATE INDEX IF NOT EXISTS page_views_day_idx ON page_views (day);
+
 -- ============================================================================
 -- Existing DB fixes (run on the CURRENT live database only if migrating)
 -- ============================================================================

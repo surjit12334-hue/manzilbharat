@@ -222,6 +222,71 @@ def index():
 
 
 # ---------------------------------------------------------------------------
+# First-party analytics (Phase 5 step 5)
+# ---------------------------------------------------------------------------
+# One row per (path, day) in page_views. Deliberately simple and deliberately
+# private: no third-party script, no cookie, no visitor identifier, and the
+# query string is NOT stored (it can carry a destination or an email).
+_analytics_broken = False
+
+
+def _is_page_view(path):
+    """True for a page request, false for an asset or an API call."""
+    if path.startswith('/api/'):
+        return False
+    ext = os.path.splitext(path)[1].lower()
+    return ext in ('', '.html')
+
+
+@app.after_request
+def count_page_view(response):
+    """Count the page view (if it is one) in the page_views table.
+
+    A failure here must never break the page the visitor asked for, so every
+    error is swallowed and the counter switches itself off after the first
+    one - a missing table would otherwise cost every request an error log
+    line and a rolled-back transaction.
+    """
+    global _analytics_broken
+    if _analytics_broken:
+        return response
+    if request.method not in ('GET', 'HEAD'):
+        return response
+    if response.status_code >= 400:
+        return response
+    if not _is_page_view(request.path):
+        return response
+
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            'INSERT INTO page_views (path, day, count) VALUES (%s, CURRENT_DATE, 1) '
+            'ON CONFLICT (path, day) DO UPDATE SET count = page_views.count + 1',
+            (request.path[:255],),
+        )
+        conn.commit()
+        cur.close()
+    except Exception:
+        if conn:
+            try:
+                conn.rollback()
+            except Exception:
+                # The connection is already broken - there is nothing to roll
+                # back, and the failure below is the one worth reading.
+                app.logger.info('page-view rollback failed: the connection was already gone')
+        _analytics_broken = True
+        app.logger.exception(
+            'page-view counting failed - run migrations/phase5.sql '
+            '(the counter is now off until the app restarts)')
+    finally:
+        if conn:
+            conn.close()
+    return response
+
+
+# ---------------------------------------------------------------------------
 # Security headers (Phase 5 step 3)
 # ---------------------------------------------------------------------------
 # The Content-Security-Policy lists every origin the pages actually use:
@@ -685,14 +750,14 @@ def get_db():
 
 
 def _check_phase4_tables():
-    """Warn once at boot when a Phase 4 table is missing.
+    """Warn once at boot when a table from Phase 4 or 5 is missing.
 
-    The live database was created before steps 6 and 7, so it still needs
-    migrations/phase4.sql. A missing table is a deployment mistake rather
-    than a code bug, and saying so once at boot is clearer than letting
-    every request fail with a 500.
+    The live database was created before those phases, so it still needs
+    migrations/phase4.sql and migrations/phase5.sql. A missing table is a
+    deployment mistake rather than a code bug, and saying so once at boot is
+    clearer than letting every request fail with a 500.
     """
-    wanted = ['saved_trips', 'geocode_cache', 'consents']
+    wanted = ['saved_trips', 'geocode_cache', 'consents', 'page_views']
     conn = None
     try:
         conn = get_db()
@@ -707,7 +772,8 @@ def _check_phase4_tables():
         missing = [name for name in wanted if name not in found]
         if missing:
             print('NOTE: missing table(s) ' + ', '.join(missing) + ' - run '
-                  'migrations/phase4.sql against the database')
+                  'migrations/phase4.sql and migrations/phase5.sql against '
+                  'the database')
     except Exception:
         # The database may be asleep (Neon scales to zero) or unreachable.
         # That is no reason to refuse to boot.
@@ -2858,6 +2924,64 @@ def get_recent():
         })
     except Exception:
         return jsonify({'error': 'Could not load recent activity'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route('/api/analytics', methods=['GET'])
+@require_admin
+def get_analytics():
+    """The page-view counter, read back for the admin panel (Phase 5 step 5).
+
+    Only paths and days - the counter never stored a visitor identifier, a
+    cookie or a query string, so there is nothing personal in here.
+    """
+    days = request.args.get('days', type=int) or 14
+    if days < 1 or days > 90:
+        days = 14
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(
+            "SELECT day::text AS day, SUM(count)::int AS views FROM page_views "
+            "WHERE day >= CURRENT_DATE - %s "
+            "GROUP BY day ORDER BY day",
+            (days - 1,),
+        )
+        by_day = [dict(r) for r in cur.fetchall()]
+        cur.execute(
+            "SELECT path, SUM(count)::int AS views FROM page_views "
+            "WHERE day >= CURRENT_DATE - %s "
+            "GROUP BY path ORDER BY views DESC, path LIMIT 10",
+            (days - 1,),
+        )
+        top_paths = [dict(r) for r in cur.fetchall()]
+        cur.execute("SELECT COALESCE(SUM(count), 0)::int AS total FROM page_views")
+        total_views = cur.fetchone()['total']
+        cur.close()
+        return jsonify({
+            'days': days,
+            'total_views': total_views,
+            'by_day': by_day,
+            'top_paths': top_paths,
+        }), 200
+    except psycopg2.errors.UndefinedTable:
+        if conn:
+            conn.rollback()
+        return jsonify({
+            'days': days,
+            'total_views': 0,
+            'by_day': [],
+            'top_paths': [],
+            'error': 'The page_views table is missing - run migrations/phase5.sql',
+        }), 200
+    except Exception:
+        if conn:
+            conn.rollback()
+        app.logger.exception('get_analytics failed')
+        return jsonify({'error': 'Could not load the traffic report'}), 500
     finally:
         if conn:
             conn.close()
