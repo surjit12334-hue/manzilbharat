@@ -40,6 +40,64 @@ def base64url_decode(s):
 load_dotenv()
 
 
+def _json_object():
+    """The request body as a JSON object, or {} when it is not one.
+
+    `get_json()` returns whatever the body parsed to - None for a literal
+    `null`, a list, a string, a number - and every handler then calls
+    `.get(...)` on it. A hand-made `POST /api/login` with `[1,2]` as the body
+    therefore ended in an AttributeError and a 500 with a traceback in the
+    log. Only an object carries fields, so anything else becomes `{}` and the
+    validation next to it answers with the 400 that names what is missing.
+
+    The parse itself stays silent: a body that is absent, not JSON, or sent
+    without a JSON content type is a bad request either way, and Flask's own
+    HTML error page for it is not the JSON the API promises.
+    """
+    data = request.get_json(silent=True)
+    return data if isinstance(data, dict) else {}
+
+
+def _text(value):
+    """A JSON field as stripped text.
+
+    JSON is not typed by the browser: a field the form sends as a string can
+    arrive as a number, a list or an object in a hand-made request. The old
+    `(data.get('x') or '').strip()` turned that into a 500 with a traceback in
+    the log. An empty string is the honest answer - the validation next to it
+    then returns a 400 that names the field.
+    """
+    return value.strip() if isinstance(value, str) else ''
+
+
+def _raw_text(value):
+    """A JSON field as text without stripping.
+
+    Passwords are compared byte for byte, so leading or trailing spaces are
+    part of the secret. Non-strings still become '' instead of crashing
+    `.encode()` further down.
+    """
+    return value if isinstance(value, str) else ''
+
+
+def _int_or_none(value):
+    """A JSON id as an int, or None when it is not one.
+
+    `int(1.5)` silently truncates to 1, which would let a float pay the wrong
+    booking; `int(True)` is 1. Both are refused here on purpose. A numeric
+    string ("12") is accepted because forms and older clients send those.
+    """
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value) if value.is_integer() else None
+    if isinstance(value, str) and value.strip().lstrip('-').isdigit():
+        return int(value.strip())
+    return None
+
+
 def _required(name, min_len=0):
     value = os.getenv(name)
     if not value or not value.strip():
@@ -1345,22 +1403,22 @@ def verify_google_token(credential):
 @app.route('/api/signup', methods=['POST'])
 @rate_limit(max_requests=10, window=60)
 def signup():
-    data = request.get_json()
-    name = (data.get('name') or '').strip()
+    data = _json_object()
+    name = _text(data.get('name'))
     # Emails are compared and stored case-insensitively, otherwise A@b.com and
     # a@b.com become two separate accounts that cannot log into each other.
-    email = (data.get('email') or '').strip().lower()
-    contact = (data.get('contact') or '').strip()
-    gender = (data.get('gender') or '').strip()
-    dob = (data.get('dob') or '').strip()
-    marital_status = (data.get('marital_status') or '').strip()
-    residential_address = (data.get('residential_address') or '').strip()
-    pincode = (data.get('pincode') or '').strip()
-    password = data.get('password') or ''
+    email = _text(data.get('email')).lower()
+    contact = _text(data.get('contact'))
+    gender = _text(data.get('gender'))
+    dob = _text(data.get('dob'))
+    marital_status = _text(data.get('marital_status'))
+    residential_address = _text(data.get('residential_address'))
+    pincode = _text(data.get('pincode'))
+    password = _raw_text(data.get('password'))
     # DPDP: consent is an explicit, affirmative act, so the client has to send
     # it. The version says WHICH text was accepted (see CONSENT_TEXT_VERSION).
     consent = data.get('consent')
-    consent_version = (data.get('consent_version') or CONSENT_TEXT_VERSION).strip()
+    consent_version = _text(data.get('consent_version')) or CONSENT_TEXT_VERSION
 
     errors = {}
 
@@ -1494,9 +1552,9 @@ def signup():
 @app.route('/api/login', methods=['POST'])
 @rate_limit(max_requests=10, window=60)
 def login():
-    data = request.get_json()
-    email = (data.get('email') or '').strip().lower()
-    password = data.get('password') or ''
+    data = _json_object()
+    email = _text(data.get('email')).lower()
+    password = _raw_text(data.get('password'))
 
     if not email or not password:
         return jsonify({'error': 'Email and password are required'}), 400
@@ -1532,8 +1590,8 @@ def login():
 @app.route('/api/google-login', methods=['POST'])
 @rate_limit(max_requests=15, window=60)
 def google_login():
-    data = request.get_json()
-    credential = (data.get('credential') or '').strip()
+    data = _json_object()
+    credential = _text(data.get('credential'))
 
     if not credential:
         return jsonify({'error': 'Google credential is required'}), 400
@@ -1601,8 +1659,8 @@ def google_login():
 @app.route('/api/forgot-password', methods=['POST'])
 @rate_limit(max_requests=3, window=300)
 def forgot_password():
-    data = request.get_json()
-    email = (data.get('email') or '').strip().lower()
+    data = _json_object()
+    email = _text(data.get('email')).lower()
 
     if not email:
         return jsonify({'error': 'Email is required'}), 400
@@ -1652,9 +1710,9 @@ def forgot_password():
 @app.route('/api/reset-password', methods=['POST'])
 @rate_limit(max_requests=5, window=60)
 def reset_password():
-    data = request.get_json()
-    token = (data.get('token') or '').strip()
-    new_password = data.get('new_password') or ''
+    data = _json_object()
+    token = _text(data.get('token'))
+    new_password = _raw_text(data.get('new_password'))
 
     if not token or not new_password:
         return jsonify({'error': 'Reset token and new password are required'}), 400
@@ -1763,10 +1821,8 @@ def record_consent():
     checked against the ones this build knows about, so the consent history
     always says which wording was accepted.
     """
-    data = request.get_json(silent=True) or {}
-    version = (data.get('version') or CONSENT_TEXT_VERSION).strip()
-    if not version:
-        version = CONSENT_TEXT_VERSION
+    data = _json_object()
+    version = _text(data.get('version')) or CONSENT_TEXT_VERSION
     if version not in CONSENT_TEXT_VERSIONS:
         return jsonify({'error': 'Unknown consent version', 'versions': sorted(CONSENT_TEXT_VERSIONS)}), 400
     conn = None
@@ -1919,9 +1975,9 @@ def change_password():
     The endpoint is bcrypt-expensive and a brute-force target, hence the
     rate limit on top of require_user.
     """
-    data = request.get_json(silent=True) or {}
-    current_password = data.get('current_password') or ''
-    new_password = data.get('new_password') or ''
+    data = _json_object()
+    current_password = _raw_text(data.get('current_password'))
+    new_password = _raw_text(data.get('new_password'))
 
     errors = {}
     if not current_password:
@@ -1986,8 +2042,8 @@ EMAIL_RE = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
 @app.route('/api/newsletter', methods=['POST'])
 @rate_limit(max_requests=10, window=60)
 def newsletter_subscribe():
-    data = request.get_json(silent=True) or {}
-    email = (data.get('email') or '').strip().lower()
+    data = _json_object()
+    email = _text(data.get('email')).lower()
 
     if not email:
         return jsonify({'error': 'Email is required', 'errors': {'email': 'Email is required'}}), 400
@@ -2023,11 +2079,11 @@ def newsletter_subscribe():
 @app.route('/api/contact', methods=['POST'])
 @rate_limit(max_requests=5, window=60)
 def contact_message():
-    data = request.get_json(silent=True) or {}
-    name = (data.get('name') or '').strip()
-    email = (data.get('email') or '').strip().lower()
-    subject = (data.get('subject') or '').strip()
-    body = (data.get('body') or '').strip()
+    data = _json_object()
+    name = _text(data.get('name'))
+    email = _text(data.get('email')).lower()
+    subject = _text(data.get('subject'))
+    body = _text(data.get('body'))
 
     errors = {}
     if not name:
@@ -2088,11 +2144,11 @@ MAX_BOOKING_AMOUNT = 1000000
 @app.route('/api/bookings', methods=['POST'])
 @require_user
 def create_booking():
-    data = request.get_json(silent=True) or {}
-    booking_type = (data.get('booking_type') or '').strip().lower()
-    source = (data.get('source') or '').strip()
-    destination = (data.get('destination') or '').strip()
-    travel_date_raw = (data.get('travel_date') or '').strip()
+    data = _json_object()
+    booking_type = _text(data.get('booking_type')).lower()
+    source = _text(data.get('source'))
+    destination = _text(data.get('destination'))
+    travel_date_raw = _text(data.get('travel_date'))
     amount_raw = data.get('amount')
 
     errors = {}
@@ -2266,10 +2322,9 @@ def create_payment_order():
     The key id in the answer is public (the checkout needs it); the secret
     never leaves the server.
     """
-    data = request.get_json(silent=True) or {}
-    try:
-        booking_id = int(data.get('booking_id'))
-    except (TypeError, ValueError):
+    data = _json_object()
+    booking_id = _int_or_none(data.get('booking_id'))
+    if booking_id is None:
         return jsonify({'error': 'Which trip is this payment for?'}), 400
 
     if not razorpay_configured():
@@ -2375,10 +2430,10 @@ def verify_payment():
     signature - or the signature of a different payment - is refused and the
     payment row stays pending.
     """
-    data = request.get_json(silent=True) or {}
-    order_id = str(data.get('razorpay_order_id') or '').strip()
-    payment_ref = str(data.get('razorpay_payment_id') or '').strip()
-    signature = str(data.get('razorpay_signature') or '').strip()
+    data = _json_object()
+    order_id = _text(data.get('razorpay_order_id'))
+    payment_ref = _text(data.get('razorpay_payment_id'))
+    signature = _text(data.get('razorpay_signature'))
     if not order_id or not payment_ref or not signature:
         return jsonify({'error': 'The payment details are incomplete.'}), 400
     if not razorpay_configured():
@@ -2516,8 +2571,8 @@ def create_saved_trip():
     (200) instead of a duplicate, so a double-click on the button cannot fill
     My Trips with copies of one itinerary.
     """
-    data = request.get_json(silent=True) or {}
-    title = (data.get('title') or '').strip()
+    data = _json_object()
+    title = _text(data.get('title'))
     if not title:
         return jsonify({'error': 'Title is required'}), 400
     if len(title) > SAVED_TRIP_MAX_TITLE:
@@ -3220,7 +3275,7 @@ def _itinerary_guide(data):
 @app.route('/api/ai-guide', methods=['POST'])
 @rate_limit(max_requests=15, window=60)
 def ai_guide():
-    data = request.get_json(silent=True) or {}
+    data = _json_object()
     if not isinstance(data, dict):
         data = {}
     kind = str(data.get('kind') or '').strip()
@@ -3247,9 +3302,9 @@ def ai_guide():
 @app.route('/api/admin/login', methods=['POST'])
 @rate_limit(max_requests=5, window=60)
 def admin_login():
-    data = request.get_json()
-    email = (data.get('email') or '').strip()
-    password = data.get('password') or ''
+    data = _json_object()
+    email = _text(data.get('email'))
+    password = _raw_text(data.get('password'))
 
     if email != ADMIN_EMAIL:
         # Spend the same bcrypt work as a real check so response timing does
@@ -3523,8 +3578,8 @@ def admin_get_booking(booking_id):
 @app.route('/api/bookings/<int:booking_id>', methods=['PUT'])
 @require_admin
 def admin_update_booking(booking_id):
-    data = request.get_json()
-    status = (data.get('status') or '').strip().lower()
+    data = _json_object()
+    status = _text(data.get('status')).lower()
     valid_statuses = ['pending', 'confirmed', 'completed', 'cancelled']
     if status not in valid_statuses:
         return jsonify({'error': 'Invalid status'}), 400
