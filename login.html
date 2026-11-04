@@ -395,10 +395,23 @@
         ></div>
         <script>
           (function () {
-            const cid =
-              window.GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+            const cid = (window.GOOGLE_CLIENT_ID || '').trim();
             const onload = document.getElementById('g_id_onload');
             const signin = document.querySelector('.g_id_signin');
+            const configured = cid && cid.indexOf('YOUR_GOOGLE_CLIENT_ID') !== 0;
+            if (!configured) {
+              // No client id configured: hide the Google button instead of
+              // sending Google the placeholder, which fails with
+              // "OAuth client was not found" (401 invalid_client).
+              [onload, signin].forEach(function (el) {
+                if (el) el.style.display = 'none';
+              });
+              const consent = document.querySelector('.google-consent');
+              if (consent) consent.style.display = 'none';
+              const divider = document.querySelector('.divider');
+              if (divider) divider.style.display = 'none';
+              return;
+            }
             if (onload) onload.setAttribute('data-client_id', cid);
             if (signin) signin.setAttribute('data-client_id', cid);
           })();
