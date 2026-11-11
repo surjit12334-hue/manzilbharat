@@ -483,6 +483,9 @@ def count_page_view(response):
 #   tile.openstreetmap.org / server.arcgisonline.com   the map tiles
 #   www.google.com        the Google Maps embed on the contact page
 #   checkout.razorpay.com the hosted checkout (Phase 5 step 2)
+#   images.unsplash.com   the blog cover images (data/blog_posts.json)
+#   commons.wikimedia.org map.html's photo gallery API (connect-src)
+#   upload.wikimedia.org  the gallery thumbnails themselves (img-src)
 # 'unsafe-inline' is needed for scripts and styles because every page carries
 # its own <script> and <style> block; a nonce-per-page version would mean
 # rewriting all 18 pages. Everything else is locked down: no plugins, no
@@ -497,8 +500,10 @@ _CSP = (
     "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; "
     "img-src 'self' data: blob: https://tile.openstreetmap.org "
     "https://server.arcgisonline.com https://*.googleapis.com "
-    "https://maps.gstatic.com; "
-    "connect-src 'self' https://accounts.google.com https://api.razorpay.com; "
+    "https://maps.gstatic.com https://images.unsplash.com "
+    "https://commons.wikimedia.org https://upload.wikimedia.org; "
+    "connect-src 'self' https://accounts.google.com https://api.razorpay.com "
+    "https://commons.wikimedia.org; "
     "frame-src https://www.google.com https://accounts.google.com "
     "https://checkout.razorpay.com; "
     "object-src 'none'; "

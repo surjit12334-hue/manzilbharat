@@ -48,6 +48,26 @@ def test_the_csp_allows_the_origins_the_pages_use(client):
     assert 'https://cdnjs.cloudflare.com' in csp
 
 
+def test_the_csp_allows_the_blog_and_gallery_images(client):
+    """img-src must cover the blog cover images (images.unsplash.com) and the
+    map gallery (commons.wikimedia.org for the API response's thumbnails on
+    upload.wikimedia.org); connect-src must cover the gallery API fetch itself.
+    A host present but in the WRONG directive still breaks the feature - this
+    happened once for real: the whole gallery was dead and every blog card
+    rendered without its cover image."""
+    csp = client.get('/blog.html').headers['Content-Security-Policy']
+    directives = {
+        part.strip().split(' ', 1)[0]: part
+        for part in csp.split(';')
+        if part.strip()
+    }
+
+    assert 'https://images.unsplash.com' in directives['img-src']
+    assert 'https://upload.wikimedia.org' in directives['img-src']
+    assert 'https://commons.wikimedia.org' in directives['img-src']
+    assert 'https://commons.wikimedia.org' in directives['connect-src']
+
+
 def test_the_csp_allows_the_razorpay_checkout(client):
     """Phase 5 step 2 loads checkout.js and frames the hosted checkout; the
     API host is there because the script talks to it from the page."""
