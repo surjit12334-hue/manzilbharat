@@ -253,6 +253,18 @@
         right: 0;
       }
 
+      /* The Google button creates an account too, so the consent has to be
+         visible next to it. */
+      .google-consent {
+        text-align: center;
+        font-size: 0.78rem;
+        color: #888;
+        margin: 0.4rem 0 0;
+      }
+      .google-consent a {
+        color: #ff6b35;
+      }
+
       .auth-footer {
         text-align: center;
         margin-top: 1.5rem;
@@ -347,6 +359,7 @@
       <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
       <ul class="nav-links" id="navLinks">
         <li><a href="index.html">Home</a></li>
+        <li><a href="trip.html">Plan Trip</a></li>
         <li><a href="mytrips.html">My Trips</a></li>
         <li><a href="contact.html">Contact</a></li>
         <li data-mb-show="guest"><a href="login.html">Login</a></li>
@@ -382,14 +395,33 @@
         ></div>
         <script>
           (function () {
-            const cid =
-              window.GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+            const cid = (window.GOOGLE_CLIENT_ID || '').trim();
             const onload = document.getElementById('g_id_onload');
             const signin = document.querySelector('.g_id_signin');
+            const configured = cid && cid.indexOf('YOUR_GOOGLE_CLIENT_ID') !== 0;
+            if (!configured) {
+              // No client id configured: hide the Google button instead of
+              // sending Google the placeholder, which fails with
+              // "OAuth client was not found" (401 invalid_client).
+              [onload, signin].forEach(function (el) {
+                if (el) el.style.display = 'none';
+              });
+              const consent = document.querySelector('.google-consent');
+              if (consent) consent.style.display = 'none';
+              const divider = document.querySelector('.divider');
+              if (divider) divider.style.display = 'none';
+              return;
+            }
             if (onload) onload.setAttribute('data-client_id', cid);
             if (signin) signin.setAttribute('data-client_id', cid);
           })();
         </script>
+
+        <p class="google-consent">
+          Signing in with Google means you accept our
+          <a href="privacypolicy.html">Privacy Policy</a> and
+          <a href="terms-and-conditions.html">Terms &amp; Conditions</a>.
+        </p>
 
         <div class="divider">or log in with email</div>
 

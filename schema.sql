@@ -38,8 +38,15 @@ CREATE TABLE IF NOT EXISTS payments (
     razorpay_order_id  VARCHAR(255),
     booking_type       VARCHAR(50),
     status             VARCHAR(20) DEFAULT 'pending',
+    mode               VARCHAR(10) NOT NULL DEFAULT 'test',
     created_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- mode says whether the payment was taken in TEST mode ('test') or with
+-- real money ('live'). This build only ever writes 'test'. A separate
+-- statement, because CREATE TABLE IF NOT EXISTS does NOT add a column to a
+-- table that already exists.
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS mode VARCHAR(10) NOT NULL DEFAULT 'test';
 
 -- Newsletter signups. No user_id: subscribers are often signed out, and
 -- ON CONFLICT (email) makes a double-submit idempotent.
@@ -82,6 +89,72 @@ CREATE TABLE IF NOT EXISTS reset_tokens (
     used_at    TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS reset_tokens_exp_idx ON reset_tokens (exp);
+
+-- Generated day-wise itineraries, keyed by a hash of the normalised request
+-- (destination, days, budget, interests), so asking for the same trip twice
+-- costs one Gemini call. payload is the validated JSON the API returns; rows
+-- are served for ITINERARY_CACHE_TTL_DAYS and pruned a month after they were
+-- last written (see backend/app.py).
+CREATE TABLE IF NOT EXISTS itinerary_cache (
+    query_hash TEXT PRIMARY KEY,
+    payload    TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS itinerary_cache_created_idx ON itinerary_cache (created_at);
+
+-- User-saved itineraries (Phase 4 step 6). Each row is a complete plan the
+-- visitor saved from trip.html so they can revisit it under My Trips.
+CREATE TABLE IF NOT EXISTS saved_trips (
+    id         SERIAL PRIMARY KEY,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title      VARCHAR(255) NOT NULL,
+    payload    TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS saved_trips_user_id_idx ON saved_trips (user_id);
+CREATE INDEX IF NOT EXISTS saved_trips_created_at_idx ON saved_trips (created_at);
+
+-- Cached answers from the public geocoders (Nominatim / Photon). The site
+-- searches for places through the server (so it can send a proper
+-- User-Agent, as the OSM usage policy asks), and every answer is kept here
+-- so the same search does not hit the shared community service twice.
+-- Rows are served for GEOCODE_CACHE_TTL_DAYS and pruned a month after they
+-- were last written (see backend/app.py).
+CREATE TABLE IF NOT EXISTS geocode_cache (
+    query_key  TEXT PRIMARY KEY,
+    provider   TEXT NOT NULL,
+    payload    TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS geocode_cache_created_idx ON geocode_cache (created_at);
+
+-- DPDP consent records (Phase 5 step 1). Each time consent is given it is
+-- recorded with a version so we can prove what the user agreed to.
+CREATE TABLE IF NOT EXISTS consents (
+    id           SERIAL PRIMARY KEY,
+    user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    text_version VARCHAR(50) NOT NULL,
+    source       VARCHAR(20) NOT NULL DEFAULT 'signup',
+    created_at   TIMESTAMP NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS consents_user_id_idx ON consents (user_id);
+
+-- source says WHERE the consent came from: 'signup', 'google' or 'renewal'.
+-- It is a separate statement because CREATE TABLE IF NOT EXISTS does NOT add
+-- a column to a table that already exists - without this, re-running this
+-- file on an older database would leave the column missing.
+ALTER TABLE consents ADD COLUMN IF NOT EXISTS source VARCHAR(20) NOT NULL DEFAULT 'signup';
+
+-- First-party page-view counter (Phase 5 step 5). One row per (path, day).
+-- No third-party analytics script, no cookies and no visitor identifier -
+-- the server just counts how often each page was asked for.
+CREATE TABLE IF NOT EXISTS page_views (
+    path  VARCHAR(255) NOT NULL,
+    day   DATE NOT NULL,
+    count INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (path, day)
+);
+CREATE INDEX IF NOT EXISTS page_views_day_idx ON page_views (day);
 
 -- ============================================================================
 -- Existing DB fixes (run on the CURRENT live database only if migrating)

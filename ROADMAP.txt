@@ -555,57 +555,282 @@ PHASE 4 - DEMO THE PITCH (free data instead of paid APIs)   [2-3 days]
 Goal: cover the full travel flow (itinerary, budget, hotels,
 transport) without paying for a single travel API.
 
-  [ ] 1. Day-wise itinerary (1-1 d)                                 [d]
-         - Extend POST /api/ai-guide with kind='itinerary':
-           { destination, days, budget, interests }
-         - Prompt Gemini for JSON:
-           { days: [ { day, morning, afternoon, evening, cost } ] }
-         - Parse + validate server-side, cache the result in a table
-           itinerary_cache(query_hash, payload, created_at)
-         - Render as day cards on map.html / a new trip.html
+  [x] 1. Day-wise itinerary (1-1 d)                                 [d] DONE
+         - POST /api/ai-guide kind='itinerary', body
+           {destination, days, budget, interests}. destination is
+           required (max 120 chars), days must be a whole number from 1
+           to 10 (anything else - bool, float, "three" - is 400),
+           budget/interests are optional free text (60/200 chars).
+           Validation answers before the key check; unknown kinds still
+           400. A non-object JSON body is treated as empty, not a 500.
+           The Gemini call moved into _gemini_text(), shared by the
+           prose kinds too, so timeout / 429 / 502 handling and the
+           "never forward Google's body" rule cannot drift between them.
+         - JSON contract: the request sets
+           generationConfig.responseMimeType=application/json and asks
+           for {days:[{day,morning,afternoon,evening,cost}]}. The reply
+           is parsed server-side (_parse_itinerary): markdown fences and
+           "₹1,200"-style costs are tolerated, extra days are trimmed,
+           and the server numbers the days itself. A short list, a
+           missing morning/afternoon/evening or an unparseable cost is
+           502 "unusable itinerary" and nothing is cached; the model's
+           text is logged (300 chars) but never sent to the browser.
+         - itinerary_cache(query_hash, payload, created_at) added to
+           schema.sql (+ index on created_at). query_hash = sha256 of
+           the normalised request (destination/budget lowercased,
+           interests split and sorted), so "Jaipur" and "  jaipur " or
+           "forts, food" and "Food, FORTS" share one Gemini call.
+           Served for 7 days (make_interval), pruned after 30 on write.
+           The cache is read BEFORE the key check, so warm plans still
+           answer if the key is later removed; a cache read failure is a
+           miss and a write failure is logged, so neither can turn a
+           working plan into a 500. Responses carry "cached": true/false.
+         - trip.html: destination (prefilled from map.html's
+           ?destination=), days 1-10, budget and interests -> day cards
+           with morning/afternoon/evening rows and a per-day rupee
+           estimate. Entry points: "Plan Trip" in the nav of all 12 nav
+           pages, a hero link on index.html, and the map AI card now
+           ends with "Plan a day-wise trip".
+         - Tests: tests/test_itinerary.py (26 cases) covers validation,
+           503 without a key, the exact payload sent to Gemini, the
+           cache write + a repeat request served with the key removed
+           (fails if Gemini is called at all), case/order-insensitive
+           cache keys, an 8-day-old row not being served, seven
+           unusable replies -> 502 with no cache row, fenced JSON +
+           extra days + rupee costs, and the 15/min limiter.
+           VERIFIED: 77 passed in 30s; ruff and prettier clean; local
+           smoke - trip/map/index/aboutus 200, valid request -> 503
+           (no key), days=99 -> 400.
+         - MIGRATING THE LIVE DB: schema.sql is fresh-DB only. On the
+           existing Neon database run the CREATE TABLE + CREATE INDEX
+           for itinerary_cache (and GRANT SELECT/INSERT/UPDATE/DELETE to
+           the app role on a self-hosted DB). Until then the feature
+           works but logs a cache miss on every request.
 
-  [ ] 2. Budget estimate (2-3 h)                                    [h]
-         - From the same itinerary JSON: sum cost per day
-         - Breakdown: stay / transport / food / activities
-         - Static price table in JSON (free, editable): a small
-           city->cost-per-day dataset for your 5 demo cities
+  [x] 2. Budget estimate (2-3 h)                                    [h] DONE
+         - Same itinerary JSON: _budget_estimate() sums the day costs the
+           visitor actually received (trip_total + per_day), so the total
+           is never a separate model guess.
+         - Breakdown stay/transport/food/activities comes from
+           data/city_costs.json: per-day rupee rates for budget /
+           mid-range / luxury plus a split that is a fixed share per
+           head. The heads are integer rupees and the last one absorbs
+           the rounding remainder, so breakdown always sums to
+           trip_total (clocked by tests over awkward totals like [999,1]).
+         - data/city_costs.json is hand-written and editable: the 5 demo
+           cities (Jaipur, Goa, Delhi, Manali, Varanasi) + a "default"
+           row. A city that is not in the file still answers - it uses
+           the default rate and returns matched=false, which the page
+           states plainly ("no price sheet for this destination yet")
+           instead of pretending. A missing or corrupt file, a split
+           that does not add up, or a non-numeric rate all degrade to
+           averages; none of them can 500 the request.
+         - The budget rides on the itinerary response for BOTH paths
+           (fresh + cache hit) and is deliberately NOT part of the
+           cached blob, so it is recomputed from the plan on every call
+           and edits to the price sheet take effect immediately. The
+           table is cached on file mtime, so editing it on a running
+           server needs no restart.
+         - trip.html renders a budget panel above the day cards: total,
+           per-day figure and four proportional bars, with a footnote
+           naming the price sheet and the baseline rate used. The panel
+           hides itself if the server sends no estimate.
+         - Tests: tests/test_budget.py (23 cases) - the table ships the
+           5 cities + default and every split sums to 1.0; the breakdown
+           always reconciles with the total; the split follows the city
+           table (Goa's exact numbers); unmatched cities fall back and
+           report matched=false; the budget wording is normalised
+           ("cheap and cheerful" -> budget, "upscale" -> luxury,
+           "something else" -> mid-range); case-insensitive city match;
+           broken/missing table degrades; and the two endpoint paths
+           (fresh + cached).
+           VERIFIED: 100 passed in 27s; ruff + prettier clean. The
+           rendered panel was checked by running the page's own
+           renderBudget() in node against a real captured API response:
+           ₹8,300 total, ₹2,766/day, four bars (Stay 3154 / Food 2158 /
+           Transport 1494 / Activities 1494 = 8300), the matched-city
+           note, the fallback note for Shillong, and null -> panel
+           hidden. A test also caught a real bug: an unmatched city was
+           being relabelled with the fallback's "Elsewhere in India"
+           instead of keeping the destination the visitor typed.
 
-  [ ] 3. Demo city data instead of paid APIs (half a day)           [d/2]
-         - data/<city>.json: 5-8 hotels, 5 things to do, 3 eateries
-           (hand-written, real places - judge-checkable)
-         - Serve with GET /api/places?city=...
-         - BE HONEST in the pitch: "integration layer ready,
-           provider keys pending - here is the contract"
+  [x] 3. Demo city data instead of paid APIs (half a day)           [d/2] DONE
+         - data/<city>.json for the same 5 demo cities as the price
+           sheet (jaipur, goa, delhi, manali, varanasi): 6-7 hotels
+           with a per-night rupee band and a category (hostel/budget/
+           mid-range/luxury), 5-6 things to do with an area and a
+           duration, 4 eateries with a must-try dish and a price for
+           two. All real, named, map-checkable places ("Amber Fort",
+           "Karim's", "Blue Lassi Shop") - not lorem ipsum.
+         - GET /api/places?city=... serves them. Public, read-only,
+           rate-limited 60/min. Returns {city, label, tagline, hotels,
+           things_to_do, eateries, source:"curated"} - the exact shape
+           a paid provider would fill in, so swapping the source later
+           is a change to this one handler, not the frontend.
+         - Honest about the edges: an unknown city is a 404 carrying
+           the list of cities that DO exist (and the page hides the
+           section), never an empty 200 that reads as "found nothing".
+           A missing ?city= is a 400.
+         - Path traversal is impossible: the slug is checked against
+           ^[a-z][a-z0-9-]{1,40}$ BEFORE it reaches the filesystem, so
+           ?city=../../.env, ?city=/etc/passwd, ?city=jaipur.json and
+           ?city=city_costs can never read anything - the only reachable
+           names are lowercase files under data/. A corrupt or
+           non-object city file is a 404, not a 500. (city_costs.json
+           is deliberately excluded so it is not addressable as a city.)
+         - trip.html renders the lists under the itinerary as three
+           cards (Where to stay / Things to do / Where to eat) with
+           price-or-duration chips. Loaded independently of the
+           itinerary fetch and best-effort, so a slow or missing places
+           list can neither hold up nor break the plan the visitor
+           already has. Also fixed a duplicate id="budget" (form select
+           vs budget panel) found while wiring this up.
+         - Tests: tests/test_places.py (34 cases) - every demo file
+           meets the roadmap's own counts and field shape; the price
+           sheet and place files cover the SAME five cities (they cannot
+           drift apart); case/space-insensitive lookup; honest 404 with
+           the available list; 400 on missing city; nine hostile slugs
+           all refused; corrupt/odd files are 404s; and an edited city
+           file is picked up without a restart (mtime cache).
+           VERIFIED: 134 passed in 31s; ruff + prettier clean. The
+           rendered section was checked by running the page's own
+           renderPlaces()/placeItem() in node against a real captured
+           API response: 3 groups, 7/6/4 entries, price chips
+           (₹500-1,200, 2-3 h, ₹200-400) and area/category meta lines;
+           an empty payload hides the section.
 
-  [ ] 4. Transport cards (2-3 h)                                    [h]
-         - Use the free Overpass API (OpenStreetMap) for nearby
-           stations, or reuse the same static JSON approach
-         - Show metro/rail/airport info for the chosen destination
+  [x] 4. Transport cards (2-3 h)                                    [h] DONE
+         - data/transport.json for the 5 demo cities with metro,
+           rail and airport info. Delhi and Jaipur have metro; Goa
+           and Manali have no metro (showed honestly). Each entry has
+           name, area/fare/distance and notes; rail lists major stations
+           with facilities.
+         - GET /api/transport?city=... serves them. Public, read-only,
+           rate-limited 60/min. Returns {city, label, metro, rail,
+           airport, source:"curated"} - provider-shaped for easy swap.
+         - Unknown city is a 404 carrying the available list; missing
+           ?city= is a 400. Slug validated before filesystem access,
+           cached on file mtime.
+         - trip.html renders three cards under places (Metro / Rail /
+           Railway Stations / Airport) loaded independently and
+           best-effort, so they never block or break the itinerary.
+         - Tests: tests/test_transport.py (6 cases) - all five cities
+           present with the three sections; case-insensitive lookup;
+           honest 404 with available list; 400 on missing; path
+           traversal rejected.
+           VERIFIED: 140 passed in 34s; ruff + prettier clean. Render
+           checked in node: Delhi shows Metro/Rail/Airport (1/3/1).
 
-  [ ] 5. Replace rss2json.com blog (2-3 h)                          [h]
-         - 3-5 real posts as HTML/Markdown, served by Flask or
-           static files, listed on blog.html
-         - Free, no third party that can vanish mid-judging
+  [x] 5. Replace rss2json.com blog (2-3 h)                          [h] DONE
+         - data/blog_posts.json holds 5 real travel stories for the 5
+           demo cities (Jaipur, Goa, Delhi, Manali, Varanasi) with
+           titles, dates, authors, excerpts, cover images, tags and
+           full HTML content - hand-written, checkable, no lorem ipsum.
+         - blog.html fetches from data/blog_posts.json (no third-party
+           RSS proxy). Cards show cover image, title, date, author and
+           excerpt linking to blog-post.html?slug=....
+         - blog-post.html renders a full article page with hero image,
+           metadata, body content and tags. Slug lookup is case-safe
+           and falls back gracefully.
+         - The old YouTube/RSS2JSON integration was removed. The blog
+           now works fully offline-capable as static JSON served by
+           Flask - no external API that can vanish mid-judging.
+         - VERIFIED: 140 passed in 38s; ruff + prettier clean. The
+           blog loads the local JSON and renders the 5 story cards.
 
-  [ ] 6. Save itineraries (2 h)                                     [h]
-         - Table saved_trips(user_id, title, payload, created_at)
-         - POST/GET /api/me/trips, show on My Trips page
-         - THIS is what makes it "personalized" per the PS
+  [x] 6. Save itineraries (2 h)                                     [h] DONE
+         - Table saved_trips(user_id, title, payload, created_at) +
+           two indexes; the row belongs to one user and goes with the
+           account (ON DELETE CASCADE).
+         - POST /api/me/trips: title required (<=255), payload required
+           and must be a JSON object (<=200 KB). Saving the SAME plan
+           twice returns the row that is already there (200) instead of
+           writing a copy, so a double-click cannot fill My Trips with
+           duplicates. A user may keep 25 plans; the 26th is 409.
+         - GET /api/me/trips: the caller's own plans, newest first.
+           DELETE /api/me/trips/<id>: 404 missing, 403 for somebody
+           else's plan (the ownership check happens before the delete),
+           200 otherwise.
+         - trip.html: "Save this itinerary" on the plan the visitor just
+           built. FIXED A BUG found on the way: the button read the
+           token from localStorage under the key "mb_token", which
+           nothing ever writes - the real key is "manzilToken" and a
+           session that is not "remember me" lives in sessionStorage, so
+           saving could never have worked. The page now loads auth.js
+           and uses MBAuth.getToken()/authHeaders(), which read both.
+         - mytrips.html: a "Saved Itineraries" panel with the
+           destination, the number of days, the budget level and the
+           estimated cost read out of the saved plan, plus a Remove
+           button. A failure in this panel never blocks the bookings
+           view - it says what went wrong instead.
+         - Tests: tests/test_saved_trips.py (18 cases) - create, the
+           eight validation shapes (and that no row was written for
+           any of them), the duplicate-save rule, list, list-only-your-
+           own, newest first, delete, 403 for another user's plan, 404,
+           401 without a token, the admin token refused, ON DELETE
+           CASCADE with the account, the rate limit and the per-user
+           cap.
+         - VERIFIED: 182 passed; ruff + prettier clean. Live smoke on
+           the local server: signup -> save 201 -> save again 200 ->
+           list -> delete 200 -> list empty.
+         - MIGRATING THE LIVE DB: schema.sql is fresh-DB only, so the
+           live database gets migrations/phase4.sql (idempotent):
+             psql "$DATABASE_URL" -v app_role=<role> -f migrations/phase4.sql
+           The app also says so at boot ("NOTE: missing table(s) ... run
+           migrations/phase4.sql") and answers 503 with a clear message
+           instead of a 500 if the table is not there yet.
 
-  [ ] 7. Nominatim/Photon hygiene (1 h)                             [h]
-         - Send a real User-Agent with contact info (policy)
-         - Cache results in a small table to cut repeat calls
-         - Policy: https://operations.osmfoundation.org/policies/nominatim/
+  [x] 7. Nominatim/Photon hygiene (1 h)                             [h] DONE
+         - A browser cannot set a User-Agent (it is a forbidden header
+           name), and the OSM usage policy asks every client to identify
+           itself with a real contact address - so the pages no longer
+           call the geocoders themselves.
+         - NEW GET /api/geocode?q=...&provider=nominatim|photon: the
+           server sends "ManzilBharat/1.0 (+origin); contact: <admin
+           email>" (override with GEOCODER_USER_AGENT), normalises both
+           providers into ONE shape {label, display, lat, lon, type} and
+           answers {query, provider, results, cached}.
+         - The answers are cached in the new table geocode_cache
+           (keyed by a hash of the normalised query + provider + limit),
+           so "Jaipur" and "  jaipur " share one upstream call and the
+           same search never hits the shared service twice. Served for 7
+           days, pruned after 30.
+         - The outbound volume is capped at 60 calls/minute across ALL
+           workers, counted in the rate_limits table (so 2 gunicorn
+           workers share one budget, not one each). A cached answer is
+           still served when the budget is spent or the provider is
+           down, and only then does the endpoint answer 429/502.
+         - The provider's own body is never forwarded to the browser.
+         - index.html and map.html now call /api/geocode; the third-party
+           URLs are gone from the frontend.
+         - Tests: tests/test_geocode.py (24 cases) - validation, the
+           User-Agent (built and overridden), the provider, the
+           normalisation of both providers, a result without coordinates
+           dropped, the limit clamped, the cache (a second search makes
+           no upstream call, the key ignores case and spaces, a
+           different query is not served from the cache, the row is in
+           the table), a stale row refreshed, upstream 503/timeout/
+           connection failure/body-that-is-not-JSON all answered 502
+           without leaking the provider's body, a stale answer served
+           when the provider is down, the outbound budget, and the
+           endpoint's own rate limit.
+         - VERIFIED: 182 passed; ruff + prettier clean. Live smoke:
+           /api/geocode?q=jaipur answered with the real Nominatim
+           result, and the second (case-different) query came back
+           "cached": true.
 
   DONE WHEN: pick a city -> get an itinerary + budget + places ->
 save it -> see it under My Trips. Fully offline-capable data.
+  -> PHASE 4 COMPLETE (all 7 steps). The save round trip is verified
+     end to end: signup -> build a plan -> save it -> see it under
+     My Trips -> remove it.
 
 
 ===============================================================================
 PHASE 5 - TRUST & COMPLIANCE (free, but looks expensive)     [1 day]
 ===============================================================================
 
-  [ ] 1. DPDP consent (2-3 h)
+  [x] 1. DPDP consent (2-3 h)                                    DONE (cb25b07)
          - consent checkbox on signup (already required - make it an
            explicit labeled consent, not buried in T&C)
          - table consents(user_id, text_version, created_at)
@@ -613,7 +838,26 @@ PHASE 5 - TRUST & COMPLIANCE (free, but looks expensive)     [1 day]
            GET /api/me/export (JSON of their data)
          - Link both from privacypolicy.html
 
-  [ ] 2. Razorpay TEST mode (half a day, no money)
+         WHAT WAS BUILT
+         - The checkbox on createaccount.html is labelled and NOT pre-ticked:
+           the API refuses a signup without consent: true (400), so no
+           account can be created without the consent that created it.
+         - The consent row is written in the SAME transaction as the user row
+           (a SAVEPOINT around it, so a database that has not run
+           migrations/phase5.sql yet still creates the account - loudly).
+         - Every consent keeps the version of the text that was accepted
+           (dpdp-v1) and where it came from (signup / google / renewal), so
+           we can always prove WHICH wording somebody agreed to. An unknown
+           version is refused (400) instead of being recorded against the
+           wrong text.
+         - GET /api/me/export (one JSON file: profile, bookings, saved
+           itineraries, payments, consents), DELETE /api/me (the account and
+           every booking, saved trip, payment and consent row go with it).
+         - My Trips -> "Your data & privacy" has both buttons; the privacy
+           policy links to them and now describes what the code really does.
+         - tests/test_consent.py - 16 cases.
+
+  [x] 2. Razorpay TEST mode (half a day, no money)              DONE
          - Free to build: order creation + signature verification
            server-side, never touch card data
          - Tables already exist (payments with razorpay ids)
@@ -621,26 +865,111 @@ PHASE 5 - TRUST & COMPLIANCE (free, but looks expensive)     [1 day]
          - Skip entirely if time is short - but then remove the
            payment icons and refund policy claims
 
-  [ ] 3. Security headers + cookie hardening (1 h)
+         WHAT WAS BUILT
+         - POST /api/payments/order opens a Razorpay order for one of the
+           caller's bookings (403 for somebody else's, 400 for a cancelled
+           or already-paid one) and records a 'pending' payment row.
+         - POST /api/payments/verify recomputes the signature Razorpay sends
+           back - HMAC-SHA256 of "<order id>|<payment id>" with the key
+           SECRET - and only then marks the payment 'captured' and the trip
+           'confirmed'. A forged signature, or one made for a different
+           payment, is refused and the row stays pending.
+         - The card details never reach this server: Razorpay's hosted
+           checkout takes them. There is nowhere in the code to store a
+           card number, a CVV or an expiry date.
+         - TEST MODE IS ENFORCED. The endpoints answer 503 without keys and
+           refuse a rzp_live_... key outright; every payment row is marked
+           mode='test' (a new column) and the admin panel shows the mode and
+           calls the revenue "test". No real money can move.
+         - My Trips -> "Pay (test)" on a trip, opening checkout.js lazily;
+           the CSP allows checkout.razorpay.com (script, frame) and
+           api.razorpay.com (connect) and nothing else new.
+         - The amount is capped at Razorpay's own ₹50,000 per order, checked
+           before the API call instead of letting Razorpay reject it.
+         - tests/test_payments.py - 25 cases, including a hardcoded signature
+           vector, the secret never appearing in a response, and a deleted
+           account taking its payment rows with it.
+
+  [x] 3. Security headers + cookie hardening (1 h)                DONE (1aab8ca)
          - Add CSP, Strict-Transport-Security, Permissions-Policy
            to the after_request hook (app.py:131)
          - Consider httpOnly cookie for the token instead of
            localStorage (optional, bigger change)
 
-  [ ] 4. Logging + backups (2 h)
+         WHAT WAS BUILT
+         - A Content-Security-Policy that names the origins the pages
+           really use (Font Awesome, Google Fonts, Leaflet, Google
+           Sign-In, the map tiles, the Maps embed) and locks the rest down:
+           object-src 'none', base-uri 'self', form-action 'self',
+           frame-ancestors 'self'.
+         - Strict-Transport-Security - but only on a request that arrived
+           over HTTPS: sending it on a plain http:// page would pin a
+           developer to a scheme the local server does not speak.
+         - Permissions-Policy denies the camera, the microphone, the
+           location and the payment API - the app never asks for them.
+         - 'unsafe-inline' stays in script-src/style-src because every page
+           carries its own <script> and <style> block; a nonce-per-page
+           version would mean rewriting all 18 pages. Documented, not
+           hidden.
+         - Cookie hardening: the app sets NO cookies at all (the session
+           token lives in web storage), so there is no cookie to harden. The
+           httpOnly-cookie switch is a bigger change and is left out on
+           purpose - it is noted here rather than silently skipped.
+         - tests/test_security_headers.py - 8 cases.
+
+  [x] 4. Logging + backups (2 h)                                  DONE
          - Python logging -> file + stdout (host captures it)
          - Log: logins, signups, admin actions, 500s (never log
            passwords/tokens)
          - Nightly pg_dump to local disk / free object storage
            (cron + the free tier's volume)
 
-  [ ] 5. Analytics without a third party (1-2 h)
+         WHAT WAS BUILT
+         - Python logging to stdout (the host collects it) AND to
+           logs/manzil.log, rotated at 5 MB with 3 old files. A read-only
+           disk is not a reason to stop serving.
+         - The audit trail: sign-ups (accepted and refused), sign-ins
+           (successful and failed), admin logins, password resets, consent
+           records, data exports, account deletions, admin actions and
+           crashes. Passwords, password hashes, session tokens and reset
+           links are NEVER written to the log - tests/test_logging.py
+           checks that (18 cases).
+         - A 500 handler that logs the request that caused it and answers a
+           plain message: no stack trace ever reaches the visitor.
+         - scripts/backup.sh (pg_dump -> backups/, keeps 14, a broken dump
+           never replaces a good one) and scripts/restore.sh
+           (pg_restore --clean --if-exists, so a restore works over a
+           database that already has the tables). Both were run against a
+           real Postgres, not just written.
+         - .github/workflows/backup.yml runs the dump nightly and keeps it
+           as an artifact for 14 days; it skips itself when the
+           DATABASE_URL secret is not set. The cron line for a machine you
+           own is in the script's header.
+
+  [x] 5. Analytics without a third party (1-2 h)                  DONE (7826c50)
          - table page_views(path, day, count) updated in
            after_request
          - Chart in the admin panel - you already have charts there
 
+         WHAT WAS BUILT
+         - page_views(path, day, count), updated in after_request. No
+           third-party script, no cookie, no visitor identifier, and the
+           query string is never stored (it can carry a destination or an
+           email). Assets, API calls and 404s are not counted, and a
+           failure in the counter can never break the page.
+         - GET /api/analytics (admin only, the day range is clamped) and a
+           Traffic tab in the admin panel that draws the last 14 days as
+           plain CSS bars - no chart library.
+         - tests/test_analytics.py - 11 cases.
+
   DONE WHEN: privacy policy matches what the code actually does,
   and you can show a backup + an audit log to a judge.
+  -> PHASE 5 COMPLETE (all 5 steps). The privacy policy now describes exactly
+     what the code does (consent, the two self-service rights, the server
+     log, the traffic counter, the payment data), the backups and the audit
+     log were run against a real Postgres, and the checkout takes Razorpay
+     TEST payments only - every payment is labelled 'test' and no real money
+     can move.
 
 
 ===============================================================================
@@ -652,9 +981,22 @@ PHASE 6 - PRESENTATION & SUBMISSION                          [1 day]
          - 60 sec: live flow: signup -> search -> itinerary -> budget
                    -> book -> My Trips -> admin panel
          - 30 sec: what's real vs. what's an integration stub
+
+         SCRIPT WRITTEN -> DEMO.md: word-for-word "say" lines, a click-by-click
+         timing table, the pre-flight list (including pre-warming the itinerary
+         cache so the AI beat survives a dead network), failure drills, the
+         likely judge questions, and a rehearsal log.
+         STILL OPEN for a human: rehearse three times and fill the log.
+         Two things the script caught that the demo would have hit live:
+           - signup refuses a duplicate email, so each run needs a new address
+             (riya1@, riya2@, riya3@);
+           - the admin Revenue card summed payments with status='completed',
+             which the checkout never writes, so a successful test payment
+             showed Rs.0. Fixed: it now counts 'captured' and the seeded
+             'completed' rows (one test covers both).
   [ ] 2. Screenshots/video backup for every step (network can fail)
   [ ] 3. Update aboutus.html team photos (compress them first)
-  [ ] 4. Final cross-check of all 17 pages: no broken links, no
+  [ ] 4. Final cross-check of all 18 pages: no broken links, no
          lorem ipsum, forms all work
   [ ] 5. ROADMAP + README updated to reflect reality
   [ ] 6. Tag the repo:  git tag -a v1.0-sih && git push --tags

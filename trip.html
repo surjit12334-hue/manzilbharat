@@ -1,0 +1,1140 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Plan a Trip - Manzil Bharat</title>
+    <meta
+      name="description"
+      content="Describe your trip and get a day-wise itinerary with morning, afternoon and evening plans plus a per-day cost estimate."
+    />
+    <link rel="canonical" href="https://manzilbharat.onrender.com/trip.html" />
+    <meta property="og:site_name" content="Manzil Bharat" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Plan a Trip - Manzil Bharat" />
+    <meta
+      property="og:description"
+      content="Describe your trip and get a day-wise itinerary with morning, afternoon and evening plans plus a per-day cost estimate."
+    />
+    <meta property="og:url" content="https://manzilbharat.onrender.com/trip.html" />
+    <meta property="og:image" content="https://manzilbharat.onrender.com/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Manzil Bharat - Let's Travel Together" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Plan a Trip - Manzil Bharat" />
+    <meta
+      name="twitter:description"
+      content="Describe your trip and get a day-wise itinerary with morning, afternoon and evening plans plus a per-day cost estimate."
+    />
+    <meta name="twitter:image" content="https://manzilbharat.onrender.com/og-image.jpg" />
+    <link rel="icon" type="image/png" href="icon.png" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html {
+        font-size: 16px;
+      }
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        background: #f4f6fb;
+      }
+
+      .topbar {
+        background:
+          linear-gradient(135deg, rgba(26, 35, 126, 0.7), rgba(255, 107, 53, 0.5)),
+          url('homebackground.jpg') center/cover no-repeat;
+        color: white;
+        padding: 2.5rem 5%;
+        position: relative;
+      }
+      .topbar h1 {
+        font-size: clamp(1.5rem, 4vw, 2.2rem);
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+      }
+      .topbar h1 a {
+        color: white;
+        text-decoration: none;
+      }
+      .topbar p {
+        opacity: 0.9;
+        margin-top: 0.3rem;
+        max-width: 700px;
+      }
+      .topbar .topbar-links {
+        position: absolute;
+        top: 1.5rem;
+        right: 2rem;
+        display: flex;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+      .topbar .back {
+        color: white;
+        text-decoration: none;
+        font-weight: 600;
+        padding: 0.5rem 1rem;
+        border: 2px solid rgba(255, 255, 255, 0.7);
+        border-radius: 25px;
+        transition: all 0.3s ease;
+      }
+      .topbar .back:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      .wrap {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 2rem 5% 3rem;
+      }
+
+      .planner {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+        padding: 1.6rem;
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 2fr auto;
+        gap: 1rem;
+        align-items: end;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        min-width: 0;
+      }
+      .field label {
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        color: #5a6a8a;
+      }
+      .field label span {
+        font-weight: 400;
+        text-transform: none;
+        letter-spacing: 0;
+        color: #8a94a8;
+      }
+      .field input,
+      .field select {
+        font: inherit;
+        color: inherit;
+        width: 100%;
+        padding: 0.65rem 0.8rem;
+        border: 1px solid #d7ddeb;
+        border-radius: 10px;
+        background: #fbfcff;
+        transition: border-color 0.2s ease;
+      }
+      .field input:focus,
+      .field select:focus {
+        outline: none;
+        border-color: #ff6b35;
+        background: white;
+      }
+      .plan-btn {
+        font: inherit;
+        font-weight: 700;
+        color: white;
+        background: linear-gradient(135deg, #ff6b35, #e65100);
+        border: none;
+        border-radius: 10px;
+        padding: 0.75rem 1.3rem;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        white-space: nowrap;
+        transition:
+          transform 0.2s ease,
+          box-shadow 0.2s ease;
+      }
+      .plan-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(255, 107, 53, 0.35);
+      }
+      .plan-btn:disabled {
+        opacity: 0.6;
+        cursor: wait;
+        transform: none;
+        box-shadow: none;
+      }
+
+      .status {
+        margin-top: 1.4rem;
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        color: #5a6a8a;
+        font-size: 0.95rem;
+      }
+      .status.error {
+        color: #c0392b;
+        background: #fdecea;
+        border-radius: 10px;
+        padding: 0.8rem 1rem;
+      }
+      .spinner {
+        width: 18px;
+        height: 18px;
+        border: 3px solid #ffe0d1;
+        border-top-color: #ff6b35;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        flex: none;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .result-head {
+        margin: 2rem 0 1rem;
+      }
+      .result-head h2 {
+        color: #1a237e;
+        font-size: 1.45rem;
+      }
+      .result-head p {
+        color: #5a6a8a;
+        font-size: 0.9rem;
+      }
+
+      .budget {
+        background: white;
+        border-radius: 14px;
+        box-shadow: 0 6px 24px rgba(26, 35, 126, 0.08);
+        padding: 1.2rem 1.3rem;
+        margin-bottom: 1.2rem;
+        display: grid;
+        grid-template-columns: minmax(220px, 1fr) 2fr;
+        gap: 1.4rem;
+        align-items: center;
+      }
+      .budget-total {
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+      }
+      .budget-label {
+        color: #5a6a8a;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+      .budget-total strong {
+        color: #1a237e;
+        font-size: 2rem;
+        line-height: 1.2;
+      }
+      .budget-sub {
+        color: #8a94a8;
+        font-size: 0.85rem;
+      }
+      .budget-bars {
+        display: grid;
+        gap: 0.55rem;
+      }
+      .bar {
+        display: grid;
+        grid-template-columns: 6.5rem 1fr auto;
+        align-items: center;
+        gap: 0.7rem;
+        font-size: 0.88rem;
+      }
+      .bar-name {
+        color: #5a6a8a;
+        font-weight: 600;
+      }
+      .bar-name i {
+        color: #ff6b35;
+        width: 1rem;
+      }
+      .bar-track {
+        background: #eef1f8;
+        border-radius: 999px;
+        height: 8px;
+        overflow: hidden;
+      }
+      .bar-fill {
+        display: block;
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #ff6b35, #e65100);
+      }
+      .bar-amount {
+        color: #333;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .budget-note {
+        grid-column: 1 / -1;
+        color: #8a94a8;
+        font-size: 0.78rem;
+        margin-top: -0.4rem;
+      }
+
+      .places {
+        margin-top: 1.6rem;
+      }
+      .places-head h2 {
+        color: #1a237e;
+        font-size: 1.25rem;
+      }
+      .places-head p {
+        color: #5a6a8a;
+        font-size: 0.9rem;
+        margin-bottom: 0.9rem;
+      }
+      .places-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1rem;
+      }
+      .place-group {
+        background: white;
+        border-radius: 14px;
+        box-shadow: 0 6px 24px rgba(26, 35, 126, 0.08);
+        padding: 1.1rem 1.2rem;
+      }
+      .place-group h3 {
+        color: #1a237e;
+        font-size: 1rem;
+        margin-bottom: 0.6rem;
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+      }
+      .place-group h3 i {
+        color: #ff6b35;
+      }
+      .place {
+        padding: 0.55rem 0;
+        border-top: 1px solid #eef1f8;
+      }
+      .place:first-of-type {
+        border-top: 0;
+      }
+      .place-name {
+        color: #333;
+        font-weight: 700;
+      }
+      .place-price {
+        float: right;
+        color: #e65100;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .place-meta {
+        display: block;
+        color: #8a94a8;
+        font-size: 0.76rem;
+        margin-top: 0.1rem;
+      }
+      .place-note {
+        display: block;
+        color: #5a6a8a;
+        font-size: 0.82rem;
+        margin-top: 0.2rem;
+      }
+      .places-source {
+        color: #8a94a8;
+        font-size: 0.78rem;
+        margin-top: 0.8rem;
+      }
+
+      .transport {
+        margin-top: 1.6rem;
+      }
+      .transport-head h2 {
+        color: #1a237e;
+        font-size: 1.25rem;
+      }
+      .transport-head p {
+        color: #5a6a8a;
+        font-size: 0.9rem;
+        margin-bottom: 0.9rem;
+      }
+      .transport-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1rem;
+      }
+      .transport-group {
+        background: white;
+        border-radius: 14px;
+        box-shadow: 0 6px 24px rgba(26, 35, 126, 0.08);
+        padding: 1.1rem 1.2rem;
+      }
+      .transport-group h3 {
+        color: #1a237e;
+        font-size: 1rem;
+        margin-bottom: 0.6rem;
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+      }
+      .transport-group h3 i {
+        color: #ff6b35;
+      }
+      .transport-item {
+        padding: 0.55rem 0;
+        border-top: 1px solid #eef1f8;
+      }
+      .transport-item:first-of-type {
+        border-top: 0;
+      }
+      .transport-name {
+        color: #333;
+        font-weight: 700;
+      }
+      .transport-meta {
+        display: block;
+        color: #8a94a8;
+        font-size: 0.76rem;
+        margin-top: 0.1rem;
+      }
+      .transport-note {
+        display: block;
+        color: #5a6a8a;
+        font-size: 0.82rem;
+        margin-top: 0.2rem;
+      }
+
+      .save-row {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        flex-wrap: wrap;
+        margin-top: 1rem;
+      }
+      .save-btn {
+        background: linear-gradient(135deg, #ff6b35, #e65100);
+        color: white;
+        border: none;
+        padding: 0.7rem 1.4rem;
+        border-radius: 12px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        box-shadow: 0 8px 20px rgba(230, 81, 0, 0.18);
+        transition:
+          transform 0.2s ease,
+          box-shadow 0.2s ease;
+      }
+      .save-btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 24px rgba(230, 81, 0, 0.24);
+      }
+      .save-btn:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+      .save-note {
+        color: #5a6a8a;
+        font-size: 0.9rem;
+      }
+
+      .day-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1rem;
+      }
+      .day-card {
+        background: white;
+        border-radius: 14px;
+        box-shadow: 0 6px 24px rgba(26, 35, 126, 0.08);
+        padding: 1.1rem 1.2rem 1.2rem;
+        border-top: 4px solid #ff6b35;
+      }
+      .day-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.6rem;
+        margin-bottom: 0.8rem;
+      }
+      .day-num {
+        color: #1a237e;
+        font-weight: 800;
+        font-size: 1.02rem;
+      }
+      .day-cost {
+        background: #fff3ec;
+        color: #c2410c;
+        border-radius: 999px;
+        padding: 0.15rem 0.65rem;
+        font-size: 0.8rem;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .slot {
+        display: grid;
+        grid-template-columns: 1.4rem 5.5rem 1fr;
+        gap: 0.5rem;
+        align-items: baseline;
+        padding: 0.4rem 0;
+        border-top: 1px solid #f0f3fa;
+        font-size: 0.9rem;
+      }
+      .slot i {
+        color: #ff6b35;
+        font-size: 0.85rem;
+      }
+      .slot-label {
+        color: #5a6a8a;
+        font-weight: 700;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+      .slot-text {
+        color: #333;
+      }
+
+      .footnote {
+        margin-top: 1.4rem;
+        color: #8a94a8;
+        font-size: 0.82rem;
+      }
+
+      .hint {
+        margin-top: 1.6rem;
+        color: #5a6a8a;
+        font-size: 0.9rem;
+      }
+      .hint a {
+        color: #ff6b35;
+        font-weight: 600;
+      }
+
+      @media (max-width: 900px) {
+        .planner {
+          grid-template-columns: 1fr 1fr;
+        }
+        .planner .grow,
+        .plan-btn {
+          grid-column: 1 / -1;
+        }
+        .budget {
+          grid-template-columns: 1fr;
+        }
+        .bar {
+          grid-template-columns: 5.5rem 1fr auto;
+        }
+      }
+      @media (max-width: 600px) {
+        .planner {
+          grid-template-columns: 1fr;
+        }
+        .topbar .topbar-links {
+          position: static;
+          margin-top: 1rem;
+          justify-content: flex-start;
+        }
+        .slot {
+          grid-template-columns: 1.2rem 1fr;
+        }
+        .slot-label {
+          display: none;
+        }
+      }
+    </style>
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+  </head>
+  <body>
+    <div class="topbar">
+      <h1>
+        <a href="index.html"><i class="fas fa-map-marked-alt"></i> Manzil Bharat</a>
+      </h1>
+      <p>Pick a destination and how long you have - get a day-by-day plan with costs.</p>
+      <div class="topbar-links">
+        <a class="back" href="mytrips.html"><i class="fas fa-route"></i> My Trips</a>
+        <a class="back" href="index.html"><i class="fas fa-arrow-left"></i> Home</a>
+      </div>
+    </div>
+
+    <main class="wrap">
+      <form class="planner" id="plannerForm">
+        <div class="field grow">
+          <label for="destination">Destination</label>
+          <input
+            id="destination"
+            name="destination"
+            type="text"
+            placeholder="e.g. Jaipur"
+            maxlength="120"
+            autocomplete="off"
+            required
+          />
+        </div>
+        <div class="field">
+          <label for="days">Days</label>
+          <select id="days" name="days">
+            <option value="1">1 day</option>
+            <option value="2">2 days</option>
+            <option value="3" selected>3 days</option>
+            <option value="4">4 days</option>
+            <option value="5">5 days</option>
+            <option value="6">6 days</option>
+            <option value="7">7 days</option>
+            <option value="8">8 days</option>
+            <option value="9">9 days</option>
+            <option value="10">10 days</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="budget">Budget</label>
+          <select id="budget" name="budget">
+            <option value="budget">Budget</option>
+            <option value="mid-range" selected>Mid-range</option>
+            <option value="luxury">Luxury</option>
+          </select>
+        </div>
+        <div class="field grow">
+          <label for="interests">Interests <span>(optional)</span></label>
+          <input
+            id="interests"
+            name="interests"
+            type="text"
+            maxlength="200"
+            placeholder="forts, street food, temples"
+          />
+        </div>
+        <button type="submit" class="plan-btn" id="planBtn">
+          <i class="fas fa-wand-magic-sparkles"></i> Build itinerary
+        </button>
+      </form>
+
+      <div class="status" id="status" role="status" hidden></div>
+
+      <section id="result" hidden>
+        <div class="result-head">
+          <h2 id="resultTitle"></h2>
+          <p id="resultMeta"></p>
+        </div>
+
+        <div class="budget" id="budgetPanel">
+          <div class="budget-total">
+            <span class="budget-label">Estimated trip cost</span>
+            <strong id="budgetTotal"></strong>
+            <span class="budget-sub" id="budgetSub"></span>
+          </div>
+          <div class="budget-bars" id="budgetBars"></div>
+          <p class="budget-note" id="budgetNote"></p>
+        </div>
+
+        <div class="day-grid" id="dayGrid"></div>
+        <div class="save-row">
+          <button class="save-btn" id="saveTripBtn" type="button">
+            <i class="fas fa-bookmark"></i> Save this itinerary
+          </button>
+          <span class="save-note" id="saveTripNote"></span>
+        </div>
+        <p class="footnote">
+          <i class="fas fa-sparkles"></i> AI-generated by Gemini. Costs are rough rupee estimates
+          for one traveller and vary with season and availability.
+        </p>
+
+        <section class="places" id="places" hidden>
+          <div class="places-head">
+            <h2 id="placesTitle">Places to stay, see and eat</h2>
+            <p id="placesTagline"></p>
+          </div>
+          <div class="places-grid" id="placesGrid"></div>
+          <p class="places-source" id="placesSource"></p>
+        </section>
+
+        <section class="transport" id="transport" hidden>
+          <div class="transport-head">
+            <h2 id="transportTitle">Getting there & around</h2>
+            <p id="transportSub">Metro, rail and airport info for your destination.</p>
+          </div>
+          <div class="transport-grid" id="transportGrid"></div>
+        </section>
+      </section>
+
+      <p class="hint">
+        Not sure where to go? <a href="index.html">Search a destination</a> and open it on the map
+        first.
+      </p>
+    </main>
+
+    <script>
+      const API_BASE = window.API_BASE || '';
+
+      const form = document.getElementById('plannerForm');
+      const destinationInput = document.getElementById('destination');
+      const daysSelect = document.getElementById('days');
+      const budgetSelect = document.getElementById('budget');
+      const interestsInput = document.getElementById('interests');
+      const planBtn = document.getElementById('planBtn');
+      const statusEl = document.getElementById('status');
+      const resultEl = document.getElementById('result');
+      const resultTitle = document.getElementById('resultTitle');
+      const resultMeta = document.getElementById('resultMeta');
+      const dayGrid = document.getElementById('dayGrid');
+      const budgetTotal = document.getElementById('budgetTotal');
+      const budgetSub = document.getElementById('budgetSub');
+      const budgetBars = document.getElementById('budgetBars');
+      const budgetNote = document.getElementById('budgetNote');
+      const budgetPanel = document.getElementById('budgetPanel');
+      const placesEl = document.getElementById('places');
+      const placesTitle = document.getElementById('placesTitle');
+      const placesTagline = document.getElementById('placesTagline');
+      const placesGrid = document.getElementById('placesGrid');
+      const placesSource = document.getElementById('placesSource');
+      const transportEl = document.getElementById('transport');
+      const transportTitle = document.getElementById('transportTitle');
+      const transportGrid = document.getElementById('transportGrid');
+      const saveTripBtn = document.getElementById('saveTripBtn');
+      const saveTripNote = document.getElementById('saveTripNote');
+      let lastItinerary = null;
+      let lastItineraryPlan = null;
+
+      // map.html links here with ?destination=..., so the field is filled in
+      // and the visitor only chooses the length of the trip.
+      const fromMap = new URLSearchParams(window.location.search).get('destination');
+      if (fromMap) destinationInput.value = fromMap.trim().slice(0, 120);
+
+      const SLOTS = [
+        ['morning', 'fa-sun', 'Morning'],
+        ['afternoon', 'fa-cloud-sun', 'Afternoon'],
+        ['evening', 'fa-moon', 'Evening'],
+      ];
+
+      function setStatus(kind, message) {
+        statusEl.className = 'status' + (kind ? ' ' + kind : '');
+        if (!kind) {
+          statusEl.hidden = true;
+          return;
+        }
+        statusEl.hidden = false;
+        if (kind === 'loading') {
+          const spinner = document.createElement('span');
+          spinner.className = 'spinner';
+          statusEl.replaceChildren(spinner, document.createTextNode(' ' + message));
+        } else {
+          statusEl.textContent = message;
+        }
+      }
+
+      function rupees(value) {
+        return '₹' + new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(value);
+      }
+
+      // The four heads, in the order the server returns them, with an icon
+      // each. Any head the server adds later still renders (no icon).
+      const HEADS = {
+        stay: ['Stay', 'fa-bed'],
+        transport: ['Transport', 'fa-bus'],
+        food: ['Food', 'fa-utensils'],
+        activities: ['Activities', 'fa-camera-retro'],
+      };
+
+      function renderBudget(budget) {
+        if (!budget || typeof budget.trip_total !== 'number') {
+          budgetPanel.hidden = true;
+          return;
+        }
+        budgetPanel.hidden = false;
+        budgetTotal.textContent = rupees(budget.trip_total);
+        budgetSub.textContent = '≈ ' + rupees(budget.per_day) + ' per day across the trip';
+
+        // The widest head sets the scale, so the bars are comparable.
+        const values = Object.values(budget.breakdown || {});
+        const widest = Math.max.apply(null, values.concat([1]));
+
+        budgetBars.replaceChildren();
+        Object.keys(budget.breakdown || {}).forEach(function (head) {
+          const meta = HEADS[head] || [head, null];
+          const amount = budget.breakdown[head];
+          const row = document.createElement('div');
+          row.className = 'bar';
+
+          const name = document.createElement('span');
+          name.className = 'bar-name';
+          if (meta[1]) {
+            const icon = document.createElement('i');
+            icon.className = 'fas ' + meta[1];
+            icon.setAttribute('aria-hidden', 'true');
+            name.appendChild(icon);
+          }
+          name.appendChild(document.createTextNode(' ' + meta[0]));
+
+          const track = document.createElement('span');
+          track.className = 'bar-track';
+          const fill = document.createElement('span');
+          fill.className = 'bar-fill';
+          fill.style.width = Math.round((amount / widest) * 100) + '%';
+          track.appendChild(fill);
+
+          const value = document.createElement('span');
+          value.className = 'bar-amount';
+          value.textContent = rupees(amount);
+
+          row.append(name, track, value);
+          budgetBars.appendChild(row);
+        });
+
+        budgetNote.textContent = budget.matched
+          ? 'Split uses the ' +
+            budget.city +
+            ' price sheet (' +
+            budget.level +
+            ' rates, ' +
+            rupees(budget.baseline_per_day) +
+            '/day baseline).'
+          : 'No price sheet for this destination yet - the split uses national averages (' +
+            budget.level +
+            ', ' +
+            rupees(budget.baseline_per_day) +
+            '/day baseline).';
+      }
+
+      function renderDays(destination, days, budget, estimate) {
+        resultTitle.textContent = destination + ' · day-by-day plan';
+        const noun = days.length === 1 ? 'day' : 'days';
+        resultMeta.textContent =
+          days.length + ' ' + noun + ' · ' + budget + ' budget · one traveller';
+        renderBudget(estimate);
+
+        lastItinerary = {
+          destination: destination,
+          days: days,
+          budget: budget,
+          estimate: estimate,
+          savedAt: new Date().toISOString(),
+        };
+
+        dayGrid.replaceChildren();
+        days.forEach(function (day) {
+          const card = document.createElement('article');
+          card.className = 'day-card';
+
+          const head = document.createElement('div');
+          head.className = 'day-head';
+          const number = document.createElement('span');
+          number.className = 'day-num';
+          number.textContent = 'Day ' + day.day;
+          const cost = document.createElement('span');
+          cost.className = 'day-cost';
+          cost.textContent = '≈ ' + rupees(day.cost);
+          head.append(number, cost);
+          card.appendChild(head);
+
+          SLOTS.forEach(function (slot) {
+            const row = document.createElement('div');
+            row.className = 'slot';
+            const icon = document.createElement('i');
+            icon.className = 'fas ' + slot[1];
+            icon.setAttribute('aria-hidden', 'true');
+            const label = document.createElement('span');
+            label.className = 'slot-label';
+            label.textContent = slot[2];
+            const text = document.createElement('span');
+            text.className = 'slot-text';
+            text.textContent = day[slot[0]];
+            row.append(icon, label, text);
+            card.appendChild(row);
+          });
+
+          dayGrid.appendChild(card);
+        });
+
+        resultEl.hidden = false;
+        resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      // The three curated groups, in order, each with an icon. The API returns
+      // them under these keys; the labels here are presentation only, and the
+      // price/duration chip is picked off whichever field the entry has.
+      const PLACE_GROUPS = [
+        ['hotels', 'Where to stay', 'fa-bed'],
+        ['things_to_do', 'Things to do', 'fa-camera-retro'],
+        ['eateries', 'Where to eat', 'fa-utensils'],
+      ];
+
+      function placeItem(entry) {
+        const item = document.createElement('div');
+        item.className = 'place';
+
+        const name = document.createElement('span');
+        name.className = 'place-name';
+        name.appendChild(document.createTextNode(entry.name));
+
+        // Hotels/eateries carry a price, things-to-do a duration; either way
+        // it is right-aligned, and a missing one simply renders nothing.
+        const meta = entry.price_per_night || entry.price_for_two || entry.duration || '';
+        if (meta) {
+          const price = document.createElement('span');
+          price.className = 'place-price';
+          price.textContent = meta;
+          name.appendChild(price);
+        }
+
+        const area = document.createElement('span');
+        area.className = 'place-meta';
+        area.textContent = [entry.area, entry.category, entry.must_try]
+          .filter(function (part) {
+            return part;
+          })
+          .join(' · ');
+
+        const note = document.createElement('span');
+        note.className = 'place-note';
+        note.textContent = entry.note || '';
+
+        item.append(name, area, note);
+        return item;
+      }
+
+      function renderPlaces(destination, data) {
+        const groups = PLACE_GROUPS.filter(function (group) {
+          return Array.isArray(data[group[0]]) && data[group[0]].length;
+        });
+        if (!groups.length) {
+          placesEl.hidden = true;
+          return;
+        }
+
+        placesTitle.textContent = 'Places to stay, see and eat in ' + (data.label || destination);
+        placesTagline.textContent = data.tagline || '';
+
+        placesGrid.replaceChildren();
+        groups.forEach(function (group) {
+          const card = document.createElement('section');
+          card.className = 'place-group';
+
+          const head = document.createElement('h3');
+          const icon = document.createElement('i');
+          icon.className = 'fas ' + group[2];
+          icon.setAttribute('aria-hidden', 'true');
+          head.append(icon, document.createTextNode(' ' + group[1]));
+
+          card.append(head);
+          data[group[0]].forEach(function (entry) {
+            card.appendChild(placeItem(entry));
+          });
+          placesGrid.appendChild(card);
+        });
+
+        placesEl.hidden = false;
+      }
+
+      async function loadPlaces(destination) {
+        // Best-effort: the itinerary is the point of the page, so a city with
+        // no curated list (or a failed request) just hides this section.
+        try {
+          const res = await fetch(API_BASE + '/api/places?city=' + encodeURIComponent(destination));
+          if (!res.ok) throw new Error('no places');
+          renderPlaces(destination, await res.json());
+        } catch (err) {
+          placesEl.hidden = true;
+        }
+      }
+
+      const TRANSPORT_GROUPS = [
+        ['metro', 'Metro', 'fa-subway'],
+        ['rail', 'Rail / Railway Stations', 'fa-train'],
+        ['airport', 'Airport', 'fa-plane-departure'],
+      ];
+
+      function transportItem(entry) {
+        const item = document.createElement('div');
+        item.className = 'transport-item';
+
+        const name = document.createElement('div');
+        name.className = 'transport-name';
+        name.textContent = entry.name;
+
+        const metaParts = [entry.area, entry.fare, entry.distance_from_centre].filter(
+          function (part) {
+            return part;
+          },
+        );
+        const meta = document.createElement('span');
+        meta.className = 'transport-meta';
+        meta.textContent = metaParts.join(' · ');
+
+        const note = document.createElement('span');
+        note.className = 'transport-note';
+        note.textContent = entry.note || '';
+
+        item.append(name, meta, note);
+        return item;
+      }
+
+      function renderTransport(destination, data) {
+        const groups = TRANSPORT_GROUPS.filter(function (group) {
+          return Array.isArray(data[group[0]]) && data[group[0]].length;
+        });
+        if (!groups.length) {
+          transportEl.hidden = true;
+          return;
+        }
+
+        transportTitle.textContent = 'Getting there & around · ' + (data.label || destination);
+
+        transportGrid.replaceChildren();
+        groups.forEach(function (group) {
+          const card = document.createElement('section');
+          card.className = 'transport-group';
+
+          const head = document.createElement('h3');
+          const icon = document.createElement('i');
+          icon.className = 'fas ' + group[2];
+          icon.setAttribute('aria-hidden', 'true');
+          head.append(icon, document.createTextNode(' ' + group[1]));
+
+          card.append(head);
+          data[group[0]].forEach(function (entry) {
+            card.appendChild(transportItem(entry));
+          });
+          transportGrid.appendChild(card);
+        });
+
+        transportEl.hidden = false;
+      }
+
+      async function loadTransport(destination) {
+        try {
+          const res = await fetch(
+            API_BASE + '/api/transport?city=' + encodeURIComponent(destination),
+          );
+          if (!res.ok) throw new Error('no transport');
+          renderTransport(destination, await res.json());
+        } catch (err) {
+          transportEl.hidden = true;
+        }
+      }
+
+      async function buildItinerary(event) {
+        event.preventDefault();
+        const payload = {
+          kind: 'itinerary',
+          destination: destinationInput.value.trim(),
+          days: parseInt(daysSelect.value, 10),
+          budget: budgetSelect.value,
+          interests: interestsInput.value.trim(),
+        };
+        if (!payload.destination) {
+          destinationInput.focus();
+          return;
+        }
+
+        planBtn.disabled = true;
+        resultEl.hidden = true;
+        placesEl.hidden = true;
+        transportEl.hidden = true;
+        saveTripBtn.disabled = true;
+        saveTripNote.textContent = '';
+        lastItinerary = null;
+        lastItineraryPlan = payload;
+        setStatus('loading', 'Building your day-by-day plan...');
+
+        try {
+          // The Gemini key stays on the server - this endpoint is the proxy.
+          const res = await fetch(API_BASE + '/api/ai-guide', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const data = await res.json().catch(() => null);
+          if (!res.ok) throw new Error((data && data.error) || 'HTTP ' + res.status);
+          const days = Array.isArray(data.days) ? data.days : [];
+          if (!days.length) throw new Error('The AI returned an empty plan. Please try again.');
+          renderDays(payload.destination, days, payload.budget, data.budget);
+          saveTripBtn.disabled = false;
+          saveTripNote.textContent = 'Sign in to save this itinerary to My Trips.';
+          setStatus(null);
+          // Independent of the itinerary: a slow or missing places list must
+          // not hold up (or fail) the plan the visitor already has.
+          loadPlaces(payload.destination);
+          loadTransport(payload.destination);
+        } catch (err) {
+          setStatus('error', err.message || 'Could not build the itinerary.');
+        } finally {
+          planBtn.disabled = false;
+        }
+      }
+
+      async function saveCurrentTrip() {
+        if (!lastItinerary) {
+          saveTripNote.textContent = 'Build an itinerary first.';
+          return;
+        }
+        // MBAuth reads the token from BOTH storages - a session that was not
+        // ticked "remember me" lives in sessionStorage, so a raw
+        // localStorage lookup would miss it.
+        const token = MBAuth.getToken();
+        if (!token) {
+          saveTripNote.textContent = 'Sign in to save this itinerary.';
+          window.location.href = 'login.html?next=' + encodeURIComponent('trip.html');
+          return;
+        }
+        saveTripBtn.disabled = true;
+        saveTripNote.textContent = 'Saving...';
+        try {
+          const res = await fetch(API_BASE + '/api/me/trips', {
+            method: 'POST',
+            headers: MBAuth.authHeaders({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify({
+              title:
+                lastItinerary.destination +
+                ' · ' +
+                lastItinerary.days.length +
+                (lastItinerary.days.length === 1 ? ' day' : ' days') +
+                ' · ' +
+                lastItinerary.budget,
+              payload: {
+                plan: lastItineraryPlan,
+                itinerary: lastItinerary,
+              },
+            }),
+          });
+          const data = await res.json().catch(() => null);
+          if (res.status === 401 || res.status === 403) {
+            MBAuth.clearSession();
+            saveTripNote.textContent = 'Sign in to save this itinerary.';
+            window.location.href = 'login.html?next=' + encodeURIComponent('trip.html');
+            return;
+          }
+          if (!res.ok) throw new Error((data && data.error) || 'HTTP ' + res.status);
+          saveTripNote.textContent =
+            data && data.trip ? data.message || 'Saved to My Trips.' : 'Saved to My Trips.';
+        } catch (err) {
+          saveTripNote.textContent = err.message || 'Could not save the itinerary.';
+        } finally {
+          saveTripBtn.disabled = false;
+        }
+      }
+
+      saveTripBtn.addEventListener('click', saveCurrentTrip);
+
+      form.addEventListener('submit', buildItinerary);
+    </script>
+  </body>
+</html>

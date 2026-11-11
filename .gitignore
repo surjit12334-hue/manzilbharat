@@ -11,3 +11,9 @@ dist/
 build/
 .DS_Store
 Thumbs.db
+
+# Runtime output, never committed:
+# logs/   the rotating application log (Phase 5 step 4)
+# backups/ the pg_dump archives (Phase 5 step 4)
+logs/
+backups/

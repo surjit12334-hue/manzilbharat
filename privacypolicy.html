@@ -194,6 +194,7 @@
       <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
       <ul class="nav-links" id="navLinks">
         <li><a href="index.html">Home</a></li>
+        <li><a href="trip.html">Plan Trip</a></li>
         <li><a href="mytrips.html">My Trips</a></li>
         <li><a href="contact.html">Contact</a></li>
         <li data-mb-show="guest"><a href="login.html">Login</a></li>
@@ -270,6 +271,13 @@
         Payment credentials may be processed by authorized payment service providers rather than
         being stored directly by ManzilBharat, where applicable.
       </p>
+      <p>
+        <strong>Test-mode checkout.</strong> The checkout currently runs in Razorpay's TEST mode. No
+        real payment is taken, no real card details are needed, and what our database records is
+        only the transaction identifiers Razorpay returns (an order id and a payment id), the
+        amount, and whether the payment succeeded. A test payment is marked as such in your account
+        and in the admin panel.
+      </p>
 
       <h3>E. Technical Information</h3>
       <p>We may automatically receive limited technical information such as:</p>
@@ -284,6 +292,21 @@
       <p>
         We use this information primarily for security, troubleshooting, analytics, and improving
         our services.
+      </p>
+      <p>
+        <strong>Server logs.</strong> Our server writes an access log of what happened: sign-ups,
+        sign-ins (successful and failed), password resets, the consent records you gave, data
+        exports, account deletions and the actions taken in the admin panel. A log line names the
+        account involved - your user id and email address - and the time and the request. Passwords,
+        password hashes, session tokens and reset links are never written to the log. The log file
+        is kept on the server, rotated at 5 MB, and the older copies are deleted when they are
+        replaced.
+      </p>
+      <p>
+        <strong>Traffic counting.</strong> We also count how often each page is requested, in a
+        counter kept by our own server. That counter holds the path of the page and the day - no
+        cookie, no visitor identifier, and never the query string of the request, because it can
+        carry a destination or an address. It is not linked to your account.
       </p>
 
       <h2>2. Why We Use Your Data</h2>
@@ -314,12 +337,25 @@
         clear affirmative action, as required by the applicable DPDP framework.
       </p>
       <p>
+        In practice this means a labelled consent checkbox on the sign-up form. The checkbox is not
+        pre-ticked, it names the Privacy Policy and the Terms &amp; Conditions it refers to, and an
+        account cannot be created without it. Each time consent is given we store the version of the
+        text that was accepted and the time it was accepted, so we can always show which wording you
+        agreed to. The version of the policy text in force today is
+        <strong>dpdp-v1</strong>.
+      </p>
+      <p>
         You may withdraw consent at any time where processing is based on consent. The withdrawal
         process should be as easy as the process used to provide consent.
       </p>
       <p>
         Withdrawal of consent may affect our ability to provide certain services that depend on that
         data.
+      </p>
+      <p>
+        To withdraw consent, delete your account from
+        <a href="mytrips.html">My Trips &rarr; Your data &amp; privacy</a>. That removes your
+        profile and every trip, booking, payment and consent record attached to it.
       </p>
 
       <h2>4. Children's Data</h2>
@@ -438,6 +474,22 @@
         Requests may be submitted through the privacy or grievance contact mechanism provided by
         ManzilBharat.
       </p>
+      <p>
+        Two of these rights you can exercise yourself, straight away, from
+        <a href="mytrips.html">My Trips &rarr; Your data &amp; privacy</a>:
+      </p>
+      <ul>
+        <li>
+          <strong>Access / data portability</strong> &mdash; &ldquo;Download my data&rdquo; returns
+          a single JSON file with your profile, bookings, saved itineraries, payments and consent
+          history.
+        </li>
+        <li>
+          <strong>Erasure</strong> &mdash; &ldquo;Delete my account&rdquo; deletes your profile and
+          every booking, saved itinerary, payment and consent record that belongs to it. There is no
+          recovery from it.
+        </li>
+      </ul>
       <p>
         The DPDP Act provides Data Principals with rights concerning access, correction/erasure,
         grievance redressal and consent withdrawal, subject to applicable provisions.
