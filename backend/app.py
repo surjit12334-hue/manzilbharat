@@ -20,7 +20,7 @@ import psycopg2
 import psycopg2.extras
 import requests
 from dotenv import load_dotenv
-from flask import Flask, abort, g, jsonify, request, send_from_directory
+from flask import Flask, abort, g, jsonify, redirect, request, send_from_directory
 from flask.json.provider import DefaultJSONProvider
 from flask_cors import CORS
 from google.auth.transport import requests as google_requests
@@ -286,7 +286,8 @@ try:
     # Re-check If-None-Match AFTER compression for the '/' homepage too (only
     # the 'static' endpoint is listed by default), otherwise a browser holding
     # the compressed body gets a 200 + full re-download instead of a 304.
-    app.config['COMPRESS_STREAMING_ENDPOINT_CONDITIONAL'] = ['static', 'index']
+    app.config['COMPRESS_STREAMING_ENDPOINT_CONDITIONAL'] = [
+        'static', 'index', 'clean_page']
     Compress(app)
 except ImportError:  # pragma: no cover - dev machines without the extra
     print('NOTE: flask-compress not installed - responses are sent uncompressed')
@@ -315,11 +316,43 @@ STATIC_ALLOWED_EXTENSIONS = {
     '.webp', '.ico', '.pdf', '.woff', '.woff2', '.ttf', '.eot'
 }
 
+# Clean page URLs: /aboutus is the address of aboutus.html. The name is
+# deliberately narrow (no dots) so this can never match an asset such as
+# /config.js, and no path segment, so it can never match /backend/app.
+_PAGE_NAME_RE = re.compile(r'[a-z0-9][a-z0-9-]*\Z')
+
 # Cache lifetimes per asset kind, applied in set_security_headers(). See the
 # comment there for why HTML is deliberately absent (revalidated instead).
 _CACHE_IMMUTABLE = {'.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico',
                     '.woff', '.woff2', '.ttf', '.eot', '.pdf'}
 _CACHE_ONE_WEEK = {'.css', '.js', '.json'}
+
+
+@app.before_request
+def redirect_legacy_html_urls():
+    """301 /aboutus.html -> /aboutus, so every page has ONE address.
+
+    Old bookmarks, emailed reset links and search results keep working, while
+    the canonical URL (link rel=canonical, og:url) stays extensionless. Only
+    real page names are redirected: /anything.html is ignored here and falls
+    through to the static handler (which 404s it when the file is missing).
+    """
+    path = request.path
+    if not path.endswith('.html'):
+        return
+    name = path[1:-5]
+    if not _PAGE_NAME_RE.match(name):
+        return
+    if name != 'index' and not os.path.isfile(
+            os.path.join(PROJECT_ROOT, name + '.html')):
+        # Not a page: let it 404 instead of bouncing to a second 404.
+        return
+    target = '/' if name == 'index' else '/' + name
+    if request.query_string:
+        # Keep ?slug=..., ?next=..., ?token=... intact. latin-1 round-trips
+        # the raw bytes without re-encoding them.
+        target += '?' + request.query_string.decode('latin-1')
+    return redirect(target, code=301)
 
 
 @app.before_request
@@ -337,9 +370,18 @@ def block_private_files():
         return
     if any(segment.startswith('.') for segment in filename.split('/')):
         abort(404)
-    if os.path.splitext(filename)[1].lower() not in STATIC_ALLOWED_EXTENSIONS:
-        abort(404)
-    return
+    ext = os.path.splitext(filename)[1].lower()
+    if ext:
+        if ext not in STATIC_ALLOWED_EXTENSIONS:
+            abort(404)
+        return
+    # Extensionless requests are the clean page URLs (/aboutus, /trip, ...).
+    # Only a single segment that really has a page behind it gets through;
+    # /backend/app and /random stay 404s.
+    if ('/' not in filename and _PAGE_NAME_RE.match(filename) and
+            os.path.isfile(os.path.join(PROJECT_ROOT, filename + '.html'))):
+        return
+    abort(404)
 
 
 @app.errorhandler(HTTPException)
@@ -377,6 +419,23 @@ def handle_internal_error(error):
 @app.route('/')
 def index():
     return send_from_directory(PROJECT_ROOT, 'index.html')
+
+
+@app.route('/<page>')
+def clean_page(page):
+    """Serve the extensionless address of a page: /aboutus -> aboutus.html.
+
+    The .html form is 301-redirected here by redirect_legacy_html_urls(), so
+    this is the canonical address. Anything that is not a page falls through to
+    the static files (config.js, icon.png, og-image.jpg, ...): this rule wins
+    the match for a single path segment, and the static rule underneath it is
+    a catch-all, so the same file still has to be served either way.
+    """
+    if _PAGE_NAME_RE.match(page):
+        candidate = page + '.html'
+        if os.path.isfile(os.path.join(PROJECT_ROOT, candidate)):
+            return send_from_directory(PROJECT_ROOT, candidate)
+    return send_from_directory(PROJECT_ROOT, page)
 
 
 @app.route('/config.js')
@@ -437,7 +496,10 @@ def count_page_view(response):
         return response
     if request.method not in ('GET', 'HEAD'):
         return response
-    if response.status_code >= 400:
+    if not 200 <= response.status_code < 300:
+        # A redirect (the 301 from /aboutus.html to /aboutus) is not a page
+        # view: the clean URL that follows is. Counting both would double every
+        # legacy hit.
         return response
     if not _is_page_view(request.path):
         return response
@@ -1734,7 +1796,7 @@ def forgot_password():
 
     try:
         token = create_reset_token(email)
-        reset_url = f"{origin}/reset-password.html?token={token}"
+        reset_url = f"{origin}/reset-password?token={token}"
         send_reset_email(email, reset_url)
     except Exception:
         # The bare except previously hid the SMTP reason (auth failure, bad

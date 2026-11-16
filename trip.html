@@ -8,7 +8,7 @@
       name="description"
       content="Describe your trip and get a day-wise itinerary with morning, afternoon and evening plans plus a per-day cost estimate."
     />
-    <link rel="canonical" href="https://manzilbharat.onrender.com/trip.html" />
+    <link rel="canonical" href="https://manzilbharat.onrender.com/trip" />
     <meta property="og:site_name" content="Manzil Bharat" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Plan a Trip - Manzil Bharat" />
@@ -16,7 +16,7 @@
       property="og:description"
       content="Describe your trip and get a day-wise itinerary with morning, afternoon and evening plans plus a per-day cost estimate."
     />
-    <meta property="og:url" content="https://manzilbharat.onrender.com/trip.html" />
+    <meta property="og:url" content="https://manzilbharat.onrender.com/trip" />
     <meta property="og:image" content="https://manzilbharat.onrender.com/og-image.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
@@ -567,12 +567,12 @@
   <body>
     <div class="topbar">
       <h1>
-        <a href="index.html"><i class="fas fa-map-marked-alt"></i> Manzil Bharat</a>
+        <a href="/"><i class="fas fa-map-marked-alt"></i> Manzil Bharat</a>
       </h1>
       <p>Pick a destination and how long you have - get a day-by-day plan with costs.</p>
       <div class="topbar-links">
-        <a class="back" href="mytrips.html"><i class="fas fa-route"></i> My Trips</a>
-        <a class="back" href="index.html"><i class="fas fa-arrow-left"></i> Home</a>
+        <a class="back" href="mytrips"><i class="fas fa-route"></i> My Trips</a>
+        <a class="back" href="/"><i class="fas fa-arrow-left"></i> Home</a>
       </div>
     </div>
 
@@ -677,7 +677,7 @@
       </section>
 
       <p class="hint">
-        Not sure where to go? <a href="index.html">Search a destination</a> and open it on the map
+        Not sure where to go? <a href="/">Search a destination</a> and open it on the map
         first.
       </p>
     </main>
@@ -1092,7 +1092,7 @@
         const token = MBAuth.getToken();
         if (!token) {
           saveTripNote.textContent = 'Sign in to save this itinerary.';
-          window.location.href = 'login.html?next=' + encodeURIComponent('trip.html');
+          window.location.href = 'login?next=' + encodeURIComponent('trip');
           return;
         }
         saveTripBtn.disabled = true;
@@ -1119,7 +1119,7 @@
           if (res.status === 401 || res.status === 403) {
             MBAuth.clearSession();
             saveTripNote.textContent = 'Sign in to save this itinerary.';
-            window.location.href = 'login.html?next=' + encodeURIComponent('trip.html');
+            window.location.href = 'login?next=' + encodeURIComponent('trip');
             return;
           }
           if (!res.ok) throw new Error((data && data.error) || 'HTTP ' + res.status);

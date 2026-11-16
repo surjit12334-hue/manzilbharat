@@ -9,7 +9,7 @@
       name="description"
       content="Create your Manzil Bharat account and start exploring India."
     />
-    <link rel="canonical" href="https://manzilbharat.onrender.com/createaccount.html" />
+    <link rel="canonical" href="https://manzilbharat.onrender.com/createaccount" />
     <!-- Social previews: absolute og:url/og:image are required, relative ones
          are ignored by WhatsApp/X. The card is a 1200x630 JPEG. -->
     <meta property="og:site_name" content="Manzil Bharat" />
@@ -19,7 +19,7 @@
       property="og:description"
       content="Create your Manzil Bharat account and start exploring India."
     />
-    <meta property="og:url" content="https://manzilbharat.onrender.com/createaccount.html" />
+    <meta property="og:url" content="https://manzilbharat.onrender.com/createaccount" />
     <meta property="og:image" content="https://manzilbharat.onrender.com/og-image.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
@@ -416,16 +416,16 @@
   </head>
   <body>
     <nav>
-      <a href="index.html" class="logo">Manzil Bharat</a>
+      <a href="/" class="logo">Manzil Bharat</a>
       <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
       <ul class="nav-links" id="navLinks">
-        <li><a href="index.html">Home</a></li>
-        <li><a href="trip.html">Plan Trip</a></li>
-        <li><a href="mytrips.html">My Trips</a></li>
-        <li><a href="contact.html">Contact</a></li>
-        <li data-mb-show="guest"><a href="login.html">Login</a></li>
+        <li><a href="/">Home</a></li>
+        <li><a href="trip">Plan Trip</a></li>
+        <li><a href="mytrips">My Trips</a></li>
+        <li><a href="contact">Contact</a></li>
+        <li data-mb-show="guest"><a href="login">Login</a></li>
         <li data-mb-show="user" hidden>
-          <a href="mytrips.html"
+          <a href="mytrips"
             ><i class="fas fa-user-circle"></i> Hi, <span data-mb-name>traveller</span></a
           >
         </li>
@@ -480,8 +480,8 @@
 
         <p class="google-consent">
           Signing up with Google means you accept our
-          <a href="privacypolicy.html">Privacy Policy</a> and
-          <a href="terms-and-conditions.html">Terms &amp; Conditions</a>.
+          <a href="privacypolicy">Privacy Policy</a> and
+          <a href="terms-and-conditions">Terms &amp; Conditions</a>.
         </p>
 
         <div class="divider">or sign up with email</div>
@@ -586,8 +586,8 @@
             <label class="consent-label" for="consent">
               <input type="checkbox" id="consent" name="consent" />
               <span
-                >I have read and accept the <a href="privacypolicy.html">Privacy Policy</a> and the
-                <a href="terms-and-conditions.html">Terms &amp; Conditions</a>, and I consent to
+                >I have read and accept the <a href="privacypolicy">Privacy Policy</a> and the
+                <a href="terms-and-conditions">Terms &amp; Conditions</a>, and I consent to
                 Manzil Bharat storing my details so it can plan my trips.</span
               >
             </label>
@@ -604,15 +604,15 @@
 
         <p class="terms">
           You can download your data or delete your account at any time from
-          <a href="mytrips.html">My Trips</a>.
+          <a href="mytrips">My Trips</a>.
         </p>
 
-        <div class="auth-footer">Already have an account? <a href="login.html">Log in</a></div>
+        <div class="auth-footer">Already have an account? <a href="login">Log in</a></div>
       </div>
     </div>
 
     <footer>
-      <a href="index.html" class="footer-logo">Manzil Bharat</a>
+      <a href="/" class="footer-logo">Manzil Bharat</a>
       <p>Explore the world with Bhartiya dil.</p>
       <div class="footer-bottom">&copy; 2026 Manzil Bharat. All rights reserved.</div>
     </footer>
@@ -953,7 +953,7 @@
             msg.style.color = '#27ae60';
             msg.style.display = 'block';
             setTimeout(() => {
-              window.location.href = 'index.html';
+              window.location.href = '/';
             }, 1200);
           } else {
             if (result.errors) {

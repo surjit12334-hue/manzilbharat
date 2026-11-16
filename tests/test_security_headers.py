@@ -8,7 +8,7 @@ a developer to a scheme the local server does not speak).
 
 
 def test_pages_carry_the_baseline_headers(client):
-    response = client.get('/index.html')
+    response = client.get('/')
 
     assert response.status_code == 200
     assert response.headers['X-Content-Type-Options'] == 'nosniff'
@@ -27,7 +27,7 @@ def test_api_responses_carry_the_headers_too(client):
 
 
 def test_the_csp_locks_the_dangerous_things_down(client):
-    csp = client.get('/index.html').headers['Content-Security-Policy']
+    csp = client.get('/').headers['Content-Security-Policy']
 
     assert "default-src 'self'" in csp
     assert "object-src 'none'" in csp
@@ -39,7 +39,7 @@ def test_the_csp_locks_the_dangerous_things_down(client):
 def test_the_csp_allows_the_origins_the_pages_use(client):
     """A CSP that forgets unpkg.com would break the map, and one that forgets
     accounts.google.com would break Google Sign-In."""
-    csp = client.get('/map.html').headers['Content-Security-Policy']
+    csp = client.get('/map').headers['Content-Security-Policy']
 
     assert 'https://unpkg.com' in csp
     assert 'https://tile.openstreetmap.org' in csp
@@ -55,7 +55,7 @@ def test_the_csp_allows_the_blog_and_gallery_images(client):
     A host present but in the WRONG directive still breaks the feature - this
     happened once for real: the whole gallery was dead and every blog card
     rendered without its cover image."""
-    csp = client.get('/blog.html').headers['Content-Security-Policy']
+    csp = client.get('/blog').headers['Content-Security-Policy']
     directives = {
         part.strip().split(' ', 1)[0]: part
         for part in csp.split(';')
@@ -71,7 +71,7 @@ def test_the_csp_allows_the_blog_and_gallery_images(client):
 def test_the_csp_allows_the_razorpay_checkout(client):
     """Phase 5 step 2 loads checkout.js and frames the hosted checkout; the
     API host is there because the script talks to it from the page."""
-    csp = client.get('/mytrips.html').headers['Content-Security-Policy']
+    csp = client.get('/mytrips').headers['Content-Security-Policy']
     directives = {
         part.strip().split(' ', 1)[0]: part
         for part in csp.split(';')
@@ -84,14 +84,14 @@ def test_the_csp_allows_the_razorpay_checkout(client):
 
 
 def test_hsts_is_sent_over_https(client):
-    response = client.get('/index.html', headers={'X-Forwarded-Proto': 'https'})
+    response = client.get('/', headers={'X-Forwarded-Proto': 'https'})
 
     assert 'max-age=31536000' in response.headers['Strict-Transport-Security']
 
 
 def test_hsts_is_not_sent_over_plain_http(client):
     """A local http:// page must not be pinned to https."""
-    response = client.get('/index.html')
+    response = client.get('/')
 
     assert 'Strict-Transport-Security' not in response.headers
 

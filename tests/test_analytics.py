@@ -11,17 +11,17 @@ def _views(sql):
 
 
 def test_a_page_request_is_counted(client, sql):
-    client.get('/index.html')
+    client.get('/')
 
-    assert _views(sql) == {'/index.html': 1}
+    assert _views(sql) == {'/': 1}
 
 
 def test_the_counter_adds_up(client, sql):
-    client.get('/index.html')
-    client.get('/index.html')
-    client.get('/map.html')
+    client.get('/')
+    client.get('/')
+    client.get('/map')
 
-    assert _views(sql) == {'/index.html': 2, '/map.html': 1}
+    assert _views(sql) == {'/': 2, '/map': 1}
 
 
 def test_api_calls_are_not_counted(client, sql):
@@ -38,7 +38,7 @@ def test_static_assets_are_not_counted(client, sql):
 
 
 def test_a_missing_page_is_not_counted(client, sql):
-    response = client.get('/no-such-page.html')
+    response = client.get('/no-such-page')
 
     assert response.status_code == 404
     assert _views(sql) == {}
@@ -47,9 +47,9 @@ def test_a_missing_page_is_not_counted(client, sql):
 def test_the_query_string_is_never_stored(client, sql):
     """The query string can carry a destination or an email - it is not
     personal data we want to keep."""
-    client.get('/index.html?destination=Jaipur&email=someone@example.com')
+    client.get('/?destination=Jaipur&email=someone@example.com')
 
-    assert _views(sql) == {'/index.html': 1}
+    assert _views(sql) == {'/': 1}
 
 
 # --------------------------------------------------------------------------
@@ -72,8 +72,8 @@ def test_a_user_token_is_not_an_admin_token(client, user):
 
 def test_analytics_reports_the_counted_views(client, admin_headers, sql):
     headers = admin_headers()
-    client.get('/index.html')
-    client.get('/index.html')
+    client.get('/')
+    client.get('/')
 
     response = client.get('/api/analytics', headers=headers)
 
@@ -83,7 +83,7 @@ def test_analytics_reports_the_counted_views(client, admin_headers, sql):
     assert body['by_day']
     assert body['by_day'][0]['day']
     paths = {row['path']: row['views'] for row in body['top_paths']}
-    assert paths['/index.html'] >= 2
+    assert paths['/'] >= 2
 
 
 def test_analytics_is_empty_on_a_fresh_database(client, admin_headers):

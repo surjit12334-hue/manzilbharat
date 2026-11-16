@@ -8,7 +8,7 @@
       name="description"
       content="Explore destinations on an interactive map with photos, nearby transport and AI trip ideas."
     />
-    <link rel="canonical" href="https://manzilbharat.onrender.com/map.html" />
+    <link rel="canonical" href="https://manzilbharat.onrender.com/map" />
     <!-- Social previews: absolute og:url/og:image are required, relative ones
          are ignored by WhatsApp/X. The card is a 1200x630 JPEG. -->
     <meta property="og:site_name" content="Manzil Bharat" />
@@ -18,7 +18,7 @@
       property="og:description"
       content="Explore destinations on an interactive map with photos, nearby transport and AI trip ideas."
     />
-    <meta property="og:url" content="https://manzilbharat.onrender.com/map.html" />
+    <meta property="og:url" content="https://manzilbharat.onrender.com/map" />
     <meta property="og:image" content="https://manzilbharat.onrender.com/og-image.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
@@ -385,18 +385,18 @@
   <body>
     <div class="topbar">
       <h1>
-        <a href="index.html"><i class="fas fa-map-marked-alt"></i> Manzil Bharat</a>
+        <a href="/"><i class="fas fa-map-marked-alt"></i> Manzil Bharat</a>
       </h1>
       <p id="pageSub">Exploring your destination...</p>
       <div class="topbar-links">
         <a class="back" href="" id="planLink"><i class="fas fa-calendar-alt"></i> Plan Trip</a>
-        <a class="back" href="mytrips.html"><i class="fas fa-route"></i> My Trips</a>
-        <a class="back" href="index.html"><i class="fas fa-arrow-left"></i> New search</a>
+        <a class="back" href="mytrips"><i class="fas fa-route"></i> My Trips</a>
+        <a class="back" href="/"><i class="fas fa-arrow-left"></i> New search</a>
       </div>
     </div>
 
     <div class="no-result" id="noResult" style="display: none">
-      <p>No destination selected. <a href="index.html">Go back and search for a place.</a></p>
+      <p>No destination selected. <a href="/">Go back and search for a place.</a></p>
     </div>
 
     <div id="content">
@@ -473,8 +473,8 @@
       function init() {
         const planLink = document.getElementById('planLink');
         planLink.href = params.get('name')
-          ? 'trip.html?destination=' + encodeURIComponent(name)
-          : 'trip.html';
+          ? 'trip?destination=' + encodeURIComponent(name)
+          : 'trip';
         if (!lat || !lon) {
           contentEl.style.display = 'none';
           noResultEl.style.display = 'block';
@@ -689,7 +689,7 @@
           escHtml(name) +
           '</span></div>' +
           '<div class="ai-body"></div>' +
-          '<a class="ai-plan" href="trip.html?destination=' +
+          '<a class="ai-plan" href="trip?destination=' +
           encodeURIComponent(name) +
           '"><i class="fas fa-calendar-alt"></i> Plan a day-wise trip</a>' +
           '<div class="ai-hint"><i class="fas fa-sparkles"></i> AI tips by Gemini</div>';

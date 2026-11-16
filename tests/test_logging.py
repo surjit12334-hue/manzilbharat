@@ -179,7 +179,7 @@ def test_the_reset_token_never_reaches_the_log(client, register, log_lines):
 
     client.post('/api/forgot-password', json={'email': 'test.user@example.com'})
 
-    assert 'reset-password.html?token=' not in log_lines
+    assert 'reset-password?token=' not in log_lines
 
 
 # --------------------------------------------------------------------------
