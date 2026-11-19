@@ -76,4 +76,4 @@ def test_private_files_are_refused(client):
 
 
 def test_a_public_page_still_works(client):
-    assert client.get('/index.html').status_code == 200
+    assert client.get('/').status_code == 200

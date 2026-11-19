@@ -9,7 +9,7 @@
       name="description"
       content="Create your Manzil Bharat account and start exploring India."
     />
-    <link rel="canonical" href="https://manzilbharat.onrender.com/createaccount.html" />
+    <link rel="canonical" href="https://manzilbharat.eu.org/createaccount" />
     <!-- Social previews: absolute og:url/og:image are required, relative ones
          are ignored by WhatsApp/X. The card is a 1200x630 JPEG. -->
     <meta property="og:site_name" content="Manzil Bharat" />
@@ -19,8 +19,8 @@
       property="og:description"
       content="Create your Manzil Bharat account and start exploring India."
     />
-    <meta property="og:url" content="https://manzilbharat.onrender.com/createaccount.html" />
-    <meta property="og:image" content="https://manzilbharat.onrender.com/og-image.jpg" />
+    <meta property="og:url" content="https://manzilbharat.eu.org/createaccount" />
+    <meta property="og:image" content="https://manzilbharat.eu.org/og-image.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Manzil Bharat - Let's Travel Together" />
@@ -30,7 +30,7 @@
       name="twitter:description"
       content="Create your Manzil Bharat account and start exploring India."
     />
-    <meta name="twitter:image" content="https://manzilbharat.onrender.com/og-image.jpg" />
+    <meta name="twitter:image" content="https://manzilbharat.eu.org/og-image.jpg" />
     <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet" />
     <link
       rel="stylesheet"
@@ -219,6 +219,33 @@
         display: block;
         animation: fadeIn 0.3s ease-out;
       }
+      /* DPDP consent: the label carries the text, the box stays a checkbox
+         (the generic .form-group input rule would stretch it to full width). */
+      .consent-group label.consent-label {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.6rem;
+        font-weight: 500;
+        line-height: 1.45;
+        color: #555;
+        margin-bottom: 0;
+      }
+      .consent-group input[type='checkbox'] {
+        width: 1.1rem;
+        height: 1.1rem;
+        flex: 0 0 auto;
+        margin: 0.15rem 0 0;
+        padding: 0;
+        accent-color: #ff6b35;
+      }
+      .consent-group input[type='checkbox'].error {
+        outline: 2px solid #e74c3c;
+        outline-offset: 2px;
+      }
+      .consent-group a {
+        color: #ff6b35;
+        font-weight: 600;
+      }
       .form-row {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -267,6 +294,18 @@
       }
       .divider::after {
         right: 0;
+      }
+
+      /* The Google button creates an account too, so the consent has to be
+         visible next to it. */
+      .google-consent {
+        text-align: center;
+        font-size: 0.78rem;
+        color: #888;
+        margin: 0.4rem 0 0;
+      }
+      .google-consent a {
+        color: #ff6b35;
       }
 
       .terms {
@@ -377,15 +416,16 @@
   </head>
   <body>
     <nav>
-      <a href="index.html" class="logo">Manzil Bharat</a>
+      <a href="/" class="logo">Manzil Bharat</a>
       <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
       <ul class="nav-links" id="navLinks">
-        <li><a href="index.html">Home</a></li>
-        <li><a href="mytrips.html">My Trips</a></li>
-        <li><a href="contact.html">Contact</a></li>
-        <li data-mb-show="guest"><a href="login.html">Login</a></li>
+        <li><a href="/">Home</a></li>
+        <li><a href="trip">Plan Trip</a></li>
+        <li><a href="mytrips">My Trips</a></li>
+        <li><a href="contact">Contact</a></li>
+        <li data-mb-show="guest"><a href="login">Login</a></li>
         <li data-mb-show="user" hidden>
-          <a href="mytrips.html"
+          <a href="mytrips"
             ><i class="fas fa-user-circle"></i> Hi, <span data-mb-name>traveller</span></a
           >
         </li>
@@ -416,14 +456,33 @@
         ></div>
         <script>
           (function () {
-            const cid =
-              window.GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+            const cid = (window.GOOGLE_CLIENT_ID || '').trim();
             const onload = document.getElementById('g_id_onload');
             const signin = document.querySelector('.g_id_signin');
+            const configured = cid && cid.indexOf('YOUR_GOOGLE_CLIENT_ID') !== 0;
+            if (!configured) {
+              // No client id configured: hide the Google button instead of
+              // sending Google the placeholder, which fails with
+              // "OAuth client was not found" (401 invalid_client).
+              [onload, signin].forEach(function (el) {
+                if (el) el.style.display = 'none';
+              });
+              const consent = document.querySelector('.google-consent');
+              if (consent) consent.style.display = 'none';
+              const divider = document.querySelector('.divider');
+              if (divider) divider.style.display = 'none';
+              return;
+            }
             if (onload) onload.setAttribute('data-client_id', cid);
             if (signin) signin.setAttribute('data-client_id', cid);
           })();
         </script>
+
+        <p class="google-consent">
+          Signing up with Google means you accept our
+          <a href="privacypolicy">Privacy Policy</a> and
+          <a href="terms-and-conditions">Terms &amp; Conditions</a>.
+        </p>
 
         <div class="divider">or sign up with email</div>
 
@@ -523,6 +582,17 @@
             />
             <div class="error-msg" id="confirmPasswordError"></div>
           </div>
+          <div class="form-group consent-group">
+            <label class="consent-label" for="consent">
+              <input type="checkbox" id="consent" name="consent" />
+              <span
+                >I have read and accept the <a href="privacypolicy">Privacy Policy</a> and the
+                <a href="terms-and-conditions">Terms &amp; Conditions</a>, and I consent to Manzil
+                Bharat storing my details so it can plan my trips.</span
+              >
+            </label>
+            <div class="error-msg" id="consentError"></div>
+          </div>
           <button type="submit" class="btn-primary" id="submitBtn">
             <i class="fas fa-user-plus"></i> Create Account
           </button>
@@ -533,17 +603,16 @@
         </form>
 
         <p class="terms">
-          By signing up, you agree to our
-          <a href="terms-and-conditions.html">Terms & Conditions</a> and
-          <a href="privacypolicy.html">Privacy Policy</a>.
+          You can download your data or delete your account at any time from
+          <a href="mytrips">My Trips</a>.
         </p>
 
-        <div class="auth-footer">Already have an account? <a href="login.html">Log in</a></div>
+        <div class="auth-footer">Already have an account? <a href="login">Log in</a></div>
       </div>
     </div>
 
     <footer>
-      <a href="index.html" class="footer-logo">Manzil Bharat</a>
+      <a href="/" class="footer-logo">Manzil Bharat</a>
       <p>Explore the world with Bhartiya dil.</p>
       <div class="footer-bottom">&copy; 2026 Manzil Bharat. All rights reserved.</div>
     </footer>
@@ -801,6 +870,23 @@
         return true;
       }
 
+      // DPDP consent: the checkbox is the consent, not the "By signing up you
+      // agree" line under the form. The version says which wording of the
+      // policy was accepted - the server refuses anything it does not know.
+      const CONSENT_TEXT_VERSION = 'dpdp-v1';
+
+      function validateConsent() {
+        const el = document.getElementById('consent');
+        if (!el.checked) {
+          showError('consent', 'Please accept the Privacy Policy to create an account');
+          return false;
+        }
+        clearError('consent');
+        return true;
+      }
+
+      document.getElementById('consent').addEventListener('change', validateConsent);
+
       const validators = {
         name: validateName,
         email: validateEmail,
@@ -833,6 +919,7 @@
         fields.forEach((f) => {
           if (!validators[f]()) allValid = false;
         });
+        if (!validateConsent()) allValid = false;
         if (!allValid) return;
 
         const data = {
@@ -845,6 +932,8 @@
           residential_address: document.getElementById('residential_address').value.trim(),
           pincode: document.getElementById('pincode').value.trim(),
           password: document.getElementById('password').value,
+          consent: document.getElementById('consent').checked,
+          consent_version: CONSENT_TEXT_VERSION,
         };
 
         const btn = document.getElementById('submitBtn');
@@ -864,7 +953,7 @@
             msg.style.color = '#27ae60';
             msg.style.display = 'block';
             setTimeout(() => {
-              window.location.href = 'index.html';
+              window.location.href = '/';
             }, 1200);
           } else {
             if (result.errors) {

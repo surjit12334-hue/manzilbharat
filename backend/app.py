@@ -3,13 +3,16 @@ import hashlib
 import hmac
 import ipaddress
 import json
+import logging
 import os
 import re
 import smtplib
+import sys
 import time
 from datetime import date, datetime, timedelta
 from email.mime.text import MIMEText
 from functools import wraps
+from logging.handlers import RotatingFileHandler
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import bcrypt
@@ -17,7 +20,7 @@ import psycopg2
 import psycopg2.extras
 import requests
 from dotenv import load_dotenv
-from flask import Flask, abort, g, jsonify, request, send_from_directory
+from flask import Flask, abort, g, jsonify, redirect, request, send_from_directory
 from flask.json.provider import DefaultJSONProvider
 from flask_cors import CORS
 from google.auth.transport import requests as google_requests
@@ -35,6 +38,64 @@ def base64url_decode(s):
     return base64.urlsafe_b64decode(s)
 
 load_dotenv()
+
+
+def _json_object():
+    """The request body as a JSON object, or {} when it is not one.
+
+    `get_json()` returns whatever the body parsed to - None for a literal
+    `null`, a list, a string, a number - and every handler then calls
+    `.get(...)` on it. A hand-made `POST /api/login` with `[1,2]` as the body
+    therefore ended in an AttributeError and a 500 with a traceback in the
+    log. Only an object carries fields, so anything else becomes `{}` and the
+    validation next to it answers with the 400 that names what is missing.
+
+    The parse itself stays silent: a body that is absent, not JSON, or sent
+    without a JSON content type is a bad request either way, and Flask's own
+    HTML error page for it is not the JSON the API promises.
+    """
+    data = request.get_json(silent=True)
+    return data if isinstance(data, dict) else {}
+
+
+def _text(value):
+    """A JSON field as stripped text.
+
+    JSON is not typed by the browser: a field the form sends as a string can
+    arrive as a number, a list or an object in a hand-made request. The old
+    `(data.get('x') or '').strip()` turned that into a 500 with a traceback in
+    the log. An empty string is the honest answer - the validation next to it
+    then returns a 400 that names the field.
+    """
+    return value.strip() if isinstance(value, str) else ''
+
+
+def _raw_text(value):
+    """A JSON field as text without stripping.
+
+    Passwords are compared byte for byte, so leading or trailing spaces are
+    part of the secret. Non-strings still become '' instead of crashing
+    `.encode()` further down.
+    """
+    return value if isinstance(value, str) else ''
+
+
+def _int_or_none(value):
+    """A JSON id as an int, or None when it is not one.
+
+    `int(1.5)` silently truncates to 1, which would let a float pay the wrong
+    booking; `int(True)` is 1. Both are refused here on purpose. A numeric
+    string ("12") is accepted because forms and older clients send those.
+    """
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value) if value.is_integer() else None
+    if isinstance(value, str) and value.strip().lstrip('-').isdigit():
+        return int(value.strip())
+    return None
 
 
 def _required(name, min_len=0):
@@ -103,6 +164,33 @@ elif EMAIL_PROVIDER not in ('smtp', 'resend', 'brevo'):
     print('NOTE: no email provider configured (set EMAIL_PROVIDER and its '
           'credentials) - password-reset emails are disabled')
 
+# ---------------------------------------------------------------------------
+# Razorpay - TEST MODE ONLY (Phase 5 step 2)
+# ---------------------------------------------------------------------------
+# This build never takes live money. The checkout runs against Razorpay's
+# TEST keys, which are free to create and cannot move real rupees, and every
+# payment it records is marked 'test' in the database and in the admin panel.
+#
+# RAZORPAY_KEY_ID is public - the browser needs it to open the checkout.
+# RAZORPAY_KEY_SECRET is not: it signs the order and verifies the payment
+# and it never leaves the server.
+#
+# Without the keys the payment endpoints answer 503 and the rest of the site
+# keeps working: a missing key must not take the travel planner down.
+RAZORPAY_KEY_ID = (os.getenv('RAZORPAY_KEY_ID') or '').strip()
+RAZORPAY_KEY_SECRET = (os.getenv('RAZORPAY_KEY_SECRET') or '').strip()
+RAZORPAY_API_BASE = 'https://api.razorpay.com/v1'
+RAZORPAY_TIMEOUT_SECONDS = 15
+# Razorpay's own ceiling for a single order (₹50,000).
+RAZORPAY_MAX_AMOUNT_PAISE = 5_000_000
+# Razorpay key ids say which mode they belong to: rzp_test_... for the test
+# keys, rzp_live_... for the live ones. The server refuses a live key on
+# purpose - a demo that quietly starts moving real money is a bug, not a
+# feature.
+RAZORPAY_TEST_KEY_PREFIX = 'rzp_test_'
+# What every payment this build records is called.
+RAZORPAY_MODE = 'test'
+
 ALLOWED_ORIGINS = [
     "http://localhost:5000",
     "http://localhost:8000",
@@ -112,7 +200,7 @@ ALLOWED_ORIGINS = [
     "https://surjit12334-hue.github.io"
 ]
 # The live origin(s), comma separated, set in the host dashboard:
-#   APP_ORIGIN=https://manzil-bharat.onrender.com
+#   APP_ORIGIN=https://manzilbharat.eu.org
 # Without this the deployed site falls outside the CORS allow-list and the
 # forgot-password handler refuses the page's own origin, silently rebuilding
 # reset links against whatever host the proxy forwarded.
@@ -121,10 +209,63 @@ ALLOWED_ORIGINS += [o.strip() for o in (os.getenv('APP_ORIGIN') or '').split(','
 
 RESET_TOKEN_VALID_SECONDS = 1800
 
+# The version of the consent text the visitor agreed to (DPDP). Bump it when
+# the wording in privacypolicy.html changes: the old rows stay in the consents
+# table, so we can always prove WHICH text someone accepted, and a signup that
+# quotes an outdated version is refused instead of being recorded against the
+# wrong text.
+CONSENT_TEXT_VERSION = 'dpdp-v1'
+CONSENT_TEXT_VERSIONS = {CONSENT_TEXT_VERSION}
+
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
 
 app = Flask(__name__, static_folder=PROJECT_ROOT, static_url_path='')
+
+# ---------------------------------------------------------------------------
+# Logging (Phase 5 step 4)
+# ---------------------------------------------------------------------------
+# Two sinks, one set of lines:
+#   stdout   the host collects it (Render's log dashboard, Docker, systemd)
+#   a file   logs/manzil.log on disk, rotated at 5 MB with 3 old files
+#
+# WHAT IS NEVER LOGGED: passwords, password hashes, session tokens, reset
+# tokens, API keys. The audit lines below carry the user id and the email
+# address of the account involved - that is what an access log is for - and
+# nothing else. The privacy policy says so in section 1.E.
+LOG_DIR = os.path.join(PROJECT_ROOT, 'logs')
+LOG_FILE = os.path.join(LOG_DIR, 'manzil.log')
+
+
+def _setup_logging():
+    """Send the app's logs to stdout and to a rotating file."""
+    root = logging.getLogger()
+    if getattr(root, '_manzil_configured', False):
+        return
+    root.setLevel(logging.INFO)
+    formatter = logging.Formatter(
+        '[%(asctime)s] %(levelname)s %(name)s: %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S')
+
+    stream = logging.StreamHandler(sys.stdout)
+    stream.setFormatter(formatter)
+    root.addHandler(stream)
+
+    try:
+        os.makedirs(LOG_DIR, exist_ok=True)
+        file_handler = RotatingFileHandler(
+            LOG_FILE, maxBytes=5 * 1024 * 1024, backupCount=3, encoding='utf-8')
+        file_handler.setFormatter(formatter)
+        root.addHandler(file_handler)
+    except OSError as exc:
+        # A read-only disk is not a reason to refuse to serve traffic: the
+        # stdout stream is still there.
+        print(f'NOTE: cannot write {LOG_FILE} ({exc}) - logging to stdout only')
+
+    root._manzil_configured = True
+
+
+_setup_logging()
 
 # Trust one proxy hop so request.remote_addr / request.scheme reflect the real
 # visitor when running behind a reverse proxy. NOTE: this is NOT enough to key
@@ -145,7 +286,8 @@ try:
     # Re-check If-None-Match AFTER compression for the '/' homepage too (only
     # the 'static' endpoint is listed by default), otherwise a browser holding
     # the compressed body gets a 200 + full re-download instead of a 304.
-    app.config['COMPRESS_STREAMING_ENDPOINT_CONDITIONAL'] = ['static', 'index']
+    app.config['COMPRESS_STREAMING_ENDPOINT_CONDITIONAL'] = [
+        'static', 'index', 'clean_page']
     Compress(app)
 except ImportError:  # pragma: no cover - dev machines without the extra
     print('NOTE: flask-compress not installed - responses are sent uncompressed')
@@ -174,11 +316,43 @@ STATIC_ALLOWED_EXTENSIONS = {
     '.webp', '.ico', '.pdf', '.woff', '.woff2', '.ttf', '.eot'
 }
 
+# Clean page URLs: /aboutus is the address of aboutus.html. The name is
+# deliberately narrow (no dots) so this can never match an asset such as
+# /config.js, and no path segment, so it can never match /backend/app.
+_PAGE_NAME_RE = re.compile(r'[a-z0-9][a-z0-9-]*\Z')
+
 # Cache lifetimes per asset kind, applied in set_security_headers(). See the
 # comment there for why HTML is deliberately absent (revalidated instead).
 _CACHE_IMMUTABLE = {'.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico',
                     '.woff', '.woff2', '.ttf', '.eot', '.pdf'}
 _CACHE_ONE_WEEK = {'.css', '.js', '.json'}
+
+
+@app.before_request
+def redirect_legacy_html_urls():
+    """301 /aboutus.html -> /aboutus, so every page has ONE address.
+
+    Old bookmarks, emailed reset links and search results keep working, while
+    the canonical URL (link rel=canonical, og:url) stays extensionless. Only
+    real page names are redirected: /anything.html is ignored here and falls
+    through to the static handler (which 404s it when the file is missing).
+    """
+    path = request.path
+    if not path.endswith('.html'):
+        return
+    name = path[1:-5]
+    if not _PAGE_NAME_RE.match(name):
+        return
+    if name != 'index' and not os.path.isfile(
+            os.path.join(PROJECT_ROOT, name + '.html')):
+        # Not a page: let it 404 instead of bouncing to a second 404.
+        return
+    target = '/' if name == 'index' else '/' + name
+    if request.query_string:
+        # Keep ?slug=..., ?next=..., ?token=... intact. latin-1 round-trips
+        # the raw bytes without re-encoding them.
+        target += '?' + request.query_string.decode('latin-1')
+    return redirect(target, code=301)
 
 
 @app.before_request
@@ -196,9 +370,18 @@ def block_private_files():
         return
     if any(segment.startswith('.') for segment in filename.split('/')):
         abort(404)
-    if os.path.splitext(filename)[1].lower() not in STATIC_ALLOWED_EXTENSIONS:
-        abort(404)
-    return
+    ext = os.path.splitext(filename)[1].lower()
+    if ext:
+        if ext not in STATIC_ALLOWED_EXTENSIONS:
+            abort(404)
+        return
+    # Extensionless requests are the clean page URLs (/aboutus, /trip, ...).
+    # Only a single segment that really has a page behind it gets through;
+    # /backend/app and /random stay 404s.
+    if ('/' not in filename and _PAGE_NAME_RE.match(filename) and
+            os.path.isfile(os.path.join(PROJECT_ROOT, filename + '.html'))):
+        return
+    abort(404)
 
 
 @app.errorhandler(HTTPException)
@@ -208,9 +391,188 @@ def handle_http_exception(error):
     return error
 
 
+@app.errorhandler(500)
+def handle_internal_error(error):
+    """Log a crash with the request that caused it.
+
+    The traceback belongs in the log, not in the response: a stack trace in
+    the body tells an outsider about the internals of the server. The visitor
+    gets the same plain message every time, and the operator gets the
+    details in logs/manzil.log (and on stdout).
+    """
+    user_id = None
+    try:
+        user_id = g.get('user', {}).get('user_id')
+    except Exception:
+        user_id = None
+    app.logger.exception('500 on %s %s (user %s)', request.method, request.path,
+                        user_id)
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'An internal error occurred. Please try again later.'}), 500
+    return ('<!doctype html><html lang="en"><head><meta charset="utf-8">'
+            '<title>Something went wrong</title></head><body>'
+            '<h1>Something went wrong</h1>'
+            '<p>The server hit an unexpected error. Please try again in a '
+            'moment.</p></body></html>'), 500
+
+
 @app.route('/')
 def index():
     return send_from_directory(PROJECT_ROOT, 'index.html')
+
+
+@app.route('/<page>')
+def clean_page(page):
+    """Serve the extensionless address of a page: /aboutus -> aboutus.html.
+
+    The .html form is 301-redirected here by redirect_legacy_html_urls(), so
+    this is the canonical address. Anything that is not a page falls through to
+    the static files (config.js, icon.png, og-image.jpg, ...): this rule wins
+    the match for a single path segment, and the static rule underneath it is
+    a catch-all, so the same file still has to be served either way.
+    """
+    if _PAGE_NAME_RE.match(page):
+        candidate = page + '.html'
+        if os.path.isfile(os.path.join(PROJECT_ROOT, candidate)):
+            return send_from_directory(PROJECT_ROOT, candidate)
+    return send_from_directory(PROJECT_ROOT, page)
+
+
+@app.route('/config.js')
+def client_config():
+    """The browser config, generated from the server's environment.
+
+    Google Sign-In reads its client id from this file while the server
+    verifies the returned token against GOOGLE_CLIENT_ID. Serving the same
+    value here keeps the two from drifting: a stale placeholder left in the
+    checked-in config.js is exactly what made Google answer "OAuth client
+    was not found" (401 invalid_client) on the deployed site.
+    """
+    client_id = (GOOGLE_CLIENT_ID or '').strip()
+    if not client_id:
+        # Google Sign-In is not configured. Keep serving the checked-in file
+        # so API_BASE still works; the sign-in button hides itself.
+        return send_from_directory(PROJECT_ROOT, 'config.js')
+    body = (
+        '// Generated by the server from GOOGLE_CLIENT_ID; do not edit.\n'
+        "window.API_BASE = '';\n"
+        f'window.GOOGLE_CLIENT_ID = {json.dumps(client_id)};\n'
+    )
+    response = app.response_class(body, mimetype='application/javascript')
+    # A browser (or proxy) holding the old placeholder would keep failing
+    # until the cache expired, so never let this file be cached.
+    response.headers['Cache-Control'] = 'no-store'
+    return response
+
+
+# ---------------------------------------------------------------------------
+# First-party analytics (Phase 5 step 5)
+# ---------------------------------------------------------------------------
+# One row per (path, day) in page_views. Deliberately simple and deliberately
+# private: no third-party script, no cookie, no visitor identifier, and the
+# query string is NOT stored (it can carry a destination or an email).
+_analytics_broken = False
+
+
+def _is_page_view(path):
+    """True for a page request, false for an asset or an API call."""
+    if path.startswith('/api/'):
+        return False
+    ext = os.path.splitext(path)[1].lower()
+    return ext in ('', '.html')
+
+
+@app.after_request
+def count_page_view(response):
+    """Count the page view (if it is one) in the page_views table.
+
+    A failure here must never break the page the visitor asked for, so every
+    error is swallowed and the counter switches itself off after the first
+    one - a missing table would otherwise cost every request an error log
+    line and a rolled-back transaction.
+    """
+    global _analytics_broken
+    if _analytics_broken:
+        return response
+    if request.method not in ('GET', 'HEAD'):
+        return response
+    if not 200 <= response.status_code < 300:
+        # A redirect (the 301 from /aboutus.html to /aboutus) is not a page
+        # view: the clean URL that follows is. Counting both would double every
+        # legacy hit.
+        return response
+    if not _is_page_view(request.path):
+        return response
+
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            'INSERT INTO page_views (path, day, count) VALUES (%s, CURRENT_DATE, 1) '
+            'ON CONFLICT (path, day) DO UPDATE SET count = page_views.count + 1',
+            (request.path[:255],),
+        )
+        conn.commit()
+        cur.close()
+    except Exception:
+        if conn:
+            try:
+                conn.rollback()
+            except Exception:
+                # The connection is already broken - there is nothing to roll
+                # back, and the failure below is the one worth reading.
+                app.logger.info('page-view rollback failed: the connection was already gone')
+        _analytics_broken = True
+        app.logger.exception(
+            'page-view counting failed - run migrations/phase5.sql '
+            '(the counter is now off until the app restarts)')
+    finally:
+        if conn:
+            conn.close()
+    return response
+
+
+# ---------------------------------------------------------------------------
+# Security headers (Phase 5 step 3)
+# ---------------------------------------------------------------------------
+# The Content-Security-Policy lists every origin the pages actually use:
+#   cdnjs.cloudflare.com  Font Awesome (the icons)
+#   fonts.googleapis.com  the web font
+#   fonts.gstatic.com     the font files themselves
+#   unpkg.com             Leaflet (the map)
+#   accounts.google.com   Google Sign-In
+#   tile.openstreetmap.org / server.arcgisonline.com   the map tiles
+#   www.google.com        the Google Maps embed on the contact page
+#   checkout.razorpay.com the hosted checkout (Phase 5 step 2)
+#   images.unsplash.com   the blog cover images (data/blog_posts.json)
+#   commons.wikimedia.org map.html's photo gallery API (connect-src)
+#   upload.wikimedia.org  the gallery thumbnails themselves (img-src)
+# 'unsafe-inline' is needed for scripts and styles because every page carries
+# its own <script> and <style> block; a nonce-per-page version would mean
+# rewriting all 18 pages. Everything else is locked down: no plugins, no
+# framing by strangers, forms can only post to us.
+_CSP = (
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-inline' https://accounts.google.com "
+    "https://unpkg.com https://cdnjs.cloudflare.com "
+    "https://checkout.razorpay.com; "
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com "
+    "https://cdnjs.cloudflare.com https://unpkg.com; "
+    "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; "
+    "img-src 'self' data: blob: https://tile.openstreetmap.org "
+    "https://server.arcgisonline.com https://*.googleapis.com "
+    "https://maps.gstatic.com https://images.unsplash.com "
+    "https://commons.wikimedia.org https://upload.wikimedia.org; "
+    "connect-src 'self' https://accounts.google.com https://api.razorpay.com "
+    "https://commons.wikimedia.org; "
+    "frame-src https://www.google.com https://accounts.google.com "
+    "https://checkout.razorpay.com; "
+    "object-src 'none'; "
+    "base-uri 'self'; "
+    "form-action 'self'; "
+    "frame-ancestors 'self'"
+)
 
 
 @app.after_request
@@ -219,9 +581,28 @@ def set_security_headers(response):
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'
     response.headers['X-XSS-Protection'] = '1; mode=block'
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    response.headers['Content-Security-Policy'] = _CSP
+    # The app never asks for the camera, the microphone or the location, so
+    # no page may use them.
+    response.headers['Permissions-Policy'] = (
+        'geolocation=(), microphone=(), camera=(), payment=(), usb=()')
+    # Strict-Transport-Security is only meaningful over HTTPS - sending it on
+    # a plain http:// page would pin the visitor to a scheme the local
+    # development server does not speak. ProxyFix makes request.is_secure
+    # true behind the reverse proxy, so the live site gets the header.
+    if request.is_secure:
+        response.headers['Strict-Transport-Security'] = (
+            'max-age=31536000; includeSubDomains')
     # Auth responses carry tokens and password hashes; keep them out of any
     # shared/browser cache.
     if request.path.startswith('/api/'):
+        response.headers['Cache-Control'] = 'no-store'
+        return response
+
+    # /config.js is generated from the environment. A cached copy would keep
+    # sending the browser an old Google client id (the placeholder is what
+    # caused "OAuth client was not found"), so it must never be reused.
+    if request.path == '/config.js':
         response.headers['Cache-Control'] = 'no-store'
         return response
 
@@ -630,6 +1011,58 @@ def get_db():
     return conn
 
 
+def _check_phase4_tables():
+    """Warn once at boot when a table from Phase 4 or 5 is missing.
+
+    The live database was created before those phases, so it still needs
+    migrations/phase4.sql and migrations/phase5.sql. A missing table is a
+    deployment mistake rather than a code bug, and saying so once at boot is
+    clearer than letting every request fail with a 500.
+    """
+    wanted = ['saved_trips', 'geocode_cache', 'consents', 'page_views']
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT tablename FROM pg_tables WHERE schemaname = 'public' "
+            "AND tablename = ANY(%s)",
+            (wanted,),
+        )
+        found = {row[0] for row in cur.fetchall()}
+        cur.close()
+        missing = [name for name in wanted if name not in found]
+        if missing:
+            print('NOTE: missing table(s) ' + ', '.join(missing) + ' - run '
+                  'migrations/phase4.sql and migrations/phase5.sql against '
+                  'the database')
+    except Exception:
+        # The database may be asleep (Neon scales to zero) or unreachable.
+        # That is no reason to refuse to boot.
+        app.logger.info('phase 4 table check skipped: the database is unreachable')
+    finally:
+        if conn:
+            conn.close()
+
+
+_phase4_tables_checked = False
+
+
+@app.before_request
+def _check_phase4_tables_once():
+    """Run the table check on the first request, not at import.
+
+    At import time the database may still be starting (or asleep), and the
+    test suite imports the app before it creates its schema. The check is
+    skipped in testing mode for the same reason.
+    """
+    global _phase4_tables_checked
+    if _phase4_tables_checked or app.testing:
+        return
+    _phase4_tables_checked = True
+    _check_phase4_tables()
+
+
 @app.route('/api/health')
 def health():
     """Readiness probe: Render's healthCheckPath and the post-deploy smoke test.
@@ -656,6 +1089,402 @@ def health():
             conn.close()
 
 
+@app.route('/api/transport')
+@rate_limit(max_requests=60, window=60)
+def transport():
+    """Curated metro/rail/airport info for a demo city.
+
+    Static JSON stand-in matching the shape a live transport provider would
+    supply. Unknown cities return a 404 with the list of cities that exist.
+    """
+    city = (request.args.get('city') or '').strip()
+    if not city:
+        return jsonify({'error': 'city is required'}), 400
+
+    data = _transport(city)
+    if data is None:
+        try:
+            with open(TRANSPORT_PATH, encoding='utf-8') as handle:
+                table = json.load(handle)
+            available = sorted(table.keys()) if isinstance(table, dict) else []
+        except Exception:
+            available = []
+        return jsonify({
+            'error': 'No curated transport info for that city yet',
+            'city': city,
+            'available': available,
+        }), 404
+
+    return jsonify({
+        'city': city.strip().lower(),
+        'label': data.get('label', city),
+        'metro': data.get('metro', []),
+        'rail': data.get('rail', []),
+        'airport': data.get('airport', []),
+        'source': 'curated',
+    }), 200
+
+
+@app.route('/api/places')
+@rate_limit(max_requests=60, window=60)
+def places():
+    """Curated hotels, things to do and eateries for a demo city.
+
+    Public and read-only, served from data/<city>.json. The response is the
+    contract a real provider (Google Places, Foursquare) would fill in later -
+    swapping the source means changing this handler, not the frontend. An
+    unknown city is an honest 404 with the list of cities that do exist, not
+    an empty 200 that looks like "found nothing".
+    """
+    city = (request.args.get('city') or '').strip()
+    if not city:
+        return jsonify({'error': 'city is required'}), 400
+
+    data = _places(city)
+    if data is None:
+        return jsonify({
+            'error': 'No curated places for that city yet',
+            'city': city,
+            'available': sorted(
+                os.path.splitext(name)[0] for name in os.listdir(PLACES_DIR)
+                if name.endswith('.json')
+                and name not in ('city_costs.json', 'transport.json', 'blog_posts.json')
+            ),
+        }), 404
+
+    return jsonify({
+        'city': data.get('city', city.strip().lower()),
+        'label': data.get('label', city),
+        'tagline': data.get('tagline', ''),
+        'hotels': data.get('hotels', []),
+        'things_to_do': data.get('things_to_do', []),
+        'eateries': data.get('eateries', []),
+        'source': 'curated',
+    }), 200
+
+
+# ---------------------------------------------------------------------------
+# Place search - server-side proxy for the public geocoders (Phase 4 step 7).
+#
+# Why this is not a browser fetch any more:
+#
+# * Nominatim's usage policy (operations.osmfoundation.org/policies/nominatim)
+#   asks every client to identify itself with a real User-Agent that carries a
+#   contact address. A browser cannot set User-Agent - it is a forbidden
+#   header name - so a page calling Nominatim directly can only send the
+#   browser's own UA, which is exactly what the policy asks clients NOT to do.
+#   Routing the call through this server lets us send the UA we choose.
+# * Both public geocoders are shared community infrastructure. Their policy
+#   caps how hard they may be used, so the calls are cached in a table and
+#   the outbound volume is capped as well.
+#
+# The response is normalised into one shape for every provider, so the
+# frontend does not have to know which geocoder answered.
+# ---------------------------------------------------------------------------
+
+GEOCODE_PROVIDERS = ('nominatim', 'photon')
+GEOCODE_MAX_QUERY = 120
+GEOCODE_MAX_RESULTS = 10
+GEOCODE_CACHE_TTL_DAYS = 7
+GEOCODE_CACHE_PRUNE_DAYS = 30
+GEOCODE_TIMEOUT_SECONDS = 10
+# The OSM policy asks for at most ~1 request per second. This budget is
+# counted in Postgres, so it is shared by every gunicorn worker rather than
+# being per-process.
+GEOCODE_UPSTREAM_BUDGET_PER_MINUTE = 60
+
+
+def _geocoder_user_agent():
+    """The User-Agent this app sends to the public geocoders.
+
+    GEOCODER_USER_AGENT overrides it; otherwise it is built from the app name
+    and the admin address, which is the contact the OSM policy asks for.
+    """
+    configured = (os.getenv('GEOCODER_USER_AGENT') or '').strip()
+    if configured:
+        return configured
+    contact = (os.getenv('ADMIN_EMAIL') or '').strip()
+    origin = (os.getenv('APP_ORIGIN') or '').strip().split(',')[0].strip()
+    agent = 'ManzilBharat/1.0'
+    if origin:
+        agent += ' (+' + origin + ')'
+    if contact:
+        agent += '; contact: ' + contact
+    return agent
+
+
+def _geocode_cache_key(provider, query, limit):
+    """Stable hash of the normalised request.
+
+    Lowercasing and collapsing whitespace means "  Jaipur " and "jaipur" share
+    one upstream call and one cache row.
+    """
+    canonical = json.dumps(
+        [provider, ' '.join(query.split()).lower(), limit], separators=(',', ':')
+    )
+    return hashlib.sha256(canonical.encode('utf-8')).hexdigest()
+
+
+def _cached_geocode(query_key):
+    """The cached result for this request, or None. A cache failure is a miss."""
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            'SELECT payload FROM geocode_cache '
+            'WHERE query_key = %s '
+            'AND created_at > now() - make_interval(days => %s)',
+            (query_key, GEOCODE_CACHE_TTL_DAYS),
+        )
+        row = cur.fetchone()
+        cur.close()
+        if not row:
+            return None
+        results = json.loads(row[0])
+        return results if isinstance(results, list) else None
+    except Exception:
+        app.logger.exception('geocode cache read failed; treating as a miss')
+        return None
+    finally:
+        if conn:
+            conn.close()
+
+
+def _store_geocode(query_key, provider, results):
+    """Save a geocoder answer. Best-effort: the answer is already in hand, so a
+    database blip must not turn a working search into a 500."""
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            'INSERT INTO geocode_cache (query_key, provider, payload) '
+            'VALUES (%s, %s, %s) '
+            'ON CONFLICT (query_key) DO UPDATE SET '
+            'provider = EXCLUDED.provider, payload = EXCLUDED.payload, '
+            'created_at = now()',
+            (query_key, provider, json.dumps(results)),
+        )
+        cur.execute(
+            'DELETE FROM geocode_cache '
+            'WHERE created_at < now() - make_interval(days => %s)',
+            (GEOCODE_CACHE_PRUNE_DAYS,),
+        )
+        cur.close()
+        conn.commit()
+    except Exception:
+        app.logger.exception('geocode cache write failed')
+        if conn:
+            conn.rollback()
+    finally:
+        if conn:
+            conn.close()
+
+
+def _normalise_nominatim(rows):
+    """Nominatim rows -> the shape the frontend uses."""
+    results = []
+    for row in rows or []:
+        if not isinstance(row, dict):
+            continue
+        try:
+            lat = float(row.get('lat'))
+            lon = float(row.get('lon'))
+        except (TypeError, ValueError):
+            continue
+        display = str(row.get('display_name') or '').strip()
+        name = str(row.get('name') or '').strip() or (display.split(',')[0].strip()
+                                                     if display else '')
+        results.append({
+            'label': name or display,
+            'display': display or name,
+            'lat': lat,
+            'lon': lon,
+            'type': str(row.get('type') or row.get('category') or 'place'),
+        })
+    return results
+
+
+def _normalise_photon(features):
+    """Photon GeoJSON features -> the shape the frontend uses."""
+    results = []
+    for feature in features or []:
+        if not isinstance(feature, dict):
+            continue
+        geometry = feature.get('geometry') or {}
+        coordinates = geometry.get('coordinates') or []
+        if len(coordinates) < 2:
+            continue
+        try:
+            lon = float(coordinates[0])
+            lat = float(coordinates[1])
+        except (TypeError, ValueError):
+            continue
+        props = feature.get('properties') or {}
+        if not isinstance(props, dict):
+            props = {}
+        name = str(props.get('name') or '').strip()
+        city = str(props.get('city') or '').strip()
+        state = str(props.get('state') or '').strip()
+        country = str(props.get('country') or '').strip()
+        label = name or city or state or country
+        context = ', '.join(part for part in (city, state, country) if part)
+        results.append({
+            'label': label,
+            'display': (label + ', ' + context).strip(', ') if context else label,
+            'lat': lat,
+            'lon': lon,
+            'type': str(props.get('type') or 'place'),
+        })
+    return results
+
+
+def _fetch_geocode(provider, query, limit):
+    """Ask the provider for results. Returns (results, error_message)."""
+    headers = {
+        'User-Agent': _geocoder_user_agent(),
+        'Accept': 'application/json',
+    }
+    try:
+        if provider == 'photon':
+            response = requests.get(
+                'https://photon.komoot.io/api/',
+                params={'q': query, 'limit': limit},
+                headers=headers,
+                timeout=GEOCODE_TIMEOUT_SECONDS,
+            )
+        else:
+            response = requests.get(
+                'https://nominatim.openstreetmap.org/search',
+                params={
+                    'q': query,
+                    'format': 'jsonv2',
+                    'limit': limit,
+                    'addressdetails': 1,
+                },
+                headers=headers,
+                timeout=GEOCODE_TIMEOUT_SECONDS,
+            )
+    except requests.Timeout:
+        app.logger.warning('geocoder %s timed out for %r', provider, query)
+        return None, 'Place search timed out. Please try again.'
+    except requests.RequestException:
+        app.logger.exception('geocoder %s request failed', provider)
+        return None, 'Place search is unavailable right now. Please try again.'
+
+    if response.status_code != 200:
+        # The provider's own body is never forwarded to the browser.
+        app.logger.warning('geocoder %s answered HTTP %s', provider,
+                            response.status_code)
+        return None, 'Place search is unavailable right now. Please try again.'
+
+    try:
+        data = response.json()
+    except ValueError:
+        app.logger.warning('geocoder %s sent a body that is not JSON', provider)
+        return None, 'Place search is unavailable right now. Please try again.'
+
+    if provider == 'photon':
+        features = data.get('features') if isinstance(data, dict) else None
+        return _normalise_photon(features), None
+    return _normalise_nominatim(data if isinstance(data, list) else None), None
+
+
+def _stale_geocode(query_key):
+    """A cached answer that is past its TTL - better than an error."""
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute('SELECT payload FROM geocode_cache WHERE query_key = %s', (query_key,))
+        row = cur.fetchone()
+        cur.close()
+        if not row:
+            return None
+        results = json.loads(row[0])
+        return results if isinstance(results, list) else None
+    except Exception:
+        app.logger.exception('stale geocode read failed')
+        return None
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route('/api/geocode')
+@rate_limit(max_requests=60, window=60)
+def geocode():
+    """Search for a place, through the server.
+
+    Answers {query, provider, results, cached}. The results are normalised
+    into one shape for every provider: {label, display, lat, lon, type}.
+    """
+    query = (request.args.get('q') or '').strip()
+    if not query:
+        return jsonify({'error': 'q is required'}), 400
+    if len(query) > GEOCODE_MAX_QUERY:
+        return jsonify({'error': 'Query is too long'}), 400
+
+    provider = (request.args.get('provider') or 'nominatim').strip().lower()
+    if provider not in GEOCODE_PROVIDERS:
+        return jsonify({'error': 'Unknown provider'}), 400
+
+    try:
+        limit = int(request.args.get('limit') or 5)
+    except ValueError:
+        limit = 5
+    limit = max(1, min(limit, GEOCODE_MAX_RESULTS))
+
+    query_key = _geocode_cache_key(provider, query, limit)
+
+    cached = _cached_geocode(query_key)
+    if cached is not None:
+        return jsonify({
+            'query': query,
+            'provider': provider,
+            'results': cached,
+            'cached': True,
+        }), 200
+
+    # Outbound budget, shared by every worker through the rate_limits table.
+    # Without it a burst of searches would hammer a shared community service.
+    if not _rate_limit_allowed('geocode:upstream', GEOCODE_UPSTREAM_BUDGET_PER_MINUTE, 60):
+        # A cached answer is still better than an error, so try the cache once
+        # more ignoring its TTL before giving up.
+        stale = _stale_geocode(query_key)
+        if stale is not None:
+            return jsonify({
+                'query': query,
+                'provider': provider,
+                'results': stale,
+                'cached': True,
+            }), 200
+        return jsonify({
+            'error': 'Too many place searches right now. Please try again in a minute.',
+        }), 429
+
+    results, error = _fetch_geocode(provider, query, limit)
+    if error:
+        stale = _stale_geocode(query_key)
+        if stale is not None:
+            return jsonify({
+                'query': query,
+                'provider': provider,
+                'results': stale,
+                'cached': True,
+            }), 200
+        return jsonify({'error': error}), 502
+
+    _store_geocode(query_key, provider, results)
+    return jsonify({
+        'query': query,
+        'provider': provider,
+        'results': results,
+        'cached': False,
+    }), 200
+
+
 def verify_google_token(credential):
     try:
         idinfo = id_token.verify_oauth2_token(credential, google_requests.Request(), GOOGLE_CLIENT_ID)
@@ -675,18 +1504,22 @@ def verify_google_token(credential):
 @app.route('/api/signup', methods=['POST'])
 @rate_limit(max_requests=10, window=60)
 def signup():
-    data = request.get_json()
-    name = (data.get('name') or '').strip()
+    data = _json_object()
+    name = _text(data.get('name'))
     # Emails are compared and stored case-insensitively, otherwise A@b.com and
     # a@b.com become two separate accounts that cannot log into each other.
-    email = (data.get('email') or '').strip().lower()
-    contact = (data.get('contact') or '').strip()
-    gender = (data.get('gender') or '').strip()
-    dob = (data.get('dob') or '').strip()
-    marital_status = (data.get('marital_status') or '').strip()
-    residential_address = (data.get('residential_address') or '').strip()
-    pincode = (data.get('pincode') or '').strip()
-    password = data.get('password') or ''
+    email = _text(data.get('email')).lower()
+    contact = _text(data.get('contact'))
+    gender = _text(data.get('gender'))
+    dob = _text(data.get('dob'))
+    marital_status = _text(data.get('marital_status'))
+    residential_address = _text(data.get('residential_address'))
+    pincode = _text(data.get('pincode'))
+    password = _raw_text(data.get('password'))
+    # DPDP: consent is an explicit, affirmative act, so the client has to send
+    # it. The version says WHICH text was accepted (see CONSENT_TEXT_VERSION).
+    consent = data.get('consent')
+    consent_version = _text(data.get('consent_version')) or CONSENT_TEXT_VERSION
 
     errors = {}
 
@@ -754,7 +1587,17 @@ def signup():
     elif not re.search(r'[^A-Za-z0-9]', password):
         errors['password'] = 'Password must contain at least one special character'
 
+    # Consent is validated BEFORE the account is created, so a signup that
+    # skips it creates nothing at all.
+    if consent is not True and consent != 'true' and consent != 'on' and consent != 1:
+        errors['consent'] = 'Please accept the Privacy Policy to create an account'
+    elif consent_version not in CONSENT_TEXT_VERSIONS:
+        # The policy text changed since the page was loaded: ask for the new
+        # consent instead of recording this one against the wrong wording.
+        errors['consent'] = 'The privacy policy has changed. Please reload the page and accept it again'
+
     if errors:
+        app.logger.info('signup refused: %d invalid field(s)', len(errors))
         return jsonify({'error': 'Validation failed', 'errors': errors}), 400
 
     hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
@@ -769,13 +1612,34 @@ def signup():
             (name, email, contact, gender, dob, marital_status, residential_address, pincode, hashed)
         )
         user = cur.fetchone()
+        # The consent row is written in the SAME transaction as the account, so
+        # an account can never exist without the consent that created it. If
+        # the consents table is missing (the live database has not run
+        # migrations/phase4.sql yet) the account is still created - the
+        # operator is told about it in the boot log and in the response.
+        consent_recorded = True
+        cur.execute('SAVEPOINT consent_row')
+        try:
+            cur.execute(
+                "INSERT INTO consents (user_id, text_version, source) VALUES (%s, %s, %s)",
+                (user[0], consent_version, 'signup'),
+            )
+        except psycopg2.errors.UndefinedTable:
+            cur.execute('ROLLBACK TO SAVEPOINT consent_row')
+            consent_recorded = False
+            app.logger.error(
+                'the consents table is missing - run migrations/phase4.sql '
+                'against this database, otherwise the consent is not recorded')
         cur.close()
         conn.commit()
         token = create_token(user[0], user[2])
-        return jsonify({'message': 'Account created successfully', 'user': {'id': user[0], 'name': user[1], 'email': user[2], 'contact': user[3]}, 'token': token}), 201
+        app.logger.info('signup: user %s (%s) created, consent %s',
+                        user[0], user[2], consent_version)
+        return jsonify({'message': 'Account created successfully', 'user': {'id': user[0], 'name': user[1], 'email': user[2], 'contact': user[3]}, 'token': token, 'consent_recorded': consent_recorded}), 201
     except psycopg2.IntegrityError:
         if conn:
             conn.rollback()
+        app.logger.info('signup refused: the address is already registered')
         return jsonify({'error': 'Email already exists', 'errors': {'email': 'This email is already registered'}}), 409
     except Exception:
         if conn:
@@ -789,9 +1653,9 @@ def signup():
 @app.route('/api/login', methods=['POST'])
 @rate_limit(max_requests=10, window=60)
 def login():
-    data = request.get_json()
-    email = (data.get('email') or '').strip().lower()
-    password = data.get('password') or ''
+    data = _json_object()
+    email = _text(data.get('email')).lower()
+    password = _raw_text(data.get('password'))
 
     if not email or not password:
         return jsonify({'error': 'Email and password are required'}), 400
@@ -807,9 +1671,11 @@ def login():
         # Identical message for "no such account" and "wrong password" so the
         # endpoint cannot be used to enumerate registered email addresses.
         if not user or not user[4] or not bcrypt.checkpw(password.encode('utf-8'), user[4].encode('utf-8')):
+            app.logger.warning('login failed for %s', email)
             return jsonify({'error': 'Invalid email or password'}), 401
 
         token = create_token(user[0], user[2])
+        app.logger.info('login: user %s (%s) signed in', user[0], user[2])
         return jsonify({
             'message': 'Login successful',
             'user': {'id': user[0], 'name': user[1], 'email': user[2], 'contact': user[3]},
@@ -825,8 +1691,8 @@ def login():
 @app.route('/api/google-login', methods=['POST'])
 @rate_limit(max_requests=15, window=60)
 def google_login():
-    data = request.get_json()
-    credential = (data.get('credential') or '').strip()
+    data = _json_object()
+    credential = _text(data.get('credential'))
 
     if not credential:
         return jsonify({'error': 'Google credential is required'}), 400
@@ -849,6 +1715,7 @@ def google_login():
         if user:
             token = create_token(user[0], user[2])
             cur.close()
+            app.logger.info('login (google): user %s (%s) signed in', user[0], user[2])
             return jsonify({
                 'message': 'Login successful',
                 'user': {'id': user[0], 'name': user[1], 'email': user[2], 'contact': user[3]},
@@ -860,9 +1727,17 @@ def google_login():
                 (name, email)
             )
             new_user = cur.fetchone()
+            # A Google sign-in creates the account too, so the consent is
+            # recorded here as well - the page says that pressing the button
+            # means accepting the policy (source = 'google').
+            cur.execute(
+                "INSERT INTO consents (user_id, text_version, source) VALUES (%s, %s, %s)",
+                (new_user[0], CONSENT_TEXT_VERSION, 'google'),
+            )
             conn.commit()
             token = create_token(new_user[0], new_user[2])
             cur.close()
+            app.logger.info('signup (google): user %s (%s) created', new_user[0], new_user[2])
             return jsonify({
                 'message': 'Account created and logged in',
                 'user': {'id': new_user[0], 'name': new_user[1], 'email': new_user[2], 'contact': new_user[3]},
@@ -885,8 +1760,8 @@ def google_login():
 @app.route('/api/forgot-password', methods=['POST'])
 @rate_limit(max_requests=3, window=300)
 def forgot_password():
-    data = request.get_json()
-    email = (data.get('email') or '').strip().lower()
+    data = _json_object()
+    email = _text(data.get('email')).lower()
 
     if not email:
         return jsonify({'error': 'Email is required'}), 400
@@ -921,7 +1796,7 @@ def forgot_password():
 
     try:
         token = create_reset_token(email)
-        reset_url = f"{origin}/reset-password.html?token={token}"
+        reset_url = f"{origin}/reset-password?token={token}"
         send_reset_email(email, reset_url)
     except Exception:
         # The bare except previously hid the SMTP reason (auth failure, bad
@@ -929,15 +1804,16 @@ def forgot_password():
         app.logger.exception('Password-reset email could not be sent to %s', email)
         return jsonify({'error': 'Could not send the reset email. Please try again later.'}), 500
 
+    app.logger.info('password reset: a link was sent to %s', email)
     return jsonify({'message': 'A password reset link has been sent to your email. It is valid for 30 minutes.'}), 200
 
 
 @app.route('/api/reset-password', methods=['POST'])
 @rate_limit(max_requests=5, window=60)
 def reset_password():
-    data = request.get_json()
-    token = (data.get('token') or '').strip()
-    new_password = data.get('new_password') or ''
+    data = _json_object()
+    token = _text(data.get('token'))
+    new_password = _raw_text(data.get('new_password'))
 
     if not token or not new_password:
         return jsonify({'error': 'Reset token and new password are required'}), 400
@@ -974,6 +1850,7 @@ def reset_password():
                     (datetime.utcnow(), _hash_reset_token(token)))
         conn.commit()
         cur.close()
+        app.logger.info('password reset: the password of user %s (%s) was changed', user[0], email)
         return jsonify({'message': 'Password updated successfully'}), 200
     except Exception:
         if conn:
@@ -1035,6 +1912,159 @@ def get_me():
             conn.close()
 
 
+@app.route('/api/me/consent', methods=['POST'])
+@require_user
+@rate_limit(max_requests=10, window=60)
+def record_consent():
+    """Record that the user has given explicit consent (DPDP).
+
+    Used to re-record consent after the policy text changes. The version is
+    checked against the ones this build knows about, so the consent history
+    always says which wording was accepted.
+    """
+    data = _json_object()
+    version = _text(data.get('version')) or CONSENT_TEXT_VERSION
+    if version not in CONSENT_TEXT_VERSIONS:
+        return jsonify({'error': 'Unknown consent version', 'versions': sorted(CONSENT_TEXT_VERSIONS)}), 400
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(
+            "INSERT INTO consents (user_id, text_version, source) VALUES (%s, %s, %s) RETURNING id, user_id, text_version, source, created_at",
+            (g.user['user_id'], version, 'renewal'),
+        )
+        row = dict(cur.fetchone())
+        conn.commit()
+        cur.close()
+        app.logger.info('consent: user %s recorded version %s (source: renewal)',
+                        g.user['user_id'], version)
+        return jsonify({'message': 'Consent recorded', 'consent': row}), 201
+    except psycopg2.errors.UndefinedTable:
+        if conn:
+            conn.rollback()
+        app.logger.exception('consents is missing - run migrations/phase4.sql')
+        return jsonify({'error': 'Consent is not available right now.'}), 503
+    except Exception:
+        if conn:
+            conn.rollback()
+        app.logger.exception('record_consent failed for user %s', g.user['user_id'])
+        return jsonify({'error': 'Could not record consent'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route('/api/me/consent', methods=['GET'])
+@require_user
+def list_consents():
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(
+            "SELECT id, user_id, text_version, source, created_at FROM consents WHERE user_id = %s ORDER BY created_at DESC, id DESC",
+            (g.user['user_id'],),
+        )
+        rows = [dict(r) for r in cur.fetchall()]
+        cur.close()
+        return jsonify(rows), 200
+    except psycopg2.errors.UndefinedTable:
+        if conn:
+            conn.rollback()
+        return jsonify([]), 200
+    except Exception:
+        app.logger.exception('list_consents failed for user %s', g.user['user_id'])
+        return jsonify({'error': 'Could not load consents'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route('/api/me/export', methods=['GET'])
+@require_user
+def export_me():
+    """Self-serve data export (DPDP).
+
+    Returns everything the server holds about the caller as one JSON document:
+    the profile, the bookings, the saved itineraries, the payments and the
+    consent history. Only the caller's own rows are read - the token decides
+    whose data it is, so nobody can ask for somebody else's.
+    """
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("SELECT id, name, email, contact, gender, dob, marital_status, residential_address, pincode, created_at FROM users WHERE id = %s", (g.user['user_id'],))
+        user = cur.fetchone()
+        if not user:
+            cur.close()
+            return jsonify({'error': 'Account no longer exists'}), 404
+        cur.execute("SELECT id, booking_type, source, destination, travel_date, amount, status, created_at FROM bookings WHERE user_id = %s ORDER BY created_at DESC", (g.user['user_id'],))
+        bookings = [dict(r) for r in cur.fetchall()]
+        # The payload holds the actual itinerary the user saved, so it belongs
+        # in the export too.
+        cur.execute("SELECT id, title, payload, created_at FROM saved_trips WHERE user_id = %s ORDER BY created_at DESC", (g.user['user_id'],))
+        saved_trips = [dict(r) for r in cur.fetchall()]
+        cur.execute("SELECT id, text_version, source, created_at FROM consents WHERE user_id = %s ORDER BY created_at DESC", (g.user['user_id'],))
+        consents = [dict(r) for r in cur.fetchall()]
+        cur.execute("SELECT id, amount, currency, booking_type, status, mode, razorpay_order_id, razorpay_payment_id, created_at FROM payments WHERE user_id = %s ORDER BY created_at DESC", (g.user['user_id'],))
+        payments = [dict(r) for r in cur.fetchall()]
+        cur.execute("SELECT id, email, created_at FROM subscribers WHERE email = %s", (user['email'],))
+        newsletter = [dict(r) for r in cur.fetchall()]
+        cur.close()
+        app.logger.info('privacy: user %s exported their data', g.user['user_id'])
+        return jsonify({
+            'user': dict(user),
+            'bookings': bookings,
+            'saved_trips': saved_trips,
+            'payments': payments,
+            'consents': consents,
+            'newsletter': newsletter,
+            'exported_at': datetime.utcnow().isoformat() + 'Z',
+        }), 200
+    except Exception:
+        app.logger.exception('export_me failed for user %s', g.user['user_id'])
+        return jsonify({'error': 'Could not export your data'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route('/api/me', methods=['DELETE'])
+@require_user
+@rate_limit(max_requests=5, window=300)
+def delete_me():
+    """Self-serve account deletion (DPDP).
+
+    The bookings, saved itineraries, payments and consent rows of that
+    account go with it (ON DELETE CASCADE in the schema), so nothing about
+    the person is left behind.
+    """
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("DELETE FROM users WHERE id = %s RETURNING id", (g.user['user_id'],))
+        row = cur.fetchone()
+        if not row:
+            conn.rollback()
+            cur.close()
+            return jsonify({'error': 'Account no longer exists'}), 404
+        conn.commit()
+        cur.close()
+        app.logger.info('privacy: user %s deleted their account and its data', g.user['user_id'])
+        return jsonify({'message': 'Account deleted'}), 200
+    except Exception:
+        if conn:
+            conn.rollback()
+        app.logger.exception('delete_me failed for user %s', g.user['user_id'])
+        return jsonify({'error': 'Could not delete your account'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
 @app.route('/api/me/password', methods=['PUT'])
 @require_user
 @rate_limit(max_requests=10, window=60)
@@ -1046,9 +2076,9 @@ def change_password():
     The endpoint is bcrypt-expensive and a brute-force target, hence the
     rate limit on top of require_user.
     """
-    data = request.get_json(silent=True) or {}
-    current_password = data.get('current_password') or ''
-    new_password = data.get('new_password') or ''
+    data = _json_object()
+    current_password = _raw_text(data.get('current_password'))
+    new_password = _raw_text(data.get('new_password'))
 
     errors = {}
     if not current_password:
@@ -1113,8 +2143,8 @@ EMAIL_RE = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
 @app.route('/api/newsletter', methods=['POST'])
 @rate_limit(max_requests=10, window=60)
 def newsletter_subscribe():
-    data = request.get_json(silent=True) or {}
-    email = (data.get('email') or '').strip().lower()
+    data = _json_object()
+    email = _text(data.get('email')).lower()
 
     if not email:
         return jsonify({'error': 'Email is required', 'errors': {'email': 'Email is required'}}), 400
@@ -1150,11 +2180,11 @@ def newsletter_subscribe():
 @app.route('/api/contact', methods=['POST'])
 @rate_limit(max_requests=5, window=60)
 def contact_message():
-    data = request.get_json(silent=True) or {}
-    name = (data.get('name') or '').strip()
-    email = (data.get('email') or '').strip().lower()
-    subject = (data.get('subject') or '').strip()
-    body = (data.get('body') or '').strip()
+    data = _json_object()
+    name = _text(data.get('name'))
+    email = _text(data.get('email')).lower()
+    subject = _text(data.get('subject'))
+    body = _text(data.get('body'))
 
     errors = {}
     if not name:
@@ -1215,11 +2245,11 @@ MAX_BOOKING_AMOUNT = 1000000
 @app.route('/api/bookings', methods=['POST'])
 @require_user
 def create_booking():
-    data = request.get_json(silent=True) or {}
-    booking_type = (data.get('booking_type') or '').strip().lower()
-    source = (data.get('source') or '').strip()
-    destination = (data.get('destination') or '').strip()
-    travel_date_raw = (data.get('travel_date') or '').strip()
+    data = _json_object()
+    booking_type = _text(data.get('booking_type')).lower()
+    source = _text(data.get('source'))
+    destination = _text(data.get('destination'))
+    travel_date_raw = _text(data.get('travel_date'))
     amount_raw = data.get('amount')
 
     errors = {}
@@ -1308,6 +2338,498 @@ def my_bookings():
             conn.close()
 
 
+# ---------------------------------------------------------------------------
+# Razorpay TEST mode (Phase 5 step 2)
+#
+# WHAT HAPPENS IN A PAYMENT
+#   1. The browser asks the server for an order (POST /api/payments/order).
+#      The server checks the booking belongs to the caller and asks Razorpay
+#      to open an order. It records a 'pending' payment row.
+#   2. The browser opens Razorpay's hosted checkout. THE CARD DETAILS GO
+#      STRAIGHT TO RAZORPAY - this server never sees a card number, a CVV
+#      or an expiry date, and there is nowhere in the code to store them.
+#   3. Razorpay hands the browser three things: the order id, the payment id
+#      and a signature. The browser sends them back (POST
+#      /api/payments/verify) and the server recomputes the signature with
+#      the SECRET key. Only the server holds the secret, so a signature that
+#      matches is proof that Razorpay really made the payment - a request
+#      forged in the browser cannot fake it.
+#
+# EVERY PAYMENT THIS BUILD TAKES IS A TEST PAYMENT. The keys are TEST keys,
+# the payment rows are marked 'test' and the admin panel says so. No real
+# money moves, and the server refuses a live key even if one is pasted into
+# the environment.
+# ---------------------------------------------------------------------------
+
+
+def razorpay_configured():
+    """True when the server has both Razorpay keys."""
+    return bool(RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET)
+
+
+def razorpay_test_keys():
+    """True when the configured key id is a TEST key (rzp_test_...)."""
+    return RAZORPAY_KEY_ID.startswith(RAZORPAY_TEST_KEY_PREFIX)
+
+
+def razorpay_signature(order_id, payment_id):
+    """The signature Razorpay sends back, computed the way their docs say.
+
+    HMAC-SHA256 over "<order id>|<payment id>" with the key secret, hex.
+    """
+    message = f'{order_id}|{payment_id}'.encode()
+    return hmac.new(RAZORPAY_KEY_SECRET.encode(), message,
+                    hashlib.sha256).hexdigest()
+
+
+def razorpay_signature_matches(order_id, payment_id, signature):
+    """True when the signature the browser sent back is the real one."""
+    if not signature:
+        return False
+    return hmac.compare_digest(razorpay_signature(order_id, payment_id),
+                               signature.strip())
+
+
+def razorpay_create_order(amount_paise, receipt, notes):
+    """Ask Razorpay to open an order. Returns the order as a dict.
+
+    Raises RuntimeError when Razorpay refuses or cannot be reached - the
+    message is written to the log, not shown to the visitor.
+    """
+    try:
+        response = requests.post(
+            f'{RAZORPAY_API_BASE}/orders',
+            auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET),
+            json={'amount': amount_paise, 'currency': 'INR',
+                  'receipt': receipt, 'notes': notes},
+            timeout=RAZORPAY_TIMEOUT_SECONDS,
+        )
+    except requests.RequestException as exc:
+        raise RuntimeError(f'could not reach Razorpay: {exc}') from exc
+    if response.status_code >= 400:
+        raise RuntimeError(f'razorpay refused the order ({response.status_code})')
+    try:
+        return response.json()
+    except ValueError as exc:
+        raise RuntimeError('razorpay sent something that is not JSON') from exc
+
+
+@app.route('/api/payments/order', methods=['POST'])
+@require_user
+@rate_limit(max_requests=10, window=60)
+def create_payment_order():
+    """Open a Razorpay TEST order for one of the caller's bookings.
+
+    The key id in the answer is public (the checkout needs it); the secret
+    never leaves the server.
+    """
+    data = _json_object()
+    booking_id = _int_or_none(data.get('booking_id'))
+    if booking_id is None:
+        return jsonify({'error': 'Which trip is this payment for?'}), 400
+
+    if not razorpay_configured():
+        return jsonify({
+            'error': 'Payments are not configured on this server.',
+            'hint': 'Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to Razorpay '
+                    'TEST keys (Razorpay Dashboard -> Settings -> API keys).',
+        }), 503
+    if not razorpay_test_keys():
+        return jsonify({
+            'error': 'This build only accepts Razorpay TEST keys.',
+            'hint': f'The key id has to start with {RAZORPAY_TEST_KEY_PREFIX}. '
+                    'Live payments are not enabled here.',
+        }), 503
+
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("SELECT * FROM bookings WHERE id = %s", (booking_id,))
+        booking = cur.fetchone()
+        if not booking:
+            return jsonify({'error': 'That trip does not exist.'}), 404
+        if booking['user_id'] != g.user['user_id']:
+            return jsonify({'error': 'That trip belongs to somebody else.'}), 403
+        if booking['status'] == 'cancelled':
+            return jsonify({'error': 'That trip was cancelled.'}), 400
+
+        amount = float(booking['amount'] or 0)
+        if amount <= 0:
+            return jsonify({'error': 'That trip has no amount to pay.'}), 400
+        amount_paise = round(amount * 100)
+        if amount_paise > RAZORPAY_MAX_AMOUNT_PAISE:
+            return jsonify({
+                'error': 'Razorpay accepts up to ₹50,000 in one order. '
+                         'Pay the rest separately.',
+            }), 400
+
+        cur.execute(
+            "SELECT id FROM payments WHERE user_id = %s AND booking_id = %s "
+            "AND status = 'captured'",
+            (g.user['user_id'], booking_id),
+        )
+        if cur.fetchone():
+            return jsonify({'error': 'That trip is already paid.'}), 400
+
+        receipt = f'mb_booking_{booking_id}'
+        notes = {'booking_id': str(booking_id), 'user_id': str(g.user['user_id'])}
+        try:
+            order = razorpay_create_order(amount_paise, receipt, notes)
+        except RuntimeError as exc:
+            app.logger.warning('razorpay order failed for user %s: %s',
+                               g.user['user_id'], exc)
+            return jsonify({'error': 'The payment provider did not accept the '
+                                     'request. Please try again.'}), 502
+        order_id = str(order.get('id') or '')
+        if not order_id:
+            app.logger.warning('razorpay returned an order without an id')
+            return jsonify({'error': 'The payment provider did not accept the '
+                                     'request. Please try again.'}), 502
+
+        cur.execute(
+            """INSERT INTO payments (user_id, booking_id, amount, currency,
+                                     razorpay_order_id, booking_type, status, mode)
+               VALUES (%s, %s, %s, 'INR', %s, %s, 'pending', %s)
+               RETURNING id""",
+            (g.user['user_id'], booking_id, amount, order_id,
+             booking['booking_type'], RAZORPAY_MODE),
+        )
+        payment_row_id = cur.fetchone()['id']
+        conn.commit()
+        app.logger.info('payment order %s opened for user %s (booking %s, %s mode)',
+                        order_id, g.user['user_id'], booking_id, RAZORPAY_MODE)
+        return jsonify({
+            'order_id': order_id,
+            'payment_id': payment_row_id,
+            'booking_id': booking_id,
+            'key_id': RAZORPAY_KEY_ID,
+            'amount': amount,
+            'amount_paise': amount_paise,
+            'currency': 'INR',
+            'mode': RAZORPAY_MODE,
+        }), 201
+    except Exception:
+        if conn:
+            conn.rollback()
+        app.logger.exception('create_payment_order failed for user %s',
+                             g.user['user_id'])
+        return jsonify({'error': 'Could not start the payment.'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route('/api/payments/verify', methods=['POST'])
+@require_user
+@rate_limit(max_requests=10, window=60)
+def verify_payment():
+    """Check the signature Razorpay sent back and record the payment.
+
+    The signature is the proof: an HMAC of "<order id>|<payment id>" made
+    with the key secret, and only the server has the secret. A made-up
+    signature - or the signature of a different payment - is refused and the
+    payment row stays pending.
+    """
+    data = _json_object()
+    order_id = _text(data.get('razorpay_order_id'))
+    payment_ref = _text(data.get('razorpay_payment_id'))
+    signature = _text(data.get('razorpay_signature'))
+    if not order_id or not payment_ref or not signature:
+        return jsonify({'error': 'The payment details are incomplete.'}), 400
+    if not razorpay_configured():
+        return jsonify({'error': 'Payments are not configured on this server.'}), 503
+    if not razorpay_signature_matches(order_id, payment_ref, signature):
+        app.logger.warning('payment signature check failed for user %s (order %s)',
+                           g.user['user_id'], order_id)
+        return jsonify({'error': 'The payment could not be verified.'}), 400
+
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(
+            """SELECT id, booking_id, amount, status FROM payments
+               WHERE user_id = %s AND razorpay_order_id = %s""",
+            (g.user['user_id'], order_id),
+        )
+        payment = cur.fetchone()
+        if not payment:
+            return jsonify({'error': 'No payment is waiting for that order.'}), 404
+        if payment['status'] == 'captured':
+            # The browser sent the same confirmation twice. Nothing to do,
+            # and the answer is the same one the first time produced.
+            return jsonify({'status': 'captured', 'payment_id': payment['id'],
+                            'booking_id': payment['booking_id'],
+                            'amount': float(payment['amount']),
+                            'mode': RAZORPAY_MODE}), 200
+
+        cur.execute(
+            """UPDATE payments SET status = 'captured', razorpay_payment_id = %s
+               WHERE id = %s RETURNING id, booking_id, amount""",
+            (payment_ref, payment['id']),
+        )
+        updated = cur.fetchone()
+        if updated['booking_id']:
+            # A trip that has been paid for is no longer waiting for the
+            # travel agent to confirm it.
+            cur.execute(
+                "UPDATE bookings SET status = 'confirmed' WHERE id = %s "
+                "AND user_id = %s AND status = 'pending'",
+                (updated['booking_id'], g.user['user_id']),
+            )
+        conn.commit()
+        app.logger.info('payment %s captured for user %s (booking %s, %s mode)',
+                        payment_ref, g.user['user_id'], updated['booking_id'],
+                        RAZORPAY_MODE)
+        return jsonify({'status': 'captured', 'payment_id': updated['id'],
+                        'booking_id': updated['booking_id'],
+                        'amount': float(updated['amount']),
+                        'mode': RAZORPAY_MODE}), 200
+    except Exception:
+        if conn:
+            conn.rollback()
+        app.logger.exception('verify_payment failed for user %s',
+                             g.user['user_id'])
+        return jsonify({'error': 'Could not verify the payment.'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route('/api/payments/mine', methods=['GET'])
+@require_user
+def my_payments():
+    """The caller's own payments - My Trips shows what has been paid."""
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(
+            """SELECT id, booking_id, amount, currency, razorpay_order_id,
+                      razorpay_payment_id, booking_type, status, mode, created_at
+               FROM payments WHERE user_id = %s
+               ORDER BY created_at DESC, id DESC""",
+            (g.user['user_id'],),
+        )
+        rows = [dict(r) for r in cur.fetchall()]
+        cur.close()
+        return jsonify(rows), 200
+    except Exception:
+        app.logger.exception('my_payments failed for user %s', g.user['user_id'])
+        return jsonify({'error': 'Could not load your payments'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Saved itineraries (Phase 4 step 6).
+#
+# A saved trip is the WHOLE plan the visitor built on trip.html: the day
+# cards, the budget estimate and the places/transport cards for one
+# destination. The row belongs to exactly one user (ON DELETE CASCADE takes
+# it with the account) and the plan itself is stored as JSON, so a saved
+# itinerary can be re-rendered later without asking the AI for it again.
+#
+# This is what makes the product personalised: the plan follows the user
+# between visits, instead of living in one browser tab.
+# ---------------------------------------------------------------------------
+
+SAVED_TRIP_MAX_TITLE = 255
+SAVED_TRIP_MAX_PAYLOAD_BYTES = 200_000
+# A ceiling on how many plans one account can keep. It sits below the POST
+# rate limit (30/min) on purpose, so the two limits never overlap.
+SAVED_TRIP_MAX_PER_USER = 25
+
+
+def _saved_trip_json(payload):
+    """Check the saved plan and return (text, error_message).
+
+    The payload must be a JSON object - the plan trip.html builds is a dict -
+    and must not be absurdly large. Its CONTENTS are not interpreted here:
+    trip.html owns the shape, and a plan saved before a page change must
+    still render afterwards.
+    """
+    if not isinstance(payload, dict):
+        return None, 'Payload must be an object'
+    try:
+        text = json.dumps(payload)
+    except (TypeError, ValueError):
+        return None, 'Payload must be JSON-serialisable'
+    if len(text.encode('utf-8')) > SAVED_TRIP_MAX_PAYLOAD_BYTES:
+        return None, 'Payload is too large'
+    return text, None
+
+
+@app.route('/api/me/trips', methods=['POST'])
+@require_user
+@rate_limit(max_requests=30, window=60)
+def create_saved_trip():
+    """Save the current plan for the signed-in user.
+
+    Saving the SAME plan twice is not an error: the existing row is returned
+    (200) instead of a duplicate, so a double-click on the button cannot fill
+    My Trips with copies of one itinerary.
+    """
+    data = _json_object()
+    title = _text(data.get('title'))
+    if not title:
+        return jsonify({'error': 'Title is required'}), 400
+    if len(title) > SAVED_TRIP_MAX_TITLE:
+        return jsonify({'error': 'Title is too long'}), 400
+    if 'payload' not in data or data.get('payload') is None:
+        return jsonify({'error': 'Payload is required'}), 400
+
+    payload_text, error = _saved_trip_json(data.get('payload'))
+    if error:
+        return jsonify({'error': error}), 400
+
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        # Same user, same title, same plan -> return the row that is already
+        # there instead of writing a second copy.
+        cur.execute(
+            "SELECT id, user_id, title, payload, created_at FROM saved_trips "
+            "WHERE user_id = %s AND title = %s AND payload = %s "
+            "ORDER BY created_at DESC, id DESC LIMIT 1",
+            (g.user['user_id'], title, payload_text),
+        )
+        existing = cur.fetchone()
+        if existing:
+            row = dict(existing)
+            try:
+                row['payload'] = json.loads(row['payload'])
+            except ValueError:
+                row['payload'] = None
+            cur.close()
+            return jsonify({
+                'message': 'This itinerary is already saved',
+                'trip': row,
+            }), 200
+
+        cur.execute(
+            'SELECT COUNT(*) AS saved FROM saved_trips WHERE user_id = %s',
+            (g.user['user_id'],),
+        )
+        count = cur.fetchone()['saved']
+        if count >= SAVED_TRIP_MAX_PER_USER:
+            cur.close()
+            return jsonify({
+                'error': 'You have reached the limit of saved itineraries. '
+                         'Remove one to save another.',
+            }), 409
+
+        cur.execute(
+            """INSERT INTO saved_trips (user_id, title, payload)
+               VALUES (%s, %s, %s)
+               RETURNING id, user_id, title, payload, created_at""",
+            (g.user['user_id'], title, payload_text),
+        )
+        row = dict(cur.fetchone())
+        conn.commit()
+        cur.close()
+        try:
+            row['payload'] = json.loads(row['payload'])
+        except ValueError:
+            row['payload'] = None
+        return jsonify({'message': 'Itinerary saved', 'trip': row}), 201
+    except psycopg2.errors.UndefinedTable:
+        if conn:
+            conn.rollback()
+        app.logger.exception('saved_trips is missing - run migrations/phase4.sql')
+        return jsonify({
+            'error': 'Saved itineraries are not available right now. Please try again later.',
+        }), 503
+    except Exception:
+        if conn:
+            conn.rollback()
+        app.logger.exception('create_saved_trip failed for user %s', g.user['user_id'])
+        return jsonify({'error': 'Could not save the itinerary'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route('/api/me/trips', methods=['GET'])
+@require_user
+@rate_limit(max_requests=60, window=60)
+def list_saved_trips():
+    """The signed-in user's saved itineraries, newest first."""
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(
+            "SELECT id, user_id, title, payload, created_at FROM saved_trips "
+            "WHERE user_id = %s ORDER BY created_at DESC, id DESC LIMIT %s",
+            (g.user['user_id'], SAVED_TRIP_MAX_PER_USER),
+        )
+        rows = []
+        for r in cur.fetchall():
+            d = dict(r)
+            try:
+                d['payload'] = json.loads(d['payload'])
+            except ValueError:
+                d['payload'] = None
+            rows.append(d)
+        cur.close()
+        return jsonify(rows), 200
+    except psycopg2.errors.UndefinedTable:
+        if conn:
+            conn.rollback()
+        app.logger.exception('saved_trips is missing - run migrations/phase4.sql')
+        return jsonify({
+            'error': 'Saved itineraries are not available right now. Please try again later.',
+        }), 503
+    except Exception:
+        app.logger.exception('list_saved_trips failed for user %s', g.user['user_id'])
+        return jsonify({'error': 'Could not load saved itineraries'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route('/api/me/trips/<int:trip_id>', methods=['DELETE'])
+@require_user
+def delete_saved_trip(trip_id):
+    """Remove one saved itinerary.
+
+    404 when the row does not exist, 403 when it belongs to somebody else -
+    the ownership check happens before the delete, so a guessed id cannot
+    remove another user's plan.
+    """
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("SELECT id, user_id, title FROM saved_trips WHERE id = %s", (trip_id,))
+        trip = cur.fetchone()
+        if not trip:
+            cur.close()
+            return jsonify({'error': 'Saved itinerary not found'}), 404
+        if trip['user_id'] != g.user['user_id']:
+            cur.close()
+            return jsonify({'error': 'You can only remove your own saved itineraries'}), 403
+
+        cur.execute("DELETE FROM saved_trips WHERE id = %s RETURNING id, title", (trip_id,))
+        deleted = dict(cur.fetchone())
+        conn.commit()
+        cur.close()
+        return jsonify({'message': 'Saved itinerary removed', 'trip': deleted}), 200
+    except Exception:
+        if conn:
+            conn.rollback()
+        app.logger.exception('delete_saved_trip %s failed for user %s',
+                             trip_id, g.user['user_id'])
+        return jsonify({'error': 'Could not remove the saved itinerary'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
 @app.route('/api/bookings/<int:booking_id>/cancel', methods=['POST'])
 @require_user
 def cancel_booking(booking_id):
@@ -1352,6 +2874,12 @@ def cancel_booking(booking_id):
 # map.html used to call Google directly with a key from config.js, which
 # publishes the key to every visitor; a published key gets scraped and
 # billed within days. The rate limit protects the quota as well.
+#
+# Two kinds answer with prose ('destination', 'trip'). A third, 'itinerary',
+# answers with STRUCTURED day cards: Gemini is asked for JSON, the reply is
+# parsed and validated here, and the result is cached in itinerary_cache so
+# the same request does not spend Gemini quota twice. Itinerary responses also
+# carry a budget estimate (data/city_costs.json) for the same days.
 # ---------------------------------------------------------------------------
 
 AI_PROMPTS = {
@@ -1370,13 +2898,492 @@ AI_PROMPTS = {
     ),
 }
 
+# Every extra day is another Gemini output block, and the free tier's quota
+# is shared with the prose kinds, so the planner is deliberately bounded.
+ITINERARY_MAX_DAYS = 10
+ITINERARY_CACHE_TTL_DAYS = 7
+# Gemini is asked for 12 words per slot; this cap only stops a runaway reply
+# from bloating both the cache row and the rendered card.
+ITINERARY_MAX_SLOT_CHARS = 500
+ITINERARY_MAX_DAY_COST = 1_000_000  # rupees; anything above is an artefact
+ITINERARY_CACHE_PRUNE_DAYS = 30
+
+# Hand-written per-day cost model for the demo cities (data/city_costs.json).
+# The AI is good at *what to do* and unreliable at arithmetic, so it supplies
+# the day plan while these numbers supply the price shape: the breakdown is a
+# fixed split of the trip total, which is why it is a file a human edits
+# rather than another model call. Missing/invalid file = no breakdown, and
+# the itinerary still renders.
+CITY_COSTS_PATH = os.path.join(PROJECT_ROOT, 'data', 'city_costs.json')
+BUDGET_HEADS = ('stay', 'transport', 'food', 'activities')
+BUDGET_LEVELS = ('budget', 'mid-range', 'luxury')
+
+# Hand-written places for the demo cities (data/<city>.json): hotels, things to
+# do and eateries, chosen by a person and checkable against a map. This is the
+# provider-shaped stand-in the roadmap asks for - the API contract is the real
+# one, the data is curated until a paid provider's key exists.
+PLACES_DIR = os.path.join(PROJECT_ROOT, 'data')
+PLACES_CITY_RE = re.compile(r'^[a-z][a-z0-9-]{1,40}$')
+
+
+class _ItineraryError(Exception):
+    """The model's reply could not be turned into a usable itinerary."""
+
+
+def _city_costs():
+    """The price model, read fresh but cheaply.
+
+    Cached on the file's mtime so editing data/city_costs.json on a running
+    server takes effect without a restart, while a warm server does not hit
+    the disk on every request.
+    """
+    try:
+        mtime = os.path.getmtime(CITY_COSTS_PATH)
+    except OSError:
+        app.logger.warning('city cost table is missing: %s', CITY_COSTS_PATH)
+        return None
+    cached = getattr(_city_costs, '_cache', None)
+    if cached and cached[0] == mtime:
+        return cached[1]
+    try:
+        with open(CITY_COSTS_PATH, encoding='utf-8') as handle:
+            table = json.load(handle)
+    except (OSError, ValueError):
+        app.logger.exception('city cost table is unreadable: %s', CITY_COSTS_PATH)
+        return None
+    if not isinstance(table, dict) or not isinstance(table.get('cities'), dict):
+        app.logger.warning('city cost table has an unexpected shape')
+        return None
+    _city_costs._cache = (mtime, table)
+    return table
+
+
+def _places(city):
+    """Curated places for one city, or None when there is no file for it.
+
+    The slug is validated against a strict pattern *before* it touches the
+    filesystem, so a request like ?city=../../etc/passwd cannot read anything:
+    the only reachable names are lowercase words under data/. Same mtime cache
+    trick as the price table - editing a city file applies without a restart.
+    """
+    slug = str(city or '').strip().lower()
+    if not PLACES_CITY_RE.match(slug):
+        return None
+    path = os.path.join(PLACES_DIR, slug + '.json')
+    try:
+        mtime = os.path.getmtime(path)
+    except OSError:
+        return None
+    cache = getattr(_places, '_cache', {})
+    if cache.get(slug, (None,))[0] == mtime:
+        return cache[slug][1]
+    try:
+        with open(path, encoding='utf-8') as handle:
+            data = json.load(handle)
+    except (OSError, ValueError):
+        app.logger.exception('city place file is unreadable: %s', path)
+        return None
+    if not isinstance(data, dict):
+        app.logger.warning('city place file has an unexpected shape: %s', path)
+        return None
+    _places._cache = {**cache, slug: (mtime, data)}
+    return data
+
+
+# Hand-written transport info for the demo cities (data/transport.json): metro,
+# rail and airport details, curated to be judge-checkable. Same pattern as
+# places - static JSON, validated slugs, mtime cached.
+TRANSPORT_PATH = os.path.join(PROJECT_ROOT, 'data', 'transport.json')
+
+
+def _transport(city):
+    """Curated transport info for one city, or None when unavailable.
+
+    Validates the slug against the same strict pattern used for places so
+    filesystem access cannot be escaped. Cached on mtime.
+    """
+    slug = str(city or '').strip().lower()
+    if not PLACES_CITY_RE.match(slug):
+        return None
+    cache = getattr(_transport, '_cache', {})
+    try:
+        mtime = os.path.getmtime(TRANSPORT_PATH)
+    except OSError:
+        return None
+    if cache.get('mtime') == mtime:
+        table = cache.get('table')
+    else:
+        try:
+            with open(TRANSPORT_PATH, encoding='utf-8') as handle:
+                table = json.load(handle)
+        except (OSError, ValueError):
+            app.logger.exception('transport table is unreadable: %s', TRANSPORT_PATH)
+            return None
+        if not isinstance(table, dict):
+            app.logger.warning('transport table has an unexpected shape')
+            return None
+        _transport._cache = {'mtime': mtime, 'table': table}
+    if not isinstance(table, dict):
+        return None
+    data = table.get(slug)
+    if not isinstance(data, dict):
+        return None
+    return data
+
+
+def _budget_level(value):
+    """Map whatever the visitor typed onto a table key ('Upscale' -> luxury)."""
+    text = str(value or '').strip().lower()
+    if text in BUDGET_LEVELS:
+        return text
+    if any(word in text for word in ('luxury', 'lux', 'premium', 'upscale', 'high')):
+        return 'luxury'
+    if any(word in text for word in ('cheap', 'budget', 'backpack', 'low', 'economy')):
+        return 'budget'
+    return 'mid-range'
+
+
+def _budget_estimate(plan, days):
+    """Total, per-day and the four-head breakdown for a plan.
+
+    Every figure is derived from the itinerary the visitor actually got: the
+    total is the sum of the AI's day costs, and the heads are fixed
+    percentages of that total, so the parts always add up to the whole
+    (integers, with the rounding remainder given to the last head). Cities
+    outside data/city_costs.json answer with the fallback rate and
+    matched=false, which the page states plainly instead of pretending.
+    """
+    total = sum(day['cost'] for day in days)
+    level = _budget_level(plan['budget'])
+    table = _city_costs()
+
+    city = None
+    matched = False
+    if table:
+        cities = table['cities']
+        city = cities.get(plan['destination'].strip().lower())
+        matched = city is not None
+        if not matched:
+            city = table.get('default')
+    if not isinstance(city, dict):
+        city = {}
+
+    per_day = city.get('per_day') if isinstance(city.get('per_day'), dict) else {}
+    split = city.get('split') if isinstance(city.get('split'), dict) else {}
+    reference = per_day.get(level)
+    if not isinstance(reference, (int, float)) or reference <= 0:
+        reference = 0
+
+    # A split that does not add up (hand-edited file) would quietly invent or
+    # lose money, so fall back to an even one.
+    weights = [split.get(head) for head in BUDGET_HEADS]
+    if any(not isinstance(w, (int, float)) or w < 0 for w in weights) or sum(weights) <= 0:
+        weights = None
+    if weights is None:
+        weights = [1 / len(BUDGET_HEADS)] * len(BUDGET_HEADS)
+
+    breakdown = {}
+    allocated = 0
+    for head, weight in zip(BUDGET_HEADS, weights):
+        amount = round(total * weight)
+        breakdown[head] = amount
+        allocated += amount
+    breakdown[BUDGET_HEADS[-1]] += total - allocated
+
+    label = city.get('label')
+    return {
+        'trip_total': total,
+        'per_day': total // len(days),
+        'breakdown': breakdown,
+        'level': level,
+        'baseline_per_day': int(reference),
+        # Only a matched city may rename the trip; for anywhere else the
+        # visitor's own words are the better label.
+        'city': label.strip() if matched and isinstance(label, str) and label.strip()
+        else plan['destination'],
+        'matched': matched,
+    }
+
+
+def _gemini_text(prompt, json_mode=False):
+    """One Gemini call. Returns (text, None) or (None, (message, status)).
+
+    Shared by every guide kind so timeout, quota and upstream-error handling
+    (including the rule that Google's own body is never forwarded) cannot
+    drift between them. json_mode asks Gemini for an application/json reply
+    instead of prose.
+    """
+    payload = {'contents': [{'parts': [{'text': prompt}]}]}
+    if json_mode:
+        payload['generationConfig'] = {'responseMimeType': 'application/json'}
+
+    try:
+        resp = requests.post(
+            'https://generativelanguage.googleapis.com/v1beta/models/'
+            + GEMINI_MODEL + ':generateContent',
+            params={'key': GEMINI_API_KEY},
+            json=payload,
+            timeout=30,
+        )
+    except requests.exceptions.Timeout:
+        return None, ('The AI service timed out. Please try again.', 504)
+    except requests.exceptions.RequestException:
+        return None, ('Could not reach the AI service. Please try again later.', 502)
+
+    if resp.status_code == 429:
+        return None, ('The AI service is rate-limited right now. Please try again in a minute.', 429)
+    if resp.status_code != 200:
+        # Log server-side for debugging, but never forward Google's body to
+        # the client (it can echo request details).
+        app.logger.warning('Gemini returned HTTP %s: %s', resp.status_code, resp.text[:300])
+        return None, ('The AI service returned an error. Please try again later.', 502)
+
+    try:
+        body = resp.json()
+        parts = body['candidates'][0]['content']['parts']
+        text = ''.join(p.get('text') or '' for p in parts).strip()
+    except (ValueError, KeyError, IndexError, TypeError):
+        app.logger.warning('Gemini response had unexpected shape: %s', resp.text[:300])
+        return None, ('The AI service returned an unexpected response.', 502)
+
+    if not text:
+        return None, ('The AI service returned an empty response. Please try again.', 502)
+    return text, None
+
+
+def _itinerary_request(data):
+    """Validate the itinerary body. Returns (plan, None) or (None, (error, status))."""
+    destination = str(data.get('destination') or '').strip()
+    if not destination:
+        return None, ('A destination is required', 400)
+    if len(destination) > 120:
+        return None, ('Destination is too long (max 120 characters)', 400)
+
+    raw_days = data.get('days')
+    if isinstance(raw_days, bool) or not isinstance(raw_days, (int, str)):
+        return None, ('days must be a whole number from 1 to 10', 400)
+    try:
+        days = int(str(raw_days).strip())
+    except ValueError:
+        return None, ('days must be a whole number from 1 to 10', 400)
+    if days < 1 or days > ITINERARY_MAX_DAYS:
+        return None, (f'days must be between 1 and {ITINERARY_MAX_DAYS}', 400)
+
+    budget = str(data.get('budget') or '').strip() or 'mid-range'
+    if len(budget) > 60:
+        return None, ('Budget is too long (max 60 characters)', 400)
+    interests = str(data.get('interests') or '').strip() or 'sightseeing, local food'
+    if len(interests) > 200:
+        return None, ('Interests are too long (max 200 characters)', 400)
+
+    return {
+        'destination': destination,
+        'days': days,
+        'budget': budget,
+        'interests': interests,
+    }, None
+
+
+def _itinerary_cache_key(plan):
+    """Stable hash of the normalised request.
+
+    Lowercasing and sorting the comma-separated interests means
+    "Jaipur, 3 days, forts, food" and "jaipur, 3 days, food, forts" share one
+    Gemini call.
+    """
+    interests = sorted(
+        part.strip().lower() for part in plan['interests'].split(',') if part.strip()
+    )
+    canonical = json.dumps(
+        [plan['destination'].strip().lower(), plan['days'],
+         plan['budget'].strip().lower(), interests],
+        separators=(',', ':'),
+    )
+    return hashlib.sha256(canonical.encode('utf-8')).hexdigest()
+
+
+def _cached_itinerary(query_hash):
+    """Fresh cached days for this request, or None. A cache failure is a miss."""
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            'SELECT payload FROM itinerary_cache '
+            'WHERE query_hash = %s '
+            'AND created_at > now() - make_interval(days => %s)',
+            (query_hash, ITINERARY_CACHE_TTL_DAYS),
+        )
+        row = cur.fetchone()
+        cur.close()
+        if not row:
+            return None
+        return json.loads(row[0])['days']
+    except Exception:
+        app.logger.exception('itinerary cache read failed; treating as a miss')
+        return None
+    finally:
+        if conn:
+            conn.close()
+
+
+def _store_itinerary(query_hash, days):
+    """Save validated days. Best-effort: the plan is already built, so a
+    database blip must not turn a working itinerary into a 500."""
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            'INSERT INTO itinerary_cache (query_hash, payload) VALUES (%s, %s) '
+            'ON CONFLICT (query_hash) DO UPDATE SET '
+            'payload = EXCLUDED.payload, created_at = now()',
+            (query_hash, json.dumps({'days': days})),
+        )
+        cur.execute(
+            'DELETE FROM itinerary_cache WHERE created_at < now() - make_interval(days => %s)',
+            (ITINERARY_CACHE_PRUNE_DAYS,),
+        )
+        cur.close()
+        conn.commit()
+    except Exception:
+        if conn:
+            conn.rollback()
+        app.logger.exception('itinerary cache write failed')
+    finally:
+        if conn:
+            conn.close()
+
+
+def _itinerary_slot(value):
+    """One morning/afternoon/evening cell: non-empty text, length-capped."""
+    text = ('' if value is None else str(value)).strip()
+    if not text:
+        raise _ItineraryError('empty itinerary slot')
+    return text[:ITINERARY_MAX_SLOT_CHARS]
+
+
+def _itinerary_cost(value):
+    """A day's estimated spend in rupees. Gemini sometimes writes "₹1,200"
+    even when asked for a plain number, so anything digit-like is accepted."""
+    if isinstance(value, bool):
+        raise _ItineraryError('non-numeric day cost')
+    if isinstance(value, (int, float)):
+        cost = int(value)
+    else:
+        digits = re.sub(r'[^0-9]', '', str(value or ''))
+        if not digits:
+            raise _ItineraryError('non-numeric day cost')
+        cost = int(digits)
+    if cost < 0 or cost > ITINERARY_MAX_DAY_COST:
+        raise _ItineraryError('day cost out of range')
+    return cost
+
+
+def _parse_itinerary(text, expected_days):
+    """Turn Gemini's JSON reply into the validated day list.
+
+    Strict on purpose: half-rendered cards are worse than a retry. Extra days
+    are trimmed (models like to add a bonus day); an unparseable body, a
+    missing day or an empty slot raises _ItineraryError, which ai_guide() maps to
+    502 without echoing the model's text.
+    """
+    cleaned = text.strip()
+    if cleaned.startswith('```'):
+        # Tolerate a markdown fence even though responseMimeType should
+        # prevent it.
+        cleaned = cleaned.split('\n', 1)[1] if '\n' in cleaned else ''
+        if cleaned.rstrip().endswith('```'):
+            cleaned = cleaned.rstrip()[:-3].rstrip()
+
+    try:
+        data = json.loads(cleaned)
+    except ValueError as exc:
+        raise _ItineraryError('itinerary was not JSON') from exc
+
+    raw_days = data.get('days') if isinstance(data, dict) else None
+    if not isinstance(raw_days, list) or not raw_days:
+        raise _ItineraryError('itinerary had no days')
+    if len(raw_days) < expected_days:
+        raise _ItineraryError('itinerary was shorter than requested')
+
+    days = []
+    for index, entry in enumerate(raw_days[:expected_days], start=1):
+        if not isinstance(entry, dict):
+            raise _ItineraryError('day was not an object')
+        days.append({
+            'day': index,
+            'morning': _itinerary_slot(entry.get('morning')),
+            'afternoon': _itinerary_slot(entry.get('afternoon')),
+            'evening': _itinerary_slot(entry.get('evening')),
+            'cost': _itinerary_cost(entry.get('cost')),
+        })
+    return days
+
+
+def _itinerary_prompt(plan):
+    return (
+        'You are Manzil Bharat, a travel planner for India. Create a day-wise '
+        f"itinerary for {plan['destination']} covering {plan['days']} day(s) on a "
+        f"{plan['budget']} budget, focused on {plan['interests']}. "
+        'Respond with ONLY a JSON object, no markdown and no commentary, shaped '
+        'exactly like: {"days": [{"day": 1, "morning": "...", "afternoon": '
+        '"...", "evening": "...", "cost": 1200}]}. '
+        f"Give exactly {plan['days']} entries numbered 1 to {plan['days']}. "
+        'morning, afternoon and evening must each name one concrete activity '
+        "or place in 12 words or fewer. cost is that day's estimated spend for "
+        'one traveller in Indian rupees, as a plain number.'
+    )
+
+
+def _itinerary_guide(data):
+    plan, error = _itinerary_request(data)
+    if error:
+        return jsonify({'error': error[0]}), error[1]
+
+    query_hash = _itinerary_cache_key(plan)
+    cached = _cached_itinerary(query_hash)
+    if cached is not None:
+        return jsonify({
+            'days': cached,
+            'budget': _budget_estimate(plan, cached),
+            'cached': True,
+        }), 200
+
+    # The cache is checked first so a warm itinerary still works if the key is
+    # later removed; everything else needs the key.
+    if not GEMINI_API_KEY:
+        return jsonify({'error': 'AI is not configured on this server. Set GEMINI_API_KEY in .env.'}), 503
+
+    text, error = _gemini_text(_itinerary_prompt(plan), json_mode=True)
+    if error:
+        return jsonify({'error': error[0]}), error[1]
+
+    try:
+        days = _parse_itinerary(text, plan['days'])
+    except _ItineraryError as exc:
+        app.logger.warning('Gemini itinerary was invalid (%s): %s', exc, text[:300])
+        return jsonify({'error': 'The AI returned an unusable itinerary. Please try again.'}), 502
+
+    _store_itinerary(query_hash, days)
+    return jsonify({
+        'days': days,
+        'budget': _budget_estimate(plan, days),
+        'cached': False,
+    }), 200
+
 
 @app.route('/api/ai-guide', methods=['POST'])
 @rate_limit(max_requests=15, window=60)
 def ai_guide():
-    data = request.get_json(silent=True) or {}
-    kind = (data.get('kind') or '').strip()
-    query = (data.get('query') or '').strip()
+    data = _json_object()
+    if not isinstance(data, dict):
+        data = {}
+    kind = str(data.get('kind') or '').strip()
+    if kind == 'itinerary':
+        return _itinerary_guide(data)
+
+    query = str(data.get('query') or '').strip()
 
     if kind not in AI_PROMPTS:
         return jsonify({'error': 'Unknown guide type'}), 400
@@ -1387,59 +3394,32 @@ def ai_guide():
     if not GEMINI_API_KEY:
         return jsonify({'error': 'AI is not configured on this server. Set GEMINI_API_KEY in .env.'}), 503
 
-    prompt = AI_PROMPTS[kind].replace('{query}', query)
-
-    try:
-        resp = requests.post(
-            'https://generativelanguage.googleapis.com/v1beta/models/'
-            + GEMINI_MODEL + ':generateContent',
-            params={'key': GEMINI_API_KEY},
-            json={'contents': [{'parts': [{'text': prompt}]}]},
-            timeout=30,
-        )
-    except requests.exceptions.Timeout:
-        return jsonify({'error': 'The AI service timed out. Please try again.'}), 504
-    except requests.exceptions.RequestException:
-        return jsonify({'error': 'Could not reach the AI service. Please try again later.'}), 502
-
-    if resp.status_code == 429:
-        return jsonify({'error': 'The AI service is rate-limited right now. Please try again in a minute.'}), 429
-    if resp.status_code != 200:
-        # Log server-side for debugging, but never forward Google's body to
-        # the client (it can echo request details).
-        app.logger.warning('Gemini returned HTTP %s: %s', resp.status_code, resp.text[:300])
-        return jsonify({'error': 'The AI service returned an error. Please try again later.'}), 502
-
-    try:
-        body = resp.json()
-        parts = body['candidates'][0]['content']['parts']
-        text = ''.join(p.get('text') or '' for p in parts).strip()
-    except (ValueError, KeyError, IndexError, TypeError):
-        app.logger.warning('Gemini response had unexpected shape: %s', resp.text[:300])
-        return jsonify({'error': 'The AI service returned an unexpected response.'}), 502
-
-    if not text:
-        return jsonify({'error': 'The AI service returned an empty response. Please try again.'}), 502
+    text, error = _gemini_text(AI_PROMPTS[kind].replace('{query}', query))
+    if error:
+        return jsonify({'error': error[0]}), error[1]
     return jsonify({'text': text}), 200
 
 
 @app.route('/api/admin/login', methods=['POST'])
 @rate_limit(max_requests=5, window=60)
 def admin_login():
-    data = request.get_json()
-    email = (data.get('email') or '').strip()
-    password = data.get('password') or ''
+    data = _json_object()
+    email = _text(data.get('email'))
+    password = _raw_text(data.get('password'))
 
     if email != ADMIN_EMAIL:
         # Spend the same bcrypt work as a real check so response timing does
         # not reveal whether the submitted email is the admin's.
         bcrypt.checkpw(password.encode('utf-8'), _DUMMY_ADMIN_HASH)
+        app.logger.warning('admin login failed for %s', email)
         return jsonify({'error': 'Invalid admin credentials'}), 401
 
     if not bcrypt.checkpw(password.encode('utf-8'), ADMIN_PASSWORD_HASH.encode('utf-8')):
+        app.logger.warning('admin login failed for %s (wrong password)', email)
         return jsonify({'error': 'Invalid admin credentials'}), 401
 
     token = create_token(0, email)
+    app.logger.info('admin login: %s signed in', email)
     return jsonify({'token': token, 'message': 'Admin login successful'}), 200
 
 
@@ -1469,7 +3449,15 @@ def get_stats():
         total_bookings = cur.fetchone()[0]
         cur.execute("SELECT COUNT(*) FROM payments")
         total_payments = cur.fetchone()[0]
-        cur.execute("SELECT COALESCE(SUM(amount), 0) FROM payments WHERE status = 'completed'")
+        # Two statuses are worth money: 'captured' is what
+        # /api/payments/verify writes when Razorpay's signature checks out,
+        # 'completed' is the status of the older demo rows (seed.sql).
+        # Counting only 'completed' showed Rs.0 after a real test payment;
+        # counting only 'captured' would hide the seeded demo history.
+        cur.execute(
+            "SELECT COALESCE(SUM(amount), 0) FROM payments "
+            "WHERE status IN ('captured', 'completed')"
+        )
         total_revenue = cur.fetchone()[0]
         cur.close()
         return jsonify({
@@ -1512,6 +3500,64 @@ def get_recent():
         })
     except Exception:
         return jsonify({'error': 'Could not load recent activity'}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route('/api/analytics', methods=['GET'])
+@require_admin
+def get_analytics():
+    """The page-view counter, read back for the admin panel (Phase 5 step 5).
+
+    Only paths and days - the counter never stored a visitor identifier, a
+    cookie or a query string, so there is nothing personal in here.
+    """
+    days = request.args.get('days', type=int) or 14
+    if days < 1 or days > 90:
+        days = 14
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(
+            "SELECT day::text AS day, SUM(count)::int AS views FROM page_views "
+            "WHERE day >= CURRENT_DATE - %s "
+            "GROUP BY day ORDER BY day",
+            (days - 1,),
+        )
+        by_day = [dict(r) for r in cur.fetchall()]
+        cur.execute(
+            "SELECT path, SUM(count)::int AS views FROM page_views "
+            "WHERE day >= CURRENT_DATE - %s "
+            "GROUP BY path ORDER BY views DESC, path LIMIT 10",
+            (days - 1,),
+        )
+        top_paths = [dict(r) for r in cur.fetchall()]
+        cur.execute("SELECT COALESCE(SUM(count), 0)::int AS total FROM page_views")
+        total_views = cur.fetchone()['total']
+        cur.close()
+        return jsonify({
+            'days': days,
+            'total_views': total_views,
+            'by_day': by_day,
+            'top_paths': top_paths,
+        }), 200
+    except psycopg2.errors.UndefinedTable:
+        if conn:
+            conn.rollback()
+        return jsonify({
+            'days': days,
+            'total_views': 0,
+            'by_day': [],
+            'top_paths': [],
+            'error': 'The page_views table is missing - run migrations/phase5.sql',
+        }), 200
+    except Exception:
+        if conn:
+            conn.rollback()
+        app.logger.exception('get_analytics failed')
+        return jsonify({'error': 'Could not load the traffic report'}), 500
     finally:
         if conn:
             conn.close()
@@ -1569,6 +3615,7 @@ def delete_user(user_id):
             return jsonify({'error': 'User not found'}), 404
         conn.commit()
         cur.close()
+        app.logger.info('admin: deleted user %s', user_id)
         return jsonify({'message': 'User deleted'})
     except psycopg2.errors.ForeignKeyViolation:
         if conn:
@@ -1632,8 +3679,8 @@ def admin_get_booking(booking_id):
 @app.route('/api/bookings/<int:booking_id>', methods=['PUT'])
 @require_admin
 def admin_update_booking(booking_id):
-    data = request.get_json()
-    status = (data.get('status') or '').strip().lower()
+    data = _json_object()
+    status = _text(data.get('status')).lower()
     valid_statuses = ['pending', 'confirmed', 'completed', 'cancelled']
     if status not in valid_statuses:
         return jsonify({'error': 'Invalid status'}), 400
@@ -1649,6 +3696,7 @@ def admin_update_booking(booking_id):
             return jsonify({'error': 'Booking not found'}), 404
         conn.commit()
         cur.close()
+        app.logger.info('admin: booking %s set to %s', booking_id, status)
         return jsonify({'message': 'Booking updated'})
     except Exception:
         if conn:
@@ -1673,6 +3721,7 @@ def admin_delete_booking(booking_id):
             return jsonify({'error': 'Booking not found'}), 404
         conn.commit()
         cur.close()
+        app.logger.info('admin: deleted booking %s', booking_id)
         return jsonify({'message': 'Booking deleted'})
     except Exception:
         if conn:

@@ -18,7 +18,9 @@ ignore = [
     # columns, ISO strings in JWT payloads) and psycopg2 hands them back naive;
     # switching these call sites to tz-aware datetimes one at a time would make
     # `exp < utcnow()` compare offset-naive against offset-aware and raise.
-    # Phase 5 migrates the whole codebase to aware datetimes in one pass.
+    # Moving the whole codebase to aware datetimes is a single deliberate
+    # change (tokens, rows and comparisons together) - not a Phase 5 side
+    # effect, so the ignore stays until that change is made.
     "DTZ003",
     # `except Exception` around database work is the pattern: roll back the
     # transaction, then answer 500 as JSON. Narrowing the catch would risk an

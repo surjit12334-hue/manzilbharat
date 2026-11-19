@@ -117,7 +117,7 @@
   // Call at the top of pages that must not be reachable signed-out.
   function requireLogin(redirectTo) {
     if (!getToken()) {
-      window.location.href = redirectTo || 'login.html';
+      window.location.href = redirectTo || 'login';
       return false;
     }
     return true;
@@ -125,7 +125,7 @@
 
   function logout(redirectTo) {
     clearSession();
-    window.location.href = redirectTo || 'index.html';
+    window.location.href = redirectTo || '/';
   }
 
   window.MBAuth = {

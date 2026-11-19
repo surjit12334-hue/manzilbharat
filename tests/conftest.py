@@ -182,6 +182,8 @@ def client(flask_app):
 
 # Every signup field with a valid value, so a test only passes what it means
 # to exercise (register(weak_password='123') rather than nine fields).
+# 'consent' is part of it: the API refuses an account without it (DPDP), so
+# every test that registers a user has to give consent too.
 SIGNUP_DEFAULTS = {
     'name': 'Test User',
     'email': 'test.user@example.com',
@@ -192,6 +194,8 @@ SIGNUP_DEFAULTS = {
     'residential_address': '1 Test Road, Bengaluru',
     'pincode': '560001',
     'password': DEFAULT_PASSWORD,
+    'consent': True,
+    'consent_version': 'dpdp-v1',
 }
 
 

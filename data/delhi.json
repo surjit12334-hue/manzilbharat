@@ -1,0 +1,117 @@
+{
+  "city": "delhi",
+  "label": "Delhi NCR",
+  "tagline": "Mughal monuments, street food and museums.",
+  "hotels": [
+    {
+      "name": "Madpackers Hostel",
+      "area": "South Extension, South Delhi",
+      "category": "hostel",
+      "price_per_night": "₹500-1,200",
+      "note": "Popular backpacker hostel with a courtyard cafe, metro nearby."
+    },
+    {
+      "name": "Hotel City Star",
+      "area": "Paharganj, near New Delhi station",
+      "category": "budget",
+      "price_per_night": "₹1,500-3,000",
+      "note": "Basic but clean and very central for the railway station and Connaught Place."
+    },
+    {
+      "name": "Bloomrooms @ New Delhi Station",
+      "area": "Paharganj",
+      "category": "mid-range",
+      "price_per_night": "₹3,000-5,500",
+      "note": "Compact modern rooms with strong wifi; walk to the Airport Express."
+    },
+    {
+      "name": "The Claridges",
+      "area": "Lutyens' Delhi",
+      "category": "luxury",
+      "price_per_night": "₹12,000-25,000",
+      "note": "Elegant colonial-era hotel with lawns, close to India Gate."
+    },
+    {
+      "name": "The Lodhi",
+      "area": "Lodhi Road",
+      "category": "luxury",
+      "price_per_night": "₹25,000-60,000",
+      "note": "Contemporary rooms with private plunge pools; overlooks Lodhi Gardens."
+    },
+    {
+      "name": "Haveli Dharampura",
+      "area": "Chandni Chowk, old city",
+      "category": "mid-range",
+      "price_per_night": "₹6,000-11,000",
+      "note": "Restored 19th-century haveli inside the old city lanes; rooftop views of Jama Masjid."
+    }
+  ],
+  "things_to_do": [
+    {
+      "name": "Red Fort (Lal Qila)",
+      "area": "Old Delhi",
+      "duration": "2-3 h",
+      "note": "Mughal fortress of red sandstone; the sound-and-light show runs in the evening."
+    },
+    {
+      "name": "Qutub Minar",
+      "area": "Mehrauli, South Delhi",
+      "duration": "1-2 h",
+      "note": "73 m victory tower from 1199 with an intricately carved iron pillar."
+    },
+    {
+      "name": "Humayun's Tomb",
+      "area": "Nizamuddin East",
+      "duration": "1-2 h",
+      "note": "The garden-tomb that inspired the Taj Mahal; lovely at golden hour."
+    },
+    {
+      "name": "India Gate and Rajpath",
+      "area": "Central Delhi",
+      "duration": "1 h",
+      "note": "War memorial arch on the ceremonial avenue; best after dark when lit."
+    },
+    {
+      "name": "Chandni Chowk cycle-rickshaw ride",
+      "area": "Old Delhi",
+      "duration": "1-2 h",
+      "note": "Thread the spice and silver lanes by rickshaw; the paratha galli is en route."
+    },
+    {
+      "name": "Lodhi Art District walk",
+      "area": "Lodhi Colony",
+      "duration": "1 h",
+      "note": "India's first open-air public art district, painted on the block walls."
+    }
+  ],
+  "eateries": [
+    {
+      "name": "Karim's",
+      "area": "Jama Masjid, old city",
+      "must_try": "Mutton korma, seekh kebab and sheermal",
+      "price_for_two": "₹600-1,000",
+      "note": "Mughlai institution near Jama Masjid, serving since 1913."
+    },
+    {
+      "name": "Paranthe Wali Gali",
+      "area": "Chandni Chowk, old city",
+      "must_try": "Stuffed paranthas, including rabri and banana",
+      "price_for_two": "₹200-400",
+      "note": "The famous lane of stuffed paratha shops; go hungry and share."
+    },
+    {
+      "name": "Saravana Bhavan",
+      "area": "Janpath, Connaught Place",
+      "must_try": "Ghee roast dosa and filter coffee",
+      "price_for_two": "₹500-900",
+      "note": "Dependable South Indian vegetarian; quick and air-conditioned."
+    },
+    {
+      "name": "Bukhara",
+      "area": "ITC Maurya, Chanakyapuri",
+      "must_try": "Dal Bukhara and sikandari raan",
+      "price_for_two": "₹5,000-8,000",
+      "note": "Legendary North-West Frontier grill; reserve well ahead."
+    }
+  ]
+}

@@ -9,7 +9,7 @@
       name="description"
       content="View, plan and cancel your Manzil Bharat trips in one place."
     />
-    <link rel="canonical" href="https://manzilbharat.onrender.com/mytrips.html" />
+    <link rel="canonical" href="https://manzilbharat.eu.org/mytrips" />
     <!-- Social previews: absolute og:url/og:image are required, relative ones
          are ignored by WhatsApp/X. The card is a 1200x630 JPEG. -->
     <meta property="og:site_name" content="Manzil Bharat" />
@@ -19,8 +19,8 @@
       property="og:description"
       content="View, plan and cancel your Manzil Bharat trips in one place."
     />
-    <meta property="og:url" content="https://manzilbharat.onrender.com/mytrips.html" />
-    <meta property="og:image" content="https://manzilbharat.onrender.com/og-image.jpg" />
+    <meta property="og:url" content="https://manzilbharat.eu.org/mytrips" />
+    <meta property="og:image" content="https://manzilbharat.eu.org/og-image.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Manzil Bharat - Let's Travel Together" />
@@ -30,7 +30,7 @@
       name="twitter:description"
       content="View, plan and cancel your Manzil Bharat trips in one place."
     />
-    <meta name="twitter:image" content="https://manzilbharat.onrender.com/og-image.jpg" />
+    <meta name="twitter:image" content="https://manzilbharat.eu.org/og-image.jpg" />
     <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet" />
     <link
       rel="stylesheet"
@@ -186,6 +186,35 @@
         opacity: 0.6;
         cursor: not-allowed;
         transform: none;
+      }
+      .btn-secondary {
+        background: white;
+        color: #0a1628;
+        border: 2px solid #e0e5ec;
+        padding: 0.75rem 1.5rem;
+        border-radius: 12px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+      .btn-secondary:hover {
+        border-color: #8892b0;
+      }
+      .btn-danger {
+        background: white;
+        color: #e74c3c;
+        border: 2px solid #f5c6c0;
+        padding: 0.75rem 1.5rem;
+        border-radius: 12px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+      .btn-danger:hover {
+        border-color: #e74c3c;
+        background: #fdf3f2;
       }
 
       .stats {
@@ -373,6 +402,10 @@
         background: rgba(231, 76, 60, 0.12);
         color: #e74c3c;
       }
+      .badge.saved {
+        background: rgba(142, 68, 173, 0.15);
+        color: #8e44ad;
+      }
       .btn-cancel {
         background: none;
         border: 1px solid rgba(231, 76, 60, 0.4);
@@ -392,6 +425,34 @@
         cursor: not-allowed;
         background: none;
         color: #e74c3c;
+      }
+      .trip-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+      }
+      .btn-pay {
+        background: linear-gradient(135deg, #ff6b35, #ff8f5e);
+        border: none;
+        color: white;
+        padding: 0.4rem 0.9rem;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: filter 0.3s;
+      }
+      .btn-pay:hover {
+        filter: brightness(1.06);
+      }
+      .btn-pay:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+      .badge.test {
+        background: rgba(41, 128, 185, 0.15);
+        color: #2980b9;
       }
 
       .empty {
@@ -504,15 +565,16 @@
   </head>
   <body>
     <nav>
-      <a href="index.html" class="logo">Manzil Bharat</a>
+      <a href="/" class="logo">Manzil Bharat</a>
       <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu">
         <i class="fas fa-bars"></i>
       </button>
       <ul class="nav-links" id="navLinks">
-        <li><a href="index.html">Home</a></li>
-        <li><a href="mytrips.html">My Trips</a></li>
-        <li><a href="blog.html">Blog</a></li>
-        <li><a href="contact.html">Contact</a></li>
+        <li><a href="/">Home</a></li>
+        <li><a href="trip">Plan Trip</a></li>
+        <li><a href="mytrips">My Trips</a></li>
+        <li><a href="blog">Blog</a></li>
+        <li><a href="contact">Contact</a></li>
         <li class="user-chip" id="userChip">
           <span><i class="fas fa-user-circle"></i> <span id="userName">...</span></span>
           <button class="btn-logout" id="logoutBtn">Log out</button>
@@ -669,10 +731,43 @@
         <div id="pageError2" class="page-error" style="display: none"></div>
         <div class="trip-list" id="tripList"></div>
       </section>
+
+      <section class="panel" id="savedTripsPanel">
+        <h2>Saved Itineraries</h2>
+        <p class="subtitle" style="margin-bottom: 1rem">
+          AI itineraries saved from the trip planner.
+        </p>
+        <div id="savedTripsList" class="trip-list"></div>
+        <div id="savedTripsError" class="page-error" style="display: none"></div>
+        <div id="savedTripsEmpty" class="empty" style="display: none">
+          <i class="fas fa-bookmark"></i>
+          <h3>No saved itineraries yet</h3>
+          <p>Build a plan on <a href="trip">Plan a Trip</a> and save it to see it here.</p>
+        </div>
+      </section>
+
+      <section class="panel" id="privacyPanel">
+        <h2><i class="fas fa-shield-halved" style="color: #ff6b35"></i> Your data &amp; privacy</h2>
+        <p class="subtitle" style="margin-bottom: 1rem">
+          The Digital Personal Data Protection Act gives you two rights we honour ourselves: a copy
+          of everything we hold about you, and deletion of your account and its data.
+        </p>
+        <div class="form-actions">
+          <button type="button" class="btn-primary" id="exportBtn">
+            <i class="fas fa-download"></i> Download my data (JSON)
+          </button>
+          <button type="button" class="btn-danger" id="deleteBtn">
+            <i class="fas fa-trash"></i> Delete my account
+          </button>
+        </div>
+        <div class="form-note" id="consentNote" style="margin-top: 0.8rem"></div>
+        <div class="form-error" id="privacyError"></div>
+        <div class="form-note" id="privacyOk" style="color: #27ae60; display: none"></div>
+      </section>
     </main>
 
     <footer>
-      <a href="index.html" class="footer-logo">Manzil Bharat</a>
+      <a href="/" class="footer-logo">Manzil Bharat</a>
       <p>Explore the world with Bhartiya dil.</p>
       <div class="footer-bottom">&copy; 2026 Manzil Bharat. All rights reserved.</div>
     </footer>
@@ -684,7 +779,7 @@
         // This page is account-only: bounce signed-out visitors before
         // any request is attempted.
         if (!MBAuth.getToken()) {
-          window.location.replace('login.html?next=mytrips.html');
+          window.location.replace('login?next=mytrips');
           return;
         }
 
@@ -694,7 +789,13 @@
         const errEl = document.getElementById('pageError');
         const tripForm = document.getElementById('tripForm');
         const panel = document.getElementById('newTripPanel');
+        const savedTripsList = document.getElementById('savedTripsList');
+        const savedTripsEmpty = document.getElementById('savedTripsEmpty');
+        const savedTripsError = document.getElementById('savedTripsError');
         let trips = [];
+        // The caller's payments (Phase 5 step 2). A trip that already has a
+        // captured payment is not payable again.
+        let payments = [];
 
         const TYPE_ICONS = {
           flight: 'fa-plane',
@@ -710,7 +811,7 @@
           document.getElementById('navLinks').classList.toggle('active');
         });
         document.getElementById('logoutBtn').addEventListener('click', function () {
-          MBAuth.logout('index.html');
+          MBAuth.logout('/');
         });
 
         function esc(s) {
@@ -749,11 +850,109 @@
           errEl.style.display = msg ? 'block' : 'none';
         }
 
+        // Saved itineraries (Phase 4 step 6). The plan itself lives in the
+        // payload; the card shows what can be read from it without another
+        // API call - destination, days and the budget level.
+        function savedTripFacts(trip) {
+          const facts = [];
+          const payload = trip && trip.payload ? trip.payload : null;
+          const itin = payload && payload.itinerary ? payload.itinerary : null;
+          if (itin) {
+            if (itin.destination) facts.push(itin.destination);
+            if (itin.days && itin.days.length)
+              facts.push(itin.days.length + (itin.days.length === 1 ? ' day' : ' days'));
+            if (itin.budget) facts.push(itin.budget + ' budget');
+            if (itin.estimate && itin.estimate.total)
+              facts.push('≈ ' + fmtMoney(itin.estimate.total));
+          }
+          return facts;
+        }
+
+        async function removeSavedTrip(id, card) {
+          if (!window.confirm('Remove this saved itinerary?')) return;
+          card.querySelector('.btn-cancel').disabled = true;
+          try {
+            const res = await fetch(API_BASE + '/api/me/trips/' + Number(id), {
+              method: 'DELETE',
+              headers: MBAuth.authHeaders(),
+            });
+            if (res.status === 401 || res.status === 403) {
+              MBAuth.clearSession();
+              window.location.replace('login?next=mytrips');
+              return;
+            }
+            const data = await res.json().catch(() => null);
+            if (!res.ok) throw new Error((data && data.error) || 'HTTP ' + res.status);
+            card.remove();
+            if (!savedTripsList.children.length) savedTripsEmpty.style.display = 'block';
+          } catch (e) {
+            card.querySelector('.btn-cancel').disabled = false;
+            console.error('removeSavedTrip failed', e);
+            window.alert(e.message || 'Could not remove the saved itinerary. Please try again.');
+          }
+        }
+
+        async function loadSavedTrips() {
+          try {
+            const res = await fetch(API_BASE + '/api/me/trips', {
+              headers: MBAuth.authHeaders(),
+            });
+            if (res.status === 401 || res.status === 403) {
+              MBAuth.clearSession();
+              window.location.replace('login?next=mytrips');
+              return;
+            }
+            const data = await res.json().catch(() => null);
+            if (!res.ok) throw new Error((data && data.error) || 'HTTP ' + res.status);
+            const saved = Array.isArray(data) ? data : [];
+            savedTripsList.innerHTML = '';
+            savedTripsError.style.display = 'none';
+            if (!saved.length) {
+              savedTripsEmpty.style.display = 'block';
+              return;
+            }
+            savedTripsEmpty.style.display = 'none';
+            saved.forEach(function (trip) {
+              const card = document.createElement('div');
+              card.className = 'trip-card';
+              const created = trip.created_at ? fmtDate(trip.created_at) : '-';
+              card.innerHTML =
+                '<div class="trip-icon"><i class="fas fa-map-signs"></i></div>' +
+                '<div class="trip-main">' +
+                '<div class="trip-route"></div>' +
+                '<div class="trip-meta"><span class="badge saved"></span>' +
+                '<span></span><span>·</span><span></span></div>' +
+                '</div>' +
+                '<div class="trip-amount"></div>' +
+                '<div><button class="btn-cancel" data-id="' +
+                Number(trip.id) +
+                '">Remove</button></div>';
+              card.querySelector('.trip-route').textContent = trip.title || 'Saved itinerary';
+              const meta = card.querySelectorAll('.trip-meta span');
+              meta[0].textContent = 'saved';
+              const facts = savedTripFacts(trip);
+              meta[1].textContent = facts.length ? facts.join(' · ') : 'Itinerary';
+              meta[3].textContent = 'Saved on ' + created;
+              const btn = card.querySelector('.btn-cancel');
+              btn.addEventListener('click', function () {
+                removeSavedTrip(trip.id, card);
+              });
+              savedTripsList.appendChild(card);
+            });
+          } catch (e) {
+            // Best-effort: don't block the bookings view if saved itineraries fail.
+            console.error('loadSavedTrips failed', e);
+            savedTripsEmpty.style.display = 'none';
+            savedTripsError.textContent = e.message || 'Could not load your saved itineraries.';
+            savedTripsError.style.display = 'block';
+          }
+        }
+
         async function loadProfile() {
           const user = await MBAuth.me();
           if (!user) {
             // Token existed but the server rejected/lost the account.
-            window.location.replace('login.html?next=mytrips.html');
+            window.location.replace('login?next=mytrips');
             return;
           }
           document.getElementById('userName').textContent = user.name || user.email || 'traveller';
@@ -770,7 +969,7 @@
             });
             if (res.status === 401 || res.status === 403) {
               MBAuth.clearSession();
-              window.location.replace('login.html?next=mytrips.html');
+              window.location.replace('login?next=mytrips');
               return;
             }
             const data = await res.json().catch(() => null);
@@ -811,7 +1010,7 @@
               '<div class="empty"><i class="fas fa-map-marked-alt"></i>' +
               '<h3>No trips yet</h3>' +
               '<p>Search a destination on the home page, or add your first trip above.</p>' +
-              '<button class="btn-primary" onclick="window.location.href=\'index.html\'">' +
+              '<button class="btn-primary" onclick="window.location.href=\'/\'">' +
               '<i class="fas fa-search"></i> Explore destinations</button></div>';
             return;
           }
@@ -823,6 +1022,11 @@
             const icon = TYPE_ICONS[t.booking_type] || 'fa-suitcase';
             const status = esc(t.status || 'pending');
             const canCancel = t.status === 'pending' || t.status === 'confirmed';
+            const paid = payments.some(function (p) {
+              return Number(p.booking_id) === Number(t.id) && p.status === 'captured';
+            });
+            const canPay =
+              !paid && (t.status === 'pending' || t.status === 'confirmed') && Number(t.amount) > 0;
             card.innerHTML =
               '<div class="trip-icon"><i class="fas ' +
               icon +
@@ -841,7 +1045,16 @@
               '<div class="trip-amount">' +
               esc(fmtMoney(t.amount)) +
               '</div>' +
-              '<div><button class="btn-cancel" data-id="' +
+              '<div class="trip-actions">' +
+              (paid
+                ? '<span class="badge test"><i class="fas fa-flask"></i> Test payment</span>'
+                : '') +
+              (canPay
+                ? '<button class="btn-pay" data-id="' +
+                  Number(t.id) +
+                  '"><i class="fas fa-credit-card"></i> Pay (test)</button>'
+                : '') +
+              '<button class="btn-cancel" data-id="' +
               Number(t.id) +
               '"' +
               (canCancel
@@ -860,6 +1073,11 @@
             if (canCancel)
               btn.addEventListener('click', function () {
                 cancelTrip(Number(t.id), btn);
+              });
+            const payBtn = card.querySelector('.btn-pay');
+            if (payBtn)
+              payBtn.addEventListener('click', function () {
+                payForTrip(t, payBtn);
               });
             listEl.appendChild(card);
           });
@@ -881,6 +1099,121 @@
             btn.disabled = false;
             btn.textContent = 'Cancel trip';
             showPageError('Could not cancel: ' + (e.message || 'network error'));
+          }
+        }
+
+        // ----- Razorpay TEST checkout (Phase 5 step 2) -----
+        //
+        // The card details go straight to Razorpay's hosted checkout - this
+        // page never sees a card number. What comes back is an order id, a
+        // payment id and a signature, and the server checks that signature
+        // against its secret key before it records anything. Every payment
+        // taken here is a TEST payment: no real money moves.
+        let checkoutScript = null;
+
+        function loadCheckoutScript() {
+          if (window.Razorpay) return Promise.resolve();
+          if (checkoutScript) return checkoutScript;
+          checkoutScript = new Promise(function (resolve, reject) {
+            const script = document.createElement('script');
+            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+            script.async = true;
+            script.onload = function () {
+              resolve();
+            };
+            script.onerror = function () {
+              checkoutScript = null;
+              reject(new Error('the Razorpay checkout could not be loaded (are you online?)'));
+            };
+            document.head.appendChild(script);
+          });
+          return checkoutScript;
+        }
+
+        async function loadPayments() {
+          try {
+            const res = await fetch(API_BASE + '/api/payments/mine', {
+              headers: MBAuth.authHeaders(),
+            });
+            if (res.status === 401 || res.status === 403) {
+              MBAuth.clearSession();
+              window.location.replace('login?next=mytrips');
+              return [];
+            }
+            if (!res.ok) return [];
+            const data = await res.json().catch(() => []);
+            return Array.isArray(data) ? data : [];
+          } catch (e) {
+            return [];
+          }
+        }
+
+        function resetPayButton(btn, label) {
+          if (!btn) return;
+          btn.disabled = false;
+          btn.innerHTML = label;
+        }
+
+        async function payForTrip(trip, btn) {
+          const label = btn.innerHTML;
+          btn.disabled = true;
+          btn.textContent = 'Preparing...';
+          try {
+            const res = await fetch(API_BASE + '/api/payments/order', {
+              method: 'POST',
+              headers: MBAuth.authHeaders({ 'Content-Type': 'application/json' }),
+              body: JSON.stringify({ booking_id: Number(trip.id) }),
+            });
+            const data = await res.json().catch(() => null);
+            if (!res.ok) throw new Error((data && data.error) || 'HTTP ' + res.status);
+            await loadCheckoutScript();
+            const razorpay = new window.Razorpay({
+              key: data.key_id,
+              amount: data.amount_paise,
+              currency: data.currency,
+              name: 'Manzil Bharat',
+              description: 'Trip #' + data.booking_id + ' - test payment',
+              order_id: data.order_id,
+              notes: { mode: data.mode },
+              theme: { color: '#ff6b35' },
+              handler: function (response) {
+                verifyPayment(data, response, btn, label);
+              },
+              modal: {
+                ondismiss: function () {
+                  resetPayButton(btn, label);
+                },
+              },
+            });
+            razorpay.open();
+          } catch (e) {
+            resetPayButton(btn, label);
+            showPageError('The payment could not be started: ' + (e.message || 'network error'));
+          }
+        }
+
+        async function verifyPayment(order, response, btn, label) {
+          btn.disabled = true;
+          btn.textContent = 'Verifying...';
+          try {
+            const res = await fetch(API_BASE + '/api/payments/verify', {
+              method: 'POST',
+              headers: MBAuth.authHeaders({ 'Content-Type': 'application/json' }),
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id || order.order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              }),
+            });
+            const data = await res.json().catch(() => null);
+            if (!res.ok) throw new Error((data && data.error) || 'HTTP ' + res.status);
+            // Reload the payments first: the trip list is drawn from them, so
+            // the trip has to come back marked as paid.
+            payments = await loadPayments();
+            await loadTrips();
+          } catch (e) {
+            resetPayButton(btn, label);
+            showPageError('The payment was not verified: ' + (e.message || 'network error'));
           }
         }
 
@@ -933,7 +1266,7 @@
             const data = await res.json().catch(() => null);
             if (res.status === 401 || res.status === 403) {
               MBAuth.clearSession();
-              window.location.replace('login.html?next=mytrips.html');
+              window.location.replace('login?next=mytrips');
               return;
             }
             if (!res.ok) {
@@ -1016,7 +1349,7 @@
             }
             if (res.status === 401 || res.status === 403) {
               MBAuth.clearSession();
-              window.location.replace('login.html?next=mytrips.html');
+              window.location.replace('login?next=mytrips');
               return;
             }
             if (!res.ok) {
@@ -1046,8 +1379,116 @@
           }
         });
 
+        // ----- DPDP: export my data / delete my account -----
+        const consentNote = document.getElementById('consentNote');
+        const privacyError = document.getElementById('privacyError');
+        const privacyOk = document.getElementById('privacyOk');
+
+        function showPrivacyError(text) {
+          privacyError.textContent = text || '';
+          privacyOk.style.display = 'none';
+        }
+
+        function showPrivacyOk(text) {
+          privacyOk.textContent = text;
+          privacyOk.style.display = 'block';
+          privacyError.textContent = '';
+        }
+
+        async function loadConsents() {
+          try {
+            const res = await fetch(API_BASE + '/api/me/consent', {
+              headers: MBAuth.authHeaders(),
+            });
+            if (!res.ok) return;
+            const rows = await res.json();
+            if (!Array.isArray(rows) || rows.length === 0) {
+              consentNote.textContent = 'No consent record found for this account yet.';
+              return;
+            }
+            consentNote.textContent =
+              'Consent given ' +
+              rows.length +
+              ' time(s). Latest: ' +
+              rows[0].text_version +
+              ' on ' +
+              new Date(rows[0].created_at).toLocaleDateString('en-IN') +
+              '.';
+          } catch (err) {
+            consentNote.textContent = '';
+          }
+        }
+
+        document.getElementById('exportBtn').addEventListener('click', async function () {
+          const btn = this;
+          btn.disabled = true;
+          showPrivacyError('');
+          try {
+            const res = await fetch(API_BASE + '/api/me/export', {
+              headers: MBAuth.authHeaders(),
+            });
+            const data = await res.json().catch(() => null);
+            if (!res.ok) {
+              showPrivacyError((data && data.error) || 'HTTP ' + res.status);
+              return;
+            }
+            // Hand the visitor a file instead of dumping JSON on the page.
+            const blob = new Blob([JSON.stringify(data, null, 2)], {
+              type: 'application/json',
+            });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'manzil-bharat-my-data.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showPrivacyOk('Your data has been downloaded.');
+          } catch (err) {
+            showPrivacyError('Cannot reach the server. Is it running? Start it with: ./start.sh');
+          } finally {
+            btn.disabled = false;
+          }
+        });
+
+        document.getElementById('deleteBtn').addEventListener('click', async function () {
+          const ok = window.confirm(
+            'Delete your account and every trip, booking and payment in it?\n\n' +
+              'This cannot be undone. Download your data first if you want a copy.',
+          );
+          if (!ok) return;
+          const btn = this;
+          btn.disabled = true;
+          showPrivacyError('');
+          try {
+            const res = await fetch(API_BASE + '/api/me', {
+              method: 'DELETE',
+              headers: MBAuth.authHeaders(),
+            });
+            const data = await res.json().catch(() => null);
+            if (!res.ok) {
+              showPrivacyError((data && data.error) || 'HTTP ' + res.status);
+              btn.disabled = false;
+              return;
+            }
+            MBAuth.clearSession();
+            window.location.replace('/');
+          } catch (err) {
+            showPrivacyError('Cannot reach the server. Is it running? Start it with: ./start.sh');
+            btn.disabled = false;
+          }
+        });
+
         loadProfile();
-        loadTrips();
+        // The payments are loaded first: the trip list is drawn from them,
+        // so a trip that has been paid for must not show a Pay button.
+        loadPayments().then(function (rows) {
+          payments = rows;
+          loadTrips();
+        });
+        loadSavedTrips();
+        loadConsents();
       })();
     </script>
   </body>

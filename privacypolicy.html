@@ -6,22 +6,22 @@
     <title>Privacy Policy - Manzil Bharat</title>
     <link rel="icon" type="image/png" href="icon.png" />
     <meta name="description" content="Privacy policy for Manzil Bharat travel services." />
-    <link rel="canonical" href="https://manzilbharat.onrender.com/privacypolicy.html" />
+    <link rel="canonical" href="https://manzilbharat.eu.org/privacypolicy" />
     <!-- Social previews: absolute og:url/og:image are required, relative ones
          are ignored by WhatsApp/X. The card is a 1200x630 JPEG. -->
     <meta property="og:site_name" content="Manzil Bharat" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Privacy Policy - Manzil Bharat" />
     <meta property="og:description" content="Privacy policy for Manzil Bharat travel services." />
-    <meta property="og:url" content="https://manzilbharat.onrender.com/privacypolicy.html" />
-    <meta property="og:image" content="https://manzilbharat.onrender.com/og-image.jpg" />
+    <meta property="og:url" content="https://manzilbharat.eu.org/privacypolicy" />
+    <meta property="og:image" content="https://manzilbharat.eu.org/og-image.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Manzil Bharat - Let's Travel Together" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Privacy Policy - Manzil Bharat" />
     <meta name="twitter:description" content="Privacy policy for Manzil Bharat travel services." />
-    <meta name="twitter:image" content="https://manzilbharat.onrender.com/og-image.jpg" />
+    <meta name="twitter:image" content="https://manzilbharat.eu.org/og-image.jpg" />
     <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet" />
     <link
       rel="stylesheet"
@@ -190,15 +190,16 @@
   </head>
   <body>
     <nav>
-      <a href="index.html" class="logo">Manzil Bharat</a>
+      <a href="/" class="logo">Manzil Bharat</a>
       <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
       <ul class="nav-links" id="navLinks">
-        <li><a href="index.html">Home</a></li>
-        <li><a href="mytrips.html">My Trips</a></li>
-        <li><a href="contact.html">Contact</a></li>
-        <li data-mb-show="guest"><a href="login.html">Login</a></li>
+        <li><a href="/">Home</a></li>
+        <li><a href="trip">Plan Trip</a></li>
+        <li><a href="mytrips">My Trips</a></li>
+        <li><a href="contact">Contact</a></li>
+        <li data-mb-show="guest"><a href="login">Login</a></li>
         <li data-mb-show="user" hidden>
-          <a href="mytrips.html"
+          <a href="mytrips"
             ><i class="fas fa-user-circle"></i> Hi, <span data-mb-name>traveller</span></a
           >
         </li>
@@ -270,6 +271,13 @@
         Payment credentials may be processed by authorized payment service providers rather than
         being stored directly by ManzilBharat, where applicable.
       </p>
+      <p>
+        <strong>Test-mode checkout.</strong> The checkout currently runs in Razorpay's TEST mode. No
+        real payment is taken, no real card details are needed, and what our database records is
+        only the transaction identifiers Razorpay returns (an order id and a payment id), the
+        amount, and whether the payment succeeded. A test payment is marked as such in your account
+        and in the admin panel.
+      </p>
 
       <h3>E. Technical Information</h3>
       <p>We may automatically receive limited technical information such as:</p>
@@ -284,6 +292,21 @@
       <p>
         We use this information primarily for security, troubleshooting, analytics, and improving
         our services.
+      </p>
+      <p>
+        <strong>Server logs.</strong> Our server writes an access log of what happened: sign-ups,
+        sign-ins (successful and failed), password resets, the consent records you gave, data
+        exports, account deletions and the actions taken in the admin panel. A log line names the
+        account involved - your user id and email address - and the time and the request. Passwords,
+        password hashes, session tokens and reset links are never written to the log. The log file
+        is kept on the server, rotated at 5 MB, and the older copies are deleted when they are
+        replaced.
+      </p>
+      <p>
+        <strong>Traffic counting.</strong> We also count how often each page is requested, in a
+        counter kept by our own server. That counter holds the path of the page and the day - no
+        cookie, no visitor identifier, and never the query string of the request, because it can
+        carry a destination or an address. It is not linked to your account.
       </p>
 
       <h2>2. Why We Use Your Data</h2>
@@ -314,12 +337,25 @@
         clear affirmative action, as required by the applicable DPDP framework.
       </p>
       <p>
+        In practice this means a labelled consent checkbox on the sign-up form. The checkbox is not
+        pre-ticked, it names the Privacy Policy and the Terms &amp; Conditions it refers to, and an
+        account cannot be created without it. Each time consent is given we store the version of the
+        text that was accepted and the time it was accepted, so we can always show which wording you
+        agreed to. The version of the policy text in force today is
+        <strong>dpdp-v1</strong>.
+      </p>
+      <p>
         You may withdraw consent at any time where processing is based on consent. The withdrawal
         process should be as easy as the process used to provide consent.
       </p>
       <p>
         Withdrawal of consent may affect our ability to provide certain services that depend on that
         data.
+      </p>
+      <p>
+        To withdraw consent, delete your account from
+        <a href="mytrips">My Trips &rarr; Your data &amp; privacy</a>. That removes your profile and
+        every trip, booking, payment and consent record attached to it.
       </p>
 
       <h2>4. Children's Data</h2>
@@ -439,6 +475,22 @@
         ManzilBharat.
       </p>
       <p>
+        Two of these rights you can exercise yourself, straight away, from
+        <a href="mytrips">My Trips &rarr; Your data &amp; privacy</a>:
+      </p>
+      <ul>
+        <li>
+          <strong>Access / data portability</strong> &mdash; &ldquo;Download my data&rdquo; returns
+          a single JSON file with your profile, bookings, saved itineraries, payments and consent
+          history.
+        </li>
+        <li>
+          <strong>Erasure</strong> &mdash; &ldquo;Delete my account&rdquo; deletes your profile and
+          every booking, saved itinerary, payment and consent record that belongs to it. There is no
+          recovery from it.
+        </li>
+      </ul>
+      <p>
         The DPDP Act provides Data Principals with rights concerning access, correction/erasure,
         grievance redressal and consent withdrawal, subject to applicable provisions.
       </p>
@@ -523,7 +575,7 @@
     </section>
 
     <footer>
-      <a href="index.html" class="footer-logo">Manzil Bharat</a>
+      <a href="/" class="footer-logo">Manzil Bharat</a>
       <p>Explore the world with Bhartiya dil.</p>
       <div class="footer-bottom">&copy; 2026 Manzil Bharat. All rights reserved.</div>
     </footer>

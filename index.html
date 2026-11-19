@@ -13,7 +13,7 @@
       name="description"
       content="Manzil Bharat - Your trusted travel partner for cabs, bikes, flights, trains, buses, hotels, and more across India."
     />
-    <link rel="canonical" href="https://manzilbharat.onrender.com/" />
+    <link rel="canonical" href="https://manzilbharat.eu.org/" />
     <!-- Social previews: absolute og:url/og:image are required, relative ones
          are ignored by WhatsApp/X. The card is a 1200x630 JPEG. -->
     <meta property="og:site_name" content="Manzil Bharat" />
@@ -23,8 +23,8 @@
       property="og:description"
       content="Manzil Bharat - Your trusted travel partner for cabs, bikes, flights, trains, buses, hotels, and more across India."
     />
-    <meta property="og:url" content="https://manzilbharat.onrender.com/" />
-    <meta property="og:image" content="https://manzilbharat.onrender.com/og-image.jpg" />
+    <meta property="og:url" content="https://manzilbharat.eu.org/" />
+    <meta property="og:image" content="https://manzilbharat.eu.org/og-image.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Manzil Bharat - Let's Travel Together" />
@@ -34,7 +34,7 @@
       name="twitter:description"
       content="Manzil Bharat - Your trusted travel partner for cabs, bikes, flights, trains, buses, hotels, and more across India."
     />
-    <meta name="twitter:image" content="https://manzilbharat.onrender.com/og-image.jpg" />
+    <meta name="twitter:image" content="https://manzilbharat.eu.org/og-image.jpg" />
     <meta
       name="keywords"
       content="travel, India, cabs, bikes, flights, trains, buses, hotels, booking, Manzil Bharat"
@@ -222,6 +222,21 @@
         max-width: 600px;
         margin-left: auto;
         margin-right: auto;
+      }
+
+      .hero-plan {
+        margin-top: 1.2rem;
+        font-size: 0.95rem;
+        opacity: 0.95;
+      }
+      .hero-plan a {
+        color: white;
+        font-weight: 700;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+      .hero-plan a:hover {
+        color: #ffe0d1;
       }
 
       .ai-panel {
@@ -759,19 +774,19 @@
   <body>
     <header class="hero">
       <div class="auth-section">
-        <a href="login.html" class="login-btn" data-mb-show="guest"
+        <a href="login" class="login-btn" data-mb-show="guest"
           ><i class="fas fa-sign-in-alt"></i> Login</a
         >
-        <a href="createaccount.html" class="signup-btn" data-mb-show="guest"
+        <a href="createaccount" class="signup-btn" data-mb-show="guest"
           ><i class="fas fa-user-plus"></i> Create Account</a
         >
-        <a href="mytrips.html" class="login-btn" data-mb-show="user" hidden
+        <a href="mytrips" class="login-btn" data-mb-show="user" hidden
           ><i class="fas fa-user-circle"></i> Hi, <span data-mb-name>traveller</span></a
         >
         <a href="#" class="signup-btn" data-mb-show="user" data-mb-logout hidden
           ><i class="fas fa-sign-out-alt"></i> Logout</a
         >
-        <a href="admin.html" class="admin-btn" aria-label="Admin Panel"
+        <a href="admin" class="admin-btn" aria-label="Admin Panel"
           ><i class="fas fa-user-shield"></i
         ></a>
       </div>
@@ -802,13 +817,17 @@
           <div class="search-dropdown" id="searchDropdown"></div>
           <div class="ai-panel" id="aiPanel"></div>
         </div>
+        <div class="hero-plan">
+          Planning ahead?
+          <a href="trip">Build a day-wise itinerary <i class="fas fa-arrow-right"></i></a>
+        </div>
       </div>
     </header>
 
     <footer>
       <div class="footer-top">
         <div class="footer-brand">
-          <a href="index.html" class="footer-logo">Manzil Bharat</a>
+          <a href="/" class="footer-logo">Manzil Bharat</a>
           <p class="footer-tagline">
             Bharat ka bharosa. Your trusted travel partner for cabs, bikes, flights, trains, buses,
             hotels, and more across India.
@@ -834,21 +853,22 @@
         <div class="footer-col">
           <h4>Quick Links</h4>
           <ul>
-            <li><a href="mytrips.html">My Trips</a></li>
-            <li><a href="aboutus.html">About Us</a></li>
-            <li><a href="contact.html">Contact Us</a></li>
-            <li><a href="careers.html">Careers</a></li>
-            <li><a href="blog.html">Blog</a></li>
-            <li><a href="helpcenter.html">Help Center</a></li>
+            <li><a href="trip">Plan a Trip</a></li>
+            <li><a href="mytrips">My Trips</a></li>
+            <li><a href="aboutus">About Us</a></li>
+            <li><a href="contact">Contact Us</a></li>
+            <li><a href="careers">Careers</a></li>
+            <li><a href="blog">Blog</a></li>
+            <li><a href="helpcenter">Help Center</a></li>
           </ul>
         </div>
         <div class="footer-col">
           <h4>Legal</h4>
           <ul>
-            <li><a href="terms-and-conditions.html">Terms &amp; Conditions</a></li>
-            <li><a href="privacypolicy.html">Privacy Policy</a></li>
-            <li><a href="refundpolicy.html">Refund Policy</a></li>
-            <li><a href="cookiepolicy.html">Cookie Policy</a></li>
+            <li><a href="terms-and-conditions">Terms &amp; Conditions</a></li>
+            <li><a href="privacypolicy">Privacy Policy</a></li>
+            <li><a href="refundpolicy">Refund Policy</a></li>
+            <li><a href="cookiepolicy">Cookie Policy</a></li>
           </ul>
         </div>
         <div class="footer-newsletter">
@@ -940,7 +960,7 @@
       </div>
       <div class="footer-bottom">
         <div class="footer-copyright">
-          &copy; 2026 <a href="index.html">Manzil Bharat</a>. All rights reserved. Made with
+          &copy; 2026 <a href="/">Manzil Bharat</a>. All rights reserved. Made with
           <i class="fas fa-heart" style="color: #ff6b35"></i> in India
         </div>
         <div class="footer-payments">
@@ -1004,7 +1024,12 @@
         }
       }
 
-      // ---------- Nominatim autocomplete ----------
+      // ---------- Place autocomplete (through our server) ----------
+      // The search goes through /api/geocode rather than straight to
+      // Nominatim: a browser cannot set a User-Agent (it is a forbidden
+      // header), and the OSM usage policy asks every client to identify
+      // itself with a real contact address. The server sends that UA, caches
+      // the answers and keeps the traffic to the shared service polite.
       async function onType(q) {
         clearTimeout(debounceTimer);
         const value = q.trim();
@@ -1014,12 +1039,12 @@
         }
         debounceTimer = setTimeout(async () => {
           try {
-            const url =
-              'https://nominatim.openstreetmap.org/search?format=json&limit=5&addressdetails=1&q=' +
-              encodeURIComponent(value);
-            const res = await fetch(url);
-            const results = await res.json();
-            renderDropdown(results);
+            const res = await fetch(
+              API_BASE + '/api/geocode?provider=nominatim&limit=5&q=' + encodeURIComponent(value),
+            );
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const data = await res.json();
+            renderDropdown(data.results || []);
           } catch (e) {
             dropdown.style.display = 'none';
           }
@@ -1043,12 +1068,9 @@
         });
         dropdown.innerHTML = html;
         dropdown.querySelectorAll('.sd-item').forEach((el, i) => {
-          el.querySelector('.sd-name').textContent =
-            results[i].name || (results[i].display_name || '').split(', ')[0];
-          el.querySelector('.sd-region').textContent = (results[i].display_name || '')
-            .split(', ')
-            .slice(1)
-            .join(', ');
+          const result = results[i];
+          el.querySelector('.sd-name').textContent = result.label || '';
+          el.querySelector('.sd-region').textContent = result.display || '';
         });
         dropdown.style.display = 'block';
         window._nomResults = results;
@@ -1058,8 +1080,8 @@
         const r = window._nomResults[i];
         if (!r) return;
         selectedPlace = r;
-        const shortName = r.name || (r.display_name || '').split(', ')[0];
-        if (r.lat && r.lon) {
+        const shortName = r.label || r.display;
+        if (r.lat !== undefined && r.lon !== undefined) {
           openMap(r, shortName);
         } else {
           input.value = shortName;
@@ -1070,14 +1092,14 @@
 
       function openMap(r, shortName) {
         const url =
-          'map.html?lat=' +
+          'map?lat=' +
           encodeURIComponent(r.lat) +
           '&lon=' +
           encodeURIComponent(r.lon) +
           '&name=' +
           encodeURIComponent(shortName) +
           '&display=' +
-          encodeURIComponent(r.display_name || shortName);
+          encodeURIComponent(r.display || shortName);
         window.location.href = url;
       }
 
@@ -1088,13 +1110,14 @@
           '<div class="ai-loading"><div class="spinner"></div> Finding your place...</div>',
         );
         try {
-          const url =
-            'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' +
-            encodeURIComponent(q);
-          const res = await fetch(url);
-          const results = await res.json();
-          if (results && results[0] && results[0].lat && results[0].lon) {
-            openMap(results[0], results[0].name || q);
+          const res = await fetch(
+            API_BASE + '/api/geocode?provider=nominatim&limit=1&q=' + encodeURIComponent(q),
+          );
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const data = await res.json();
+          const results = data.results || [];
+          if (results.length && results[0].lat !== undefined) {
+            openMap(results[0], results[0].label || q);
           } else {
             askGemini('trip', q);
           }
@@ -1137,7 +1160,9 @@
       }
 
       function escBody(text) {
-        const title = selectedPlace ? selectedPlace.name || input.value.trim() : input.value.trim();
+        const title = selectedPlace
+          ? selectedPlace.label || input.value.trim()
+          : input.value.trim();
         showPanel(
           '<div class="ai-title"><i class="fas fa-route"></i><span></span></div>' +
             '<div class="ai-body"></div>' +

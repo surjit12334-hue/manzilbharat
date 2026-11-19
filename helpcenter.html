@@ -9,7 +9,7 @@
       name="description"
       content="Get help with your Manzil Bharat bookings, account, and travel queries."
     />
-    <link rel="canonical" href="https://manzilbharat.onrender.com/helpcenter.html" />
+    <link rel="canonical" href="https://manzilbharat.eu.org/helpcenter" />
     <!-- Social previews: absolute og:url/og:image are required, relative ones
          are ignored by WhatsApp/X. The card is a 1200x630 JPEG. -->
     <meta property="og:site_name" content="Manzil Bharat" />
@@ -19,8 +19,8 @@
       property="og:description"
       content="Get help with your Manzil Bharat bookings, account, and travel queries."
     />
-    <meta property="og:url" content="https://manzilbharat.onrender.com/helpcenter.html" />
-    <meta property="og:image" content="https://manzilbharat.onrender.com/og-image.jpg" />
+    <meta property="og:url" content="https://manzilbharat.eu.org/helpcenter" />
+    <meta property="og:image" content="https://manzilbharat.eu.org/og-image.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Manzil Bharat - Let's Travel Together" />
@@ -30,7 +30,7 @@
       name="twitter:description"
       content="Get help with your Manzil Bharat bookings, account, and travel queries."
     />
-    <meta name="twitter:image" content="https://manzilbharat.onrender.com/og-image.jpg" />
+    <meta name="twitter:image" content="https://manzilbharat.eu.org/og-image.jpg" />
     <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet" />
     <link
       rel="stylesheet"
@@ -252,15 +252,16 @@
   </head>
   <body>
     <nav>
-      <a href="index.html" class="logo">Manzil Bharat</a>
+      <a href="/" class="logo">Manzil Bharat</a>
       <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
       <ul class="nav-links" id="navLinks">
-        <li><a href="index.html">Home</a></li>
-        <li><a href="mytrips.html">My Trips</a></li>
-        <li><a href="contact.html">Contact</a></li>
-        <li data-mb-show="guest"><a href="login.html">Login</a></li>
+        <li><a href="/">Home</a></li>
+        <li><a href="trip">Plan Trip</a></li>
+        <li><a href="mytrips">My Trips</a></li>
+        <li><a href="contact">Contact</a></li>
+        <li data-mb-show="guest"><a href="login">Login</a></li>
         <li data-mb-show="user" hidden>
-          <a href="mytrips.html"
+          <a href="mytrips"
             ><i class="fas fa-user-circle"></i> Hi, <span data-mb-name>traveller</span></a
           >
         </li>
@@ -289,7 +290,7 @@
         <p>
           You can cancel your booking through the platform or by contacting our support team. Refund
           eligibility depends on the cancellation policy of the service provider. Visit our
-          <a href="refundpolicy.html">Refund & Cancellation Policy</a> for details.
+          <a href="refundpolicy">Refund & Cancellation Policy</a> for details.
         </p>
       </div>
 
@@ -312,10 +313,11 @@
       <div class="faq-item">
         <h3>Is my payment information secure?</h3>
         <p>
-          Yes. Payments are processed through authorized and secure payment gateways. ManzilBharat
-          does not store your card details. Read our
-          <a href="cookiepolicy.html">Cookie Policy</a> and
-          <a href="privacypolicy.html">Privacy Policy</a> for more information.
+          Yes. Payments are processed through Razorpay's hosted checkout, and ManzilBharat does not
+          store your card details - they never reach our server. The checkout currently runs in
+          Razorpay's <strong>TEST mode</strong>, so no real money is charged. Read our
+          <a href="cookiepolicy">Cookie Policy</a> and
+          <a href="privacypolicy">Privacy Policy</a> for more information.
         </p>
       </div>
 
@@ -341,7 +343,8 @@
         <h3>What payment methods are accepted?</h3>
         <p>
           We accept UPI, credit/debit cards, net banking, and other popular payment methods through
-          our secure payment partners.
+          Razorpay. The checkout currently runs in <strong>TEST mode</strong>: no real money is
+          charged, and Razorpay's test payment methods are enough to try it out.
         </p>
       </div>
 
@@ -365,13 +368,13 @@
           <i class="fas fa-map-marker-alt"></i>
           <h3>Visit Us</h3>
           <p>SCRIET campus CCSU, Meerut. Pincode: 250002</p>
-          <a href="contact.html">Contact Page</a>
+          <a href="contact">Contact Page</a>
         </div>
       </div>
     </section>
 
     <footer>
-      <a href="index.html" class="footer-logo">Manzil Bharat</a>
+      <a href="/" class="footer-logo">Manzil Bharat</a>
       <p>Explore the world with Bhartiya dil.</p>
       <div class="footer-bottom">&copy; 2026 Manzil Bharat. All rights reserved.</div>
     </footer>

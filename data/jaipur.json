@@ -1,0 +1,124 @@
+{
+  "city": "jaipur",
+  "label": "Jaipur, Rajasthan",
+  "tagline": "The Pink City - forts, palaces and bazaars.",
+  "hotels": [
+    {
+      "name": "Zostel Jaipur",
+      "area": "Bani Park",
+      "category": "hostel",
+      "price_per_night": "₹500-1,200",
+      "note": "Rooftop hostel with dorms and private rooms, walkable to the railway station."
+    },
+    {
+      "name": "Hotel Pearl Palace",
+      "area": "Hathroi Fort, Ajmer Road",
+      "category": "budget",
+      "price_per_night": "₹1,500-2,800",
+      "note": "Long-running budget favourite with a famously good rooftop restaurant."
+    },
+    {
+      "name": "Umaid Bhawan Heritage House",
+      "area": "Bani Park",
+      "category": "mid-range",
+      "price_per_night": "₹3,000-5,500",
+      "note": "Heritage-style rooms, courtyard pool and puppet shows in the evening."
+    },
+    {
+      "name": "Alsisar Haveli",
+      "area": "Sansar Chandra Road",
+      "category": "mid-range",
+      "price_per_night": "₹5,000-8,000",
+      "note": "Restored 19th-century haveli with frescoed rooms around a pool courtyard."
+    },
+    {
+      "name": "Samode Haveli",
+      "area": "Gangapole, old city",
+      "category": "luxury",
+      "price_per_night": "₹9,000-16,000",
+      "note": "225-year-old nobleman's mansion inside the walled city, painted dining hall."
+    },
+    {
+      "name": "Rambagh Palace",
+      "area": "Bhawani Singh Road",
+      "category": "luxury",
+      "price_per_night": "₹35,000-90,000",
+      "note": "The former royal residence; peacocks on the lawns and a genuinely palatial stay."
+    },
+    {
+      "name": "Hotel Arya Niwas",
+      "area": "Sansar Chandra Road",
+      "category": "budget",
+      "price_per_night": "₹1,800-3,200",
+      "note": "Quiet, clean and central with a leafy garden cafe; reliable mid-budget pick."
+    }
+  ],
+  "things_to_do": [
+    {
+      "name": "Amber Fort (Amer Palace)",
+      "area": "Amer, 11 km from centre",
+      "duration": "2-3 h",
+      "note": "Hilltop fort of mirrored halls and ramparts; go at opening to beat the crowd."
+    },
+    {
+      "name": "Hawa Mahal",
+      "area": "Badi Choupad, old city",
+      "duration": "45 min",
+      "note": "The honeycomb facade of 953 windows; best photographed from the cafe opposite."
+    },
+    {
+      "name": "City Palace",
+      "area": "Old city",
+      "duration": "2 h",
+      "note": "Still partly the royal family's home; the Peacock Gate courtyard is the highlight."
+    },
+    {
+      "name": "Jantar Mantar",
+      "area": "Next to City Palace",
+      "duration": "1 h",
+      "note": "UNESCO-listed 18th-century observatory with the world's largest stone sundial."
+    },
+    {
+      "name": "Nahargarh Fort sunset",
+      "area": "Aravalli ridge",
+      "duration": "1-2 h",
+      "note": "The classic sunset view over the whole city; short climb from the car park."
+    },
+    {
+      "name": "Johari Bazaar walk",
+      "area": "Old city",
+      "duration": "1-2 h",
+      "note": "Jewellery, block prints and lac bangles; go in the evening when it comes alive."
+    }
+  ],
+  "eateries": [
+    {
+      "name": "Rawat Mishthan Bhandar",
+      "area": "Station Road, Sindhi Camp",
+      "must_try": "Pyaaz kachori and mawa kachori",
+      "price_for_two": "₹200-400",
+      "note": "The kachori institution - expect a queue, it moves fast."
+    },
+    {
+      "name": "Laxmi Misthan Bhandar (LMB)",
+      "area": "Johari Bazaar",
+      "must_try": "Rajasthani thali and ghewar",
+      "price_for_two": "₹600-1,200",
+      "note": "Old-city vegetarian institution serving since 1954."
+    },
+    {
+      "name": "Spice Court",
+      "area": "Civil Lines",
+      "must_try": "Laal maas and dal baati churma",
+      "price_for_two": "₹900-1,600",
+      "note": "Reliable sit-down Rajasthani food with a pleasant outdoor courtyard."
+    },
+    {
+      "name": "Chokhi Dhani",
+      "area": "Tonk Road, 20 km out",
+      "must_try": "Unlimited Rajasthani village thali",
+      "price_for_two": "₹1,600-2,400",
+      "note": "Village-themed dinner park with folk dance, camel rides and crafts."
+    }
+  ]
+}
