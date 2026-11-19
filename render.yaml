@@ -47,10 +47,10 @@ services:
       - key: DB_CONNECT_TIMEOUT
         value: "5"
 
-      # --- The live origin. MUST equal the onrender.com URL of THIS service;
-      # --- change it if you name the service something else. ---
+      # --- The live origin. MUST equal the custom domain pointing at this
+      # --- service; change it if the domain ever changes. ---
       - key: APP_ORIGIN
-        value: https://manzil-bharat.onrender.com
+        value: https://manzilbharat.eu.org
 
       # --- Secrets (never committed, prompted by Render) ---
       - key: JWT_SECRET

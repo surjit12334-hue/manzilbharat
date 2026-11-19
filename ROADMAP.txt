@@ -252,8 +252,7 @@ Goal: a live URL you can share anywhere.
            were run too, otherwise admin "delete user" 500s
          - All env vars set in the Render dashboard; .env never
            uploaded (it is in .dockerignore)
-         - LIVE: https://manzilbharat.onrender.com  (no hyphen - the
-           hyphenated name belongs to someone else)
+         - LIVE: https://manzilbharat.eu.org  (custom domain)
          - Build Command: pip install -r backend/requirements.txt
            Start Command: bash start-prod.sh
            Health Check:  /api/health
@@ -343,14 +342,14 @@ Goal: a live URL you can share anywhere.
          - index.html already had 3 partial og tags; they were replaced
            (not duplicated) by the full block - verified: every tag
            appears exactly once on every page.
-         - CAVEAT: the URLs are hardcoded to https://manzilbharat.
-           onrender.com. Moving to a custom domain means updating them
-           (or generating them from APP_ORIGIN).
+         - The URLs are hardcoded to https://manzilbharat.eu.org; if the domain
+           changes again, update the canonical/og tags on every page (or
+           generate them from APP_ORIGIN).
 
-  DONE WHEN: https://your-app.on-render.com loads in <3s on mobile
+  DONE WHEN: https://manzilbharat.eu.org loads in <3s on mobile
   throttling, and sign up + booking works on that URL.
-  -> PHASE 2 COMPLETE (all 6 steps) at https://manzilbharat.onrender.com
-     (note: NO hyphen - manzil-bharat.onrender.com is someone else's).
+  -> PHASE 2 COMPLETE (all 6 steps) at https://manzilbharat.eu.org
+     (now served on the custom domain, not the old Render URL).
      Measured after steps 4-5: a cold first visit (homepage + hero +
      icon + the 3 local scripts) transfers ~221 KB, and the homepage
      alone is 29,937 -> 7,188 bytes (br). Sign-up -> login -> booking

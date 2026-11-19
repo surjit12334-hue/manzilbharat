@@ -200,7 +200,7 @@ ALLOWED_ORIGINS = [
     "https://surjit12334-hue.github.io"
 ]
 # The live origin(s), comma separated, set in the host dashboard:
-#   APP_ORIGIN=https://manzil-bharat.onrender.com
+#   APP_ORIGIN=https://manzilbharat.eu.org
 # Without this the deployed site falls outside the CORS allow-list and the
 # forgot-password handler refuses the page's own origin, silently rebuilding
 # reset links against whatever host the proxy forwarded.

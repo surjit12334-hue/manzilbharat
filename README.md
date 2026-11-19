@@ -4,7 +4,7 @@ An AI-assisted travel planner for India: search any destination, get an AI
 travel card, explore it on a map with photos, and (once signed in) plan and
 save trips. Includes an admin panel for users, bookings and payments.
 
-**Live demo:** https://manzilbharat.onrender.com (free Render tier — the first
+**Live demo:** https://manzilbharat.eu.org (free Render tier — the first
 request after ~15 idle minutes takes up to a minute to wake the instance).
 
 ---
@@ -79,7 +79,10 @@ Prefer clicking it yourself? *New → Web Service*, Language **Docker**, and use
    *Not Render's free Postgres*: it is deleted 30 days after creation unless
    you upgrade.
 2. **Service — Render.** The blueprint fills in `healthCheckPath: /api/health`,
-   the Docker runtime and the env vars below.
+   the Docker runtime and the env vars below. In the Render dashboard add the
+   custom domain `manzilbharat.eu.org` (Settings → Custom Domains) and point
+   the DNS records at the hostname Render gives you; `APP_ORIGIN` below must
+   match that domain exactly.
 3. **Apply the schema from your machine** (free services have no shell and no
    one-off jobs):
 
@@ -109,10 +112,10 @@ Prefer clicking it yourself? *New → Web Service*, Language **Docker**, and use
    | `GEMINI_API_KEY` | from <https://aistudio.google.com/apikey> |
    | `GOOGLE_CLIENT_ID` | optional, see step 5 |
    | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | optional, Razorpay **TEST** keys (payments answer 503 without them) |
-   | `APP_ORIGIN` | `https://<your-service>.onrender.com` |
+   | `APP_ORIGIN` | `https://manzilbharat.eu.org` |
    | `EMAIL_PROVIDER`, `RESEND_API_KEY`, `EMAIL_FROM` | HTTPS reset mail, see step 6 |
 
-5. **Google Sign-In** — add `https://<your-service>.onrender.com` to
+5. **Google Sign-In** — add `https://manzilbharat.eu.org` to
    *Authorized JavaScript origins* in the Google Cloud console, then set
    `GOOGLE_CLIENT_ID`. Everything else works without it; only the Google
    button needs it.
@@ -126,7 +129,7 @@ Prefer clicking it yourself? *New → Web Service*, Language **Docker**, and use
 7. **Smoke test.**
 
    ```bash
-   curl https://<your-service>.onrender.com/api/health   # {"db":"ok",...}
+   curl https://manzilbharat.eu.org/api/health   # {"db":"ok",...}
    ```
 
    then sign up, plan a trip, book it, cancel it, find it in My Trips.
@@ -306,8 +309,8 @@ database name does not contain "test", precisely because every test truncates.
 Smoke test after a deploy:
 
 ```bash
-curl -i https://manzilbharat.onrender.com/api/stats   # expect 401
-curl https://manzilbharat.onrender.com/api/health     # {"db":"ok","status":"ok"}
+curl -i https://manzilbharat.eu.org/api/stats   # expect 401
+curl https://manzilbharat.eu.org/api/health     # {"db":"ok","status":"ok"}
 ```
 
 ---
