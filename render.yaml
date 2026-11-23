@@ -47,10 +47,12 @@ services:
       - key: DB_CONNECT_TIMEOUT
         value: "5"
 
-      # --- The live origin. MUST equal the custom domain pointing at this
-      # --- service; change it if the domain ever changes. ---
+      # --- The live origin(s), comma separated. Keep BOTH until the custom
+      # --- domain resolves everywhere: the Render hostname is what actually
+      # --- serves the site today, and a missing origin breaks CORS + reset
+      # --- links. Change this if the domain/service name ever changes. ---
       - key: APP_ORIGIN
-        value: https://manzilbharat.eu.org
+        value: https://manzilbharat.eu.org,https://manzilbharat.onrender.com
 
       # --- Secrets (never committed, prompted by Render) ---
       - key: JWT_SECRET
@@ -61,6 +63,13 @@ services:
         sync: false
       - key: GEMINI_API_KEY
         sync: false
+      # Razorpay TEST keys only (rzp_test_...). Without both, /api/payments/*
+      # answers 503 and the "Pay (test)" beat of DEMO.md cannot be shown.
+      # The key id is public (checkout needs it); the secret stays server-side.
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
 
       # --- Plain config ---
       - key: ADMIN_EMAIL
@@ -69,8 +78,11 @@ services:
         value: gemini-3.6-flash
       # SMTP is NOT set: Render's free plan blocks outbound 25/465/587, so
       # password-reset mail goes out over HTTPS instead (port 443).
+      # Empty = inferred from whichever key is present (resend > brevo > smtp).
+      # Setting "resend" without a RESEND_API_KEY makes reset mail fail at
+      # runtime, so leave this blank unless you intend to configure a key.
       - key: EMAIL_PROVIDER
-        value: resend
+        value: ""
       - key: RESEND_API_KEY
         sync: false
       - key: EMAIL_FROM
