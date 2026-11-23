@@ -994,11 +994,17 @@ PHASE 6 - PRESENTATION & SUBMISSION                          [1 day]
              showed Rs.0. Fixed: it now counts 'captured' and the seeded
              'completed' rows (one test covers both).
   [ ] 2. Screenshots/video backup for every step (network can fail)
-  [ ] 3. Update aboutus.html team photos (compress them first)
-  [ ] 4. Final cross-check of all 18 pages: no broken links, no
+  [x] 3. Update aboutus.html team photos (compress them first)
+         CHECKED: the five photos are already 150-400 px and 4-29 KB
+         each, so no recompression was needed.
+  [x] 4. Final cross-check of all 18 pages: no broken links, no
          lorem ipsum, forms all work
-  [ ] 5. ROADMAP + README updated to reflect reality
-  [ ] 6. Tag the repo:  git tag -a v1.0 && git push --tags
+         CHECKED: all 18 pages scanned - zero broken local links, zero
+         missing assets, zero placeholder text; 354 backend tests and
+         ruff pass. Live clean URLs verified on the deployed service.
+  [x] 5. ROADMAP + README updated to reflect reality
+  [x] 6. Tag the repo:  git tag -a v1.0 && git push --tags
+         DONE: annotated tag v1.0 pushed, pointing at the release commit.
 
 
 ===============================================================================
