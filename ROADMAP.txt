@@ -998,7 +998,7 @@ PHASE 6 - PRESENTATION & SUBMISSION                          [1 day]
   [ ] 4. Final cross-check of all 18 pages: no broken links, no
          lorem ipsum, forms all work
   [ ] 5. ROADMAP + README updated to reflect reality
-  [ ] 6. Tag the repo:  git tag -a v1.0-sih && git push --tags
+  [ ] 6. Tag the repo:  git tag -a v1.0 && git push --tags
 
 
 ===============================================================================
