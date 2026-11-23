@@ -1028,4 +1028,21 @@ SUGGESTED SCHEDULE (solo, part-time)
   If time runs short: Phase 0, 1, 2, 3 and 6 are MANDATORY.
   Phase 4 items 1-3 and Phase 5 item 1 are the highest-value extras.
 
+
+===============================================================================
+DEFERRED UNTIL AFTER LAUNCH (recorded on purpose, not launch work)
+===============================================================================
+  - Exact-budget input. The planner only understands three tiers, the total
+    is the sum of Gemini's day costs, and the cache key is tier-based. A
+    free-form amount would promise precision the engine cannot deliver and
+    would break the pre-warmed demo plan. Start with an advisory "target
+    total" comparison (frontend only), then add a capped re-planning
+    endpoint with tests for the cap, the split and the cache key.
+  - Origin-aware planning ("current place" -> destination). Today the origin
+    is collected only on bookings (source), there is no route/distance data,
+    and browser geolocation is deliberately denied by Permissions-Policy.
+    Needs a route provider, a prompt + cache-key change, and a privacy
+    decision. Until then the honest story is: destination drives the plan,
+    bookings capture where you are travelling from and to.
+
 ===============================================================================
