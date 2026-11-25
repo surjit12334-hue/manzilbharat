@@ -4,8 +4,10 @@ An AI-assisted travel planner for India: search any destination, get an AI
 travel card, explore it on a map with photos, and (once signed in) plan and
 save trips. Includes an admin panel for users, bookings and payments.
 
-**Live demo:** https://manzilbharat.eu.org (free Render tier — the first
+**Live demo:** https://manzilbharat.onrender.com (free Render tier — the first
 request after ~15 idle minutes takes up to a minute to wake the instance).
+The custom domain `manzilbharat.eu.org` is configured in Render but is still
+waiting for DNS propagation; use the onrender URL until it resolves.
 
 ---
 

@@ -25,6 +25,11 @@ end of this file.
 | 8 | Fresh email each run | `riya1@…`, `riya2@…`, `riya3@…` — signup refuses a duplicate |
 | 9 | Use one of the curated five | Delhi, Goa, Jaipur, Manali, Varanasi. Anything else honestly shows the fallback page. |
 
+**Demo URL:** use `https://manzilbharat.onrender.com`. The custom domain
+`manzilbharat.eu.org` is configured but still waiting on DNS; all page metadata
+and `APP_ORIGIN` currently point at the onrender URL so links and sign-in work
+on launch day.
+
 Signup values that pass validation first time (11 fields — rehearse this beat
 until it takes 15 seconds):
 **Name** `Riya Sharma` · **Email** `riya1@example.com` · **Contact**
